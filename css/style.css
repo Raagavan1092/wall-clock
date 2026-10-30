@@ -1,0 +1,251 @@
+:root {
+  --bg: #0b0a08;
+  --dial-bg: #15120d;
+  --ring-fill: #2a2113;
+  --ring-fill-alt: #332817;
+  --ring-neutral: #1c180f;
+  --ring-stroke: #5a4a2a;
+  --nakshatra-ring-fill: #363329;
+  --tithi-ring-fill: #363329;
+  --next-fill: #7e3c16;
+  --next-label: #f0cba8;
+  --daynight-day: #ffb000;
+  --daynight-night: #000000;
+  --tick-major: #c9a85c;
+  --tick-minor: #6b5a35;
+  --numeral: #e8d8a8;
+  --hand: #e0392b;
+  --hub: #e0392b;
+  --centre-text: #f0e6c8;
+  --centre-ghati: #ffd77a;
+  --centre-clock-secondary: #a89a78;
+  --contested: #e0392b;
+  --bad-fill: #3a1512;
+  --bad-label: #ff8a75;
+  --good-fill: #10283a;
+  --good-label: #7cc4ff;
+  --label: #f3e6c0;
+  --tooltip-bg: #1c1812;
+  --tooltip-text: #f0e6c8;
+  --tooltip-border: #5a4a2a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#dial {
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  background: var(--dial-bg);
+  border-radius: 50%;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: pointer;
+}
+
+.ring-boundary, .ghati-scale-boundary {
+  fill: none;
+  stroke: var(--ring-stroke);
+  stroke-width: 1.5;
+}
+
+.ring-segment {
+  fill: var(--ring-fill);
+  stroke: var(--dial-bg);
+  stroke-width: 2;
+}
+.ring-segment:nth-of-type(odd) { fill: var(--ring-fill-alt); }
+.ring-segment.neutral { fill: var(--ring-neutral); }
+.ring-segment.contested { stroke: var(--contested); stroke-dasharray: 4 3; }
+
+/* Good/bad-time rings (Rahu/Yama/Gulika, Marana/Visha/Amrita/Sarvartha-
+   Siddhi/Ravi Yoga, see ring-adapter.js buildGoodBadRings): inauspicious
+   spans in red, auspicious ones in blue. These rules come after the
+   `:nth-of-type(odd)`/`.neutral` ones above so they win the (equal-
+   specificity) cascade on an active segment regardless of its position. */
+.ring-segment.bad { fill: var(--bad-fill); }
+.ring-segment.good { fill: var(--good-fill); }
+.bad-label { fill: var(--bad-label); font-weight: 600; }
+.good-label { fill: var(--good-label); font-weight: 600; }
+
+.nakshatra-ring .ring-segment { fill: var(--nakshatra-ring-fill); }
+.tithi-ring .ring-segment { fill: var(--tithi-ring-fill); }
+.ring-segment.next-segment { fill: var(--next-fill); }
+.next-label { fill: var(--next-label); font-style: italic; }
+
+.tick-major { stroke: var(--tick-major); stroke-width: 2.5; }
+.tick-minor { stroke: var(--tick-minor); stroke-width: 1; }
+
+.dial-label {
+  fill: var(--label);
+  font-size: 15px;
+  pointer-events: none;
+}
+.ghati-numeral { fill: var(--numeral); font-weight: 600; }
+.ghati-numeral-minor { fill: var(--tick-minor); font-weight: 400; }
+.contested-label { fill: var(--contested); }
+.contested-marker { fill: var(--contested); pointer-events: none; }
+.label-path { fill: none; stroke: none; }
+.curved-label { font-weight: 500; }
+
+.hand-line { stroke: var(--hand); stroke-width: 5; stroke-linecap: round; }
+.hand-hub { fill: var(--hub); }
+.pala-hand-line { stroke: var(--centre-ghati); stroke-width: 2.5; stroke-linecap: round; opacity: 0.85; }
+.centre-plate { fill: var(--dial-bg); }
+
+.daynight-segment { stroke: var(--dial-bg); stroke-width: 2; }
+.daynight-day { fill: var(--daynight-day); }
+.daynight-night { fill: var(--daynight-night); }
+
+.centre-line {
+  fill: var(--centre-text);
+  font-size: 20px;
+  pointer-events: none;
+}
+.centre-line-ghati {
+  fill: var(--centre-ghati);
+  font-size: 40px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.centre-line-clock-secondary {
+  fill: var(--centre-clock-secondary);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.centre-line-sub {
+  font-size: 22px;
+  font-weight: 400;
+  fill: var(--centre-clock-secondary);
+}
+
+#settings-toggle {
+  position: absolute;
+  top: 3%;
+  right: 3%;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(21, 18, 13, 0.7);
+  color: var(--numeral);
+  border: 1px solid var(--ring-stroke);
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 5;
+}
+#settings-toggle:hover { background: rgba(42, 33, 19, 0.9); }
+
+#settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 90vw);
+  overflow-y: auto;
+  background: #1a1510;
+  color: var(--centre-text);
+  border-left: 1px solid var(--ring-stroke);
+  padding: 20px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  z-index: 20;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
+}
+#settings-panel.hidden { display: none; }
+#settings-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #332817;
+  color: var(--centre-text);
+  border: 1px solid var(--ring-stroke);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+#settings-panel h2 { margin-top: 0; color: var(--centre-ghati); }
+#settings-panel h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--numeral); margin-bottom: 8px; }
+#settings-panel section { margin-bottom: 22px; }
+#settings-panel label { display: block; margin-bottom: 8px; font-size: 14px; }
+#settings-panel input[type="number"],
+#settings-panel input[type="datetime-local"] {
+  width: 100%;
+  background: #262019;
+  color: var(--centre-text);
+  border: 1px solid #555;
+  padding: 5px 8px;
+  margin-top: 3px;
+}
+#settings-panel select {
+  width: 100%;
+  background: #262019;
+  color: var(--centre-text);
+  border: 1px solid #555;
+  padding: 5px 8px;
+}
+#settings-panel .settings-note { font-size: 12px; color: #a89a78; margin: 6px 0 0; }
+#settings-panel button {
+  background: #332817;
+  color: var(--centre-text);
+  border: 1px solid var(--ring-stroke);
+  padding: 6px 14px;
+  cursor: pointer;
+  margin-top: 6px;
+}
+#settings-panel button:disabled { opacity: 0.3; cursor: default; }
+#set-ring-order { list-style: none; padding: 0; margin: 0; }
+#set-ring-order li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: #221c14;
+  border: 1px solid #3a3022;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+#set-ring-order li button { padding: 2px 8px; margin: 0 0 0 4px; }
+.settings-actions { display: flex; gap: 10px; }
+.settings-actions button { flex: 1; }
+#settings-save { background: var(--ring-stroke); font-weight: 600; }
+#set-time { margin-right: 8px; }
+#set-time-live { font-style: italic; }
+
+/* Custom dark-mode tooltip for ring segments (replaces SVG's native <title>,
+   which is OS-rendered and can't be styled - see dial.js attachTooltip).
+   A light-mode variant is a later concern. */
+.dial-tooltip {
+  position: fixed;
+  z-index: 50;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
+  border: 1px solid var(--tooltip-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}

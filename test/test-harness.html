@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vedic Wall Clock — Engine Validation Harness</title>
+<style>
+  body { font-family: ui-monospace, Consolas, monospace; margin: 2rem; background: #111; color: #ddd; }
+  h1 { font-size: 1.1rem; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; font-size: 0.85rem; }
+  th, td { border: 1px solid #444; padding: 4px 8px; text-align: left; white-space: nowrap; }
+  th { background: #222; position: sticky; top: 0; }
+  tr.ok td.diff { color: #7fd17f; }
+  tr.warn td.diff { color: #e0c060; }
+  tr.bad td.diff { color: #e06060; }
+  .summary { background: #1a1a1a; padding: 1rem; border: 1px solid #444; margin-bottom: 1rem; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; margin-right: 1rem; }
+  code { color: #9cf; }
+</style>
+</head>
+<body>
+<h1>Vedic Wall Clock — Engine vs. drikpanchang.com (Sringeri) validation</h1>
+<div id="summary" class="summary">Loading...</div>
+<div id="tables"></div>
+
+<script src="../js/vendor/astronomy.browser.js"></script>
+<script src="../js/engine/util.js"></script>
+<script src="../js/engine/ayanamsa.js"></script>
+<script src="../js/engine/sunrise.js"></script>
+<script src="../js/engine/sidereal.js"></script>
+<script src="../js/engine/elongation.js"></script>
+<script src="../js/engine/tithi.js"></script>
+<script src="../js/engine/nakshatra.js"></script>
+<script src="../js/engine/yoga.js"></script>
+<script src="../js/engine/karana.js"></script>
+<script src="../js/engine/masa.js"></script>
+<script src="../js/engine/scaled-intervals.js"></script>
+<script src="../js/engine/ghati.js"></script>
+<script src="../js/engine/panchanga.js"></script>
+<script>
+(async function () {
+  const E = window.VedicEngine;
+
+  const [data, fixtures] = await Promise.all([
+    fetch("../js/data/panchanga-data.json").then(r => r.json()),
+    fetch("fixtures/sringeri-reference.json").then(r => r.json()),
+  ]);
+
+  const location = Object.assign({}, fixtures.location);
+  const ayanamsaName = "lahiri";
+  const edge = "upper-limb"; // drikpanchang uses civil (upper-limb+refraction) sunrise
+
+  function secDiff(expectedIso, computedDate) {
+    if (!expectedIso || !computedDate) return null;
+    const expected = new Date(expectedIso);
+    return (computedDate.getTime() - expected.getTime()) / 1000;
+  }
+
+  function fmt(date) {
+    if (!date) return "-";
+    return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour12: false,
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+
+  function rowClass(absSec, warnAt, badAt) {
+    if (absSec == null) return "";
+    if (absSec > badAt) return "bad";
+    if (absSec > warnAt) return "warn";
+    return "ok";
+  }
+
+  const rows = [];
+  const diffsByField = {}; // field -> array of abs-seconds diffs
+
+  function pushDiff(field, absSec) {
+    if (absSec == null) return;
+    (diffsByField[field] = diffsByField[field] || []).push(absSec);
+  }
+
+  for (const fx of fixtures.dates) {
+    // drikpanchang's day-panchang page reports whichever tithi/nakshatra/yoga is
+    // active AT SUNRISE, not at noon - querying at noon would pick up the *next*
+    // interval whenever a boundary falls between sunrise and noon (this bit us
+    // during development: several nakshatra/yoga "mismatches" turned out to be
+    // exactly that, not engine bugs). Query shortly after the published sunrise instead.
+    const queryTime = new Date(new Date(fx.sunrise).getTime() + 2 * 60000);
+    let snap;
+    try {
+      snap = E.Panchanga.compute(queryTime, { location, ayanamsa: ayanamsaName, sunriseEdge: edge });
+    } catch (err) {
+      rows.push({ date: fx.date, field: "ERROR", expected: "-", computed: String(err), diff: "-", cls: "bad" });
+      continue;
+    }
+
+    // Sunrise / sunset
+    let d = secDiff(fx.sunrise, snap.anchors.governingSunrise);
+    pushDiff("sunrise", Math.abs(d));
+    rows.push({ date: fx.date, field: "sunrise", expected: fx.sunrise, computed: fmt(snap.anchors.governingSunrise), diff: d.toFixed(1) + "s", cls: rowClass(Math.abs(d), 60, 300) });
+
+    d = secDiff(fx.sunset, snap.anchors.sunsetToday);
+    pushDiff("sunset", Math.abs(d));
+    rows.push({ date: fx.date, field: "sunset", expected: fx.sunset, computed: fmt(snap.anchors.sunsetToday), diff: d.toFixed(1) + "s", cls: rowClass(Math.abs(d), 60, 300) });
+
+    // Tithi
+    const tithiNumMatch = snap.tithi.number === fx.tithiExpectedNumber;
+    d = secDiff(fx.tithiEnd, snap.tithi.endTime);
+    pushDiff("tithiEnd", Math.abs(d));
+    rows.push({
+      date: fx.date, field: "tithi #" + fx.tithiExpectedNumber + (tithiNumMatch ? "" : " <-- NUMBER MISMATCH (got " + snap.tithi.number + ")"),
+      expected: fx.tithiEnd, computed: fmt(snap.tithi.endTime), diff: d.toFixed(1) + "s",
+      cls: tithiNumMatch ? rowClass(Math.abs(d), 60, 300) : "bad",
+    });
+
+    // Nakshatra (by name, resolved via data file)
+    const nakName = data.nakshatra.names[snap.nakshatra.index];
+    const nakMatch = nakName === fx.nakshatraName;
+    if (fx.nakshatraEnd) {
+      d = secDiff(fx.nakshatraEnd, snap.nakshatra.endTime);
+      pushDiff("nakshatraEnd", Math.abs(d));
+      rows.push({
+        date: fx.date, field: "nakshatra " + fx.nakshatraName + (nakMatch ? "" : " <-- NAME MISMATCH (got " + nakName + ")"),
+        expected: fx.nakshatraEnd, computed: fmt(snap.nakshatra.endTime), diff: d.toFixed(1) + "s",
+        cls: nakMatch ? rowClass(Math.abs(d), 60, 300) : "bad",
+      });
+    } else {
+      rows.push({ date: fx.date, field: "nakshatra " + fx.nakshatraName + (nakMatch ? " (name OK)" : " <-- NAME MISMATCH (got " + nakName + ")"), expected: "(no end time published - " + fx.nakshatraEndNote + ")", computed: fmt(snap.nakshatra.endTime), diff: "-", cls: nakMatch ? "ok" : "bad" });
+    }
+
+    // Yoga (by name)
+    const yogaName = data.yoga.names[snap.yoga.index];
+    const yogaMatch = yogaName === fx.yogaName;
+    d = secDiff(fx.yogaEnd, snap.yoga.endTime);
+    pushDiff("yogaEnd", Math.abs(d));
+    rows.push({
+      date: fx.date, field: "yoga " + fx.yogaName + (yogaMatch ? "" : " <-- NAME MISMATCH (got " + yogaName + ")"),
+      expected: fx.yogaEnd, computed: fmt(snap.yoga.endTime), diff: d.toFixed(1) + "s",
+      cls: yogaMatch ? rowClass(Math.abs(d), 60, 300) : "bad",
+    });
+
+    // Ayanamsa
+    const computedAyanamsa = E.Ayanamsa.get(ayanamsaName, queryTime);
+    const ayDiffArcsec = (computedAyanamsa - fx.ayanamshaDeg) * 3600;
+    pushDiff("ayanamsaArcsec", Math.abs(ayDiffArcsec));
+    rows.push({
+      date: fx.date, field: "ayanamsa (Lahiri)",
+      expected: fx.ayanamshaDeg.toFixed(6) + "°", computed: computedAyanamsa.toFixed(6) + "°",
+      diff: ayDiffArcsec.toFixed(1) + '"', cls: rowClass(Math.abs(ayDiffArcsec), 30, 120),
+    });
+  }
+
+  // Structural invariant checks: these don't compare against drikpanchang (no
+  // external reference for "an hour before sunrise"), but they catch a whole
+  // bug class the boundary-time comparisons above never exercise, since every
+  // query above lands just AFTER sunrise. This is exactly how a real bug slipped
+  // through here during development: sunriseAfter()/sunsetAfter() searched
+  // starting exactly AT the instant they were handed (often itself an exact
+  // sunrise/sunset returned by another search), and astronomy-engine's
+  // boundary-inclusive search occasionally returned that same instant back,
+  // silently collapsing nextSunrise to governingSunrise and producing
+  // backwards/zero-length night intervals - invisible to the harness until the
+  // dial was actually driven through a pre-sunrise time by hand. Fixed in
+  // sunrise.js by nudging every chained search 1s past the instant it's handed.
+  let invariantFailures = 0, invariantChecks = 0;
+  for (const fx of fixtures.dates) {
+    const preDawn = new Date(new Date(fx.sunrise).getTime() - 60 * 60000); // 1h before sunrise
+    let snap;
+    try {
+      snap = E.Panchanga.compute(preDawn, { location, ayanamsa: ayanamsaName, sunriseEdge: edge });
+    } catch (err) {
+      invariantChecks++; invariantFailures++;
+      rows.push({ date: fx.date + " (pre-dawn)", field: "compute() threw", expected: "-", computed: String(err), diff: "-", cls: "bad" });
+      continue;
+    }
+    const a = snap.anchors;
+    const checks = [
+      ["previousSunset < governingSunrise", a.previousSunset < a.governingSunrise],
+      ["governingSunrise < sunsetToday", a.governingSunrise < a.sunsetToday],
+      ["sunsetToday < nextSunrise", a.sunsetToday < a.nextSunrise],
+      ["governingSunrise is YESTERDAY's sunrise", a.governingSunrise.getTime() < new Date(fx.sunrise).getTime()],
+      ["ghati in [0,60)", snap.ghati.ghati >= 0 && snap.ghati.ghati < 60],
+    ];
+    checks.forEach(function ([label, ok]) {
+      invariantChecks++;
+      if (!ok) invariantFailures++;
+      rows.push({ date: fx.date + " (pre-dawn)", field: "invariant: " + label, expected: "true", computed: String(ok), diff: ok ? "-" : "FAIL", cls: ok ? "ok" : "bad" });
+    });
+  }
+
+  // Render table
+  const table = document.createElement("table");
+  table.innerHTML = "<thead><tr><th>Date</th><th>Field</th><th>Expected (drikpanchang)</th><th>Computed (engine)</th><th>Diff</th></tr></thead>";
+  const tbody = document.createElement("tbody");
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    tr.className = r.cls;
+    tr.innerHTML = `<td>${r.date}</td><td>${r.field}</td><td>${r.expected}</td><td>${r.computed}</td><td class="diff">${r.diff}</td>`;
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  document.getElementById("tables").appendChild(table);
+
+  // Summary
+  function stats(arr) {
+    if (!arr || !arr.length) return null;
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const max = Math.max(...arr);
+    return { n: arr.length, mean, max };
+  }
+  const summaryLines = [
+    `Location used for comparison: drikpanchang's own Sringeri coordinates (${location.latitude}, ${location.longitude}, ${location.elevation_m}m) — NOT the app's default (13.42, 75.25, 672m); a few-metre elevation difference is not the point of this test.`,
+    `Pre-dawn structural invariants: ${invariantChecks - invariantFailures}/${invariantChecks} passed${invariantFailures ? " — " + invariantFailures + " FAILED, see rows below" : ""}.`,
+  ];
+  for (const field of Object.keys(diffsByField)) {
+    const s = stats(diffsByField[field]);
+    const unit = field === "ayanamsaArcsec" ? "arcsec" : "sec";
+    summaryLines.push(`${field}: n=${s.n}, mean=${s.mean.toFixed(1)}${unit}, max=${s.max.toFixed(1)}${unit}`);
+  }
+  document.getElementById("summary").innerHTML = "<strong>Summary</strong><br>" + summaryLines.map(l => `<div>${l}</div>`).join("");
+})().catch(err => {
+  document.getElementById("summary").textContent = "FATAL: " + err.stack;
+  console.error(err);
+});
+</script>
+</body>
+</html>

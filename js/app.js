@@ -1,0 +1,377 @@
+// Wiring: load data, run the tick loop, handle ring-cycling input, the
+// settings panel, and the debug time override. This is the only file that
+// touches both the engine (via VedicEngine.Panchanga) and the DOM/renderer
+// (via VedicEngine.Dial / RingAdapter) - dial.js and ring-adapter.js stay
+// agnostic of each other.
+(function () {
+  "use strict";
+
+  const E = window.VedicEngine;
+
+  const params = new URLSearchParams(window.location.search);
+
+  // Time override: an offset applied to the real clock, so the dial keeps
+  // ticking forward from whatever instant it's set to rather than freezing.
+  // User-facing (via the Time section in the settings panel), with ?t= as a
+  // quick way to load a specific starting instant from a URL.
+  let timeOffsetMs = 0;
+  const tParam = params.get("t");
+  if (tParam) {
+    const parsed = new Date(tParam);
+    if (!isNaN(parsed.getTime())) {
+      timeOffsetMs = parsed.getTime() - Date.now();
+    }
+  }
+
+  // Pause: freezes the clock at whatever instant it's at, for inspecting the
+  // dial without it changing underneath you. Resuming picks up exactly where
+  // it was paused and continues ticking forward from there (not from "now").
+  let pausedAt = null;
+
+  function getNow() {
+    return pausedAt || new Date(Date.now() + timeOffsetMs);
+  }
+
+  // User-facing settings (location/ayanamsa/sunrise-definition/ring-order),
+  // persisted to localStorage via settings.js. `activeRingOrder` is kept as
+  // its own variable (rather than re-reading settings.ringOrder everywhere)
+  // so cycling/rendering code doesn't care whether it came from a saved
+  // setting or the engine's own default order.
+  let settings = E.Settings.load();
+  let activeRingOrder = settings.ringOrder.slice();
+  let currentRingIndex = 0;
+
+  // Cache: a full Panchanga.compute() involves several astronomical searches
+  // and is only re-run when "now" falls outside the cached Vedic day, settings
+  // changed, or one of the astronomical fields (tithi/nakshatra/yoga/karana)
+  // has expired - those don't only change at sunrise, they change mid-day on
+  // their own schedule, so the day-boundary check alone isn't enough (this bit
+  // us: with tithi/nakshatra promoted to always-visible rings, a stale cache
+  // here would mean a ring silently showing the wrong value for hours).
+  let cachedSnapshot = null;
+
+  function isExpired(now, snapshot) {
+    return (
+      now < snapshot.anchors.governingSunrise ||
+      now >= snapshot.anchors.nextSunrise ||
+      now >= snapshot.tithi.endTime ||
+      now >= snapshot.nakshatra.endTime ||
+      now >= snapshot.yoga.endTime ||
+      now >= snapshot.karana.endTime
+    );
+  }
+
+  function getSnapshot(now) {
+    if (!cachedSnapshot || isExpired(now, cachedSnapshot)) {
+      cachedSnapshot = E.Panchanga.compute(now, settings);
+      return { snapshot: cachedSnapshot, changed: true };
+    }
+    return { snapshot: cachedSnapshot, changed: false };
+  }
+
+  // Forces the next render() to recompute everything from scratch - needed
+  // whenever a setting that feeds Panchanga.compute() changes.
+  function invalidateCache() {
+    cachedSnapshot = null;
+    lastRenderedRingKey = null;
+  }
+
+  let data = null;
+  let dialHandles = null;
+  let lastRenderedRingKey = null;
+  let lastOuterRingDescriptor = null;
+
+  const VARA_FALLBACK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  function fmtTime(date) {
+    return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
+  }
+
+  function buildCentreLines(now, snapshot, ringDescriptor, ghatiNow) {
+    const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
+    // `ghatiNow`, not `snapshot.ghati`: the snapshot is cached for hours at a
+    // time (see getSnapshot/isExpired above), so snapshot.ghati is whatever
+    // it was AT CACHE TIME - reading it here left this readout frozen between
+    // cache refreshes. `ghatiNow` is recomputed fresh every render() call,
+    // same as the hand angle.
+    const g = ghatiNow;
+
+    // Date is the Vedic day's own date (governingSunrise's calendar date in
+    // IST), same as vara - before today's sunrise this still reads as
+    // yesterday's date, consistently with the weekday shown.
+    const dateText = snapshot.anchors.governingSunrise.toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric",
+    });
+
+    // Ghati/pala leads (this is a Vedic clock first); the modern clock is a
+    // smaller secondary line underneath it, not the headline.
+    const lines = [
+      { text: "Ghati " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
+      { text: now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false }), emphasis: "clock-secondary" },
+      { text: dateText },
+      { text: varaName },
+    ];
+
+    // Now/next for the active switchable ring.
+    const nowSeg = ringDescriptor.segments.find(function (seg) {
+      return now >= seg.startTime && now < seg.endTime;
+    });
+    if (nowSeg) {
+      lines.push({ text: ringDescriptor.title + ": " + nowSeg.text });
+      const idx = ringDescriptor.segments.indexOf(nowSeg);
+      const nextSeg = ringDescriptor.segments[idx + 1];
+      if (nextSeg && nextSeg.text) {
+        lines.push({ text: "Next: " + nextSeg.text + " @ " + fmtTime(nextSeg.startTime) });
+      }
+    }
+
+    // Tithi/nakshatra are no longer duplicated here - they have their own
+    // always-visible rings now (dial.js nakshatraRingGroup/tithiRingGroup).
+    return lines;
+  }
+
+  function render() {
+    const now = getNow();
+    const { snapshot, changed } = getSnapshot(now);
+    const ringKey = activeRingOrder[currentRingIndex];
+
+    if (changed) {
+      // Tithi/nakshatra/day-night/good-bad-time rings only depend on the
+      // snapshot, never on which switchable ring is toggled, so they're all
+      // rebuilt whenever the snapshot itself changes.
+      E.Dial.renderNakshatraRing(dialHandles.nakshatraRingGroup, E.RingAdapter.build("nakshatra", snapshot, data));
+      E.Dial.renderTithiRing(dialHandles.tithiRingGroup, E.RingAdapter.build("tithi", snapshot, data));
+      E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
+
+      const goodBadRings = E.RingAdapter.buildGoodBadRings(snapshot, data);
+      goodBadRings.forEach(function (ring, i) {
+        E.Dial.renderGoodBadRing(dialHandles.goodBadRingGroups[ring.ringKey], ring, i);
+      });
+    }
+    if (changed || ringKey !== lastRenderedRingKey) {
+      lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
+      E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor);
+      lastRenderedRingKey = ringKey;
+    }
+
+    const ghatiNow = E.Ghati.current(now, snapshot.anchors);
+    E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
+    E.Dial.setPalaHand(dialHandles.palaHandGroup, ghatiNow.palaAngleDeg);
+    E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow));
+  }
+
+  function cycleRing(delta) {
+    currentRingIndex = (currentRingIndex + delta + activeRingOrder.length) % activeRingOrder.length;
+    render();
+  }
+
+  function wireInput(svg) {
+    svg.addEventListener("click", function () { cycleRing(1); });
+
+    window.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === " ") cycleRing(1);
+      else if (e.key === "ArrowLeft") cycleRing(-1);
+    });
+
+    let touchStartX = null;
+    svg.addEventListener("touchstart", function (e) { touchStartX = e.changedTouches[0].clientX; }, { passive: true });
+    svg.addEventListener("touchend", function (e) {
+      if (touchStartX == null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 40) cycleRing(dx < 0 ? 1 : -1);
+      touchStartX = null;
+    }, { passive: true });
+  }
+
+  // Time control lives in the settings panel (see index.html's "Time"
+  // section) but applies immediately on change, unlike the other settings
+  // which wait for Save - scrubbing time is a live control, not a persisted
+  // preference, so there's nothing to persist and no reason to make it wait.
+  function wireTimeControl() {
+    const input = document.getElementById("set-time");
+    const nowBtn = document.getElementById("set-time-now");
+    const pauseBtn = document.getElementById("set-time-pause");
+    const liveIndicator = document.getElementById("set-time-live");
+
+    function syncInput() {
+      const now = getNow();
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+      input.value = local.toISOString().slice(0, 16);
+      liveIndicator.textContent = pausedAt ? "Paused" : timeOffsetMs === 0 ? "Live (following real time)" : "Overridden - not following real time";
+      pauseBtn.textContent = pausedAt ? "Resume" : "Pause";
+    }
+    syncInput();
+
+    input.addEventListener("change", function () {
+      const parsed = new Date(input.value);
+      if (!isNaN(parsed.getTime())) {
+        if (pausedAt) {
+          pausedAt = parsed; // stay paused, but at the newly-set instant
+        } else {
+          timeOffsetMs = parsed.getTime() - Date.now();
+        }
+        syncInput();
+        render();
+      }
+    });
+    nowBtn.addEventListener("click", function () {
+      timeOffsetMs = 0;
+      pausedAt = null;
+      syncInput();
+      render();
+    });
+    pauseBtn.addEventListener("click", function () {
+      if (pausedAt) {
+        // Resume from exactly where it was paused, not from real "now".
+        timeOffsetMs = pausedAt.getTime() - Date.now();
+        pausedAt = null;
+      } else {
+        pausedAt = getNow();
+      }
+      syncInput();
+      render();
+    });
+
+    // Keep the field in sync while it's not focused, so it visibly ticks
+    // forward if left open (and so reopening settings later shows "now").
+    setInterval(function () {
+      if (document.activeElement !== input) syncInput();
+    }, 1000);
+  }
+
+  function wireSettingsPanel() {
+    const toggleBtn = document.getElementById("settings-toggle");
+    const panel = document.getElementById("settings-panel");
+    const latInput = document.getElementById("set-lat");
+    const lonInput = document.getElementById("set-lon");
+    const elevInput = document.getElementById("set-elev");
+    const resetLocationBtn = document.getElementById("set-location-reset");
+    const ayanamsaSelect = document.getElementById("set-ayanamsa");
+    const ringOrderList = document.getElementById("set-ring-order");
+    const saveBtn = document.getElementById("settings-save");
+    const cancelBtn = document.getElementById("settings-cancel");
+    const closeBtn = document.getElementById("settings-close");
+
+    // Working copy of the ring order, only committed to `settings` on Save.
+    let workingRingOrder = activeRingOrder.slice();
+
+    function renderRingOrderList() {
+      ringOrderList.innerHTML = "";
+      workingRingOrder.forEach(function (key, i) {
+        const li = document.createElement("li");
+        const label = document.createElement("span");
+        label.textContent = E.RingAdapter.RING_TITLES[key] || key;
+        li.appendChild(label);
+
+        const upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.textContent = "↑";
+        upBtn.disabled = i === 0;
+        upBtn.addEventListener("click", function () {
+          [workingRingOrder[i - 1], workingRingOrder[i]] = [workingRingOrder[i], workingRingOrder[i - 1]];
+          renderRingOrderList();
+        });
+
+        const downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.textContent = "↓";
+        downBtn.disabled = i === workingRingOrder.length - 1;
+        downBtn.addEventListener("click", function () {
+          [workingRingOrder[i], workingRingOrder[i + 1]] = [workingRingOrder[i + 1], workingRingOrder[i]];
+          renderRingOrderList();
+        });
+
+        li.appendChild(upBtn);
+        li.appendChild(downBtn);
+        ringOrderList.appendChild(li);
+      });
+    }
+
+    function populateForm() {
+      latInput.value = settings.location.latitude;
+      lonInput.value = settings.location.longitude;
+      elevInput.value = settings.location.elevation;
+      ayanamsaSelect.value = settings.ayanamsa;
+      Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
+        radio.checked = radio.value === settings.sunriseEdge;
+      });
+      workingRingOrder = activeRingOrder.slice();
+      renderRingOrderList();
+    }
+
+    function open() {
+      populateForm();
+      panel.classList.remove("hidden");
+    }
+    function close() {
+      panel.classList.add("hidden");
+    }
+
+    toggleBtn.addEventListener("click", function () {
+      if (panel.classList.contains("hidden")) open(); else close();
+    });
+    cancelBtn.addEventListener("click", close);
+
+    resetLocationBtn.addEventListener("click", function () {
+      const d = E.Settings.defaults().location;
+      latInput.value = d.latitude;
+      lonInput.value = d.longitude;
+      elevInput.value = d.elevation;
+    });
+
+    // Returns true on success (and closes), false if validation failed (stays open).
+    function saveAndClose() {
+      const lat = parseFloat(latInput.value);
+      const lon = parseFloat(lonInput.value);
+      const elev = parseFloat(elevInput.value);
+      if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return false; }
+      if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return false; }
+      if (!isFinite(elev) || elev < 0) { elevInput.focus(); return false; }
+
+      const sunriseEdge = (document.querySelector('input[name="sunriseEdge"]:checked') || {}).value || "upper-limb";
+
+      settings = {
+        location: Object.assign({}, settings.location, { latitude: lat, longitude: lon, elevation: elev }),
+        ayanamsa: ayanamsaSelect.value,
+        sunriseEdge: sunriseEdge,
+        ringOrder: workingRingOrder.slice(),
+      };
+      E.Settings.save(settings);
+      activeRingOrder = settings.ringOrder.slice();
+      currentRingIndex = 0;
+      invalidateCache();
+      render();
+      close();
+      return true;
+    }
+
+    saveBtn.addEventListener("click", saveAndClose);
+    // The × at the top behaves like Save, not Cancel: per the project owner,
+    // closing via the corner button should keep whatever's in the form, the
+    // same as clicking Save - only the bottom Cancel button discards.
+    closeBtn.addEventListener("click", saveAndClose);
+  }
+
+  async function main() {
+    data = await fetch("js/data/panchanga-data.json", { cache: "no-store" }).then(function (r) { return r.json(); });
+
+    const svg = document.getElementById("dial");
+    dialHandles = E.Dial.buildStaticStructure(svg);
+
+    wireInput(svg);
+    wireTimeControl();
+    wireSettingsPanel();
+
+    render();
+    // 100ms (not 1000ms): the ghati/pala/vipala readout should tick visibly
+    // and smoothly, the way a seconds hand does, rather than jumping in
+    // whole-second steps - vipala alone is worth 0.4s, so a 1s render rate
+    // made it skip values instead of stepping through them.
+    setInterval(render, 100);
+  }
+
+  main().catch(function (err) {
+    console.error(err);
+    document.body.textContent = "Fatal error: " + err.message;
+  });
+})();

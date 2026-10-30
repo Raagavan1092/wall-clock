@@ -1,0 +1,216 @@
+{
+  "_readme": "Names/orders for the panchanga engine. Every list below is either 'status': 'standard' (consistent across virtually all sources checked) or 'status': 'needs-sourcing' (genuinely disagrees across texts, or not yet verified against a primary source) — per the project spec, contested items are flagged here rather than silently resolved. 'needs-sourcing' entries still ship a safe generic placeholder (e.g. 'Muhurta 3') so the dial renders correctly while the real names are pending.",
+
+  "location": {
+    "status": "standard",
+    "note": "Sringeri, Chikkamagaluru district, Karnataka. Verified against Wikipedia-derived sources and latitude.to.",
+    "latitude": 13.4200,
+    "longitude": 75.2500,
+    "elevation_m": 672,
+    "utcOffsetMinutes": 330,
+    "source": "https://en.wikipedia.org/wiki/Sringeri ; https://latitude.to/articles-by-country/in/india/12285/sringeri"
+  },
+
+  "ayanamsa": {
+    "status": "needs-sourcing",
+    "note": "CONTESTED/APPROXIMATE: Lahiri (Chitrapaksha) ayanamsa is a committee-defined convention, not a closed-form astronomical constant. This engine uses an IAU precession polynomial anchored to the commonly-published J2000 Lahiri value (23°51'25.53\"), with a +24.2 arcsec constant calibrated empirically against drikpanchang.com's own published Lahiri Ayanamsha for Sringeri (test/test-harness.html, 11 dates across 2026; sub-arcsecond residual after calibration). This matches drikpanchang's specific Lahiri implementation to high precision but may still differ from other sources (e.g. raw Swiss Ephemeris SE_SIDM_LAHIRI) by a few arcseconds - a calibration choice, not asserted as THE exact Lahiri value. See js/engine/ayanamsa.js.",
+    "default": "lahiri",
+    "implemented": ["lahiri"],
+    "notImplemented": ["raman", "kp-krishnamurti", "true-chitrapaksha"]
+  },
+
+  "sunriseDefinition": {
+    "status": "standard",
+    "note": "Two valid definitions exist (see js/engine/sunrise.js); this is a user-facing setting, not a disagreement to resolve.",
+    "default": "upper-limb",
+    "options": {
+      "upper-limb": "Sun's upper limb crosses the horizon, corrected for atmospheric refraction (civil/visual sunrise; matches drikpanchang.com and most almanacs).",
+      "disc-centre": "Geometric centre of the Sun's disc crosses the horizon, no refraction (classical siddhanta-style definition)."
+    }
+  },
+
+  "ghatiScale": {
+    "status": "standard",
+    "note": "CONTESTED, resolved by explicit project-owner decision (not silently): two real conventions exist - fixed-rate (1 ghati = 24 min always, used here) vs day/night-rescaled (sunrise-sunset forced to exactly 30 ghati, which is what drikpanchang.com's own 'Vedic Clock' view uses - confirmed, it shows sunset at exactly '30 Ghati 00 Pala' for Sringeri). Both were implemented and the tradeoff shown directly (under fixed-rate, sunset on an 11h41m day lands at ~29 ghati 12 pala, not a round number; under rescaled it's always exactly 30 by construction); fixed-rate was explicitly chosen. Every ring that places a segment on the dial (muhurta, prahara, kala, Rahu/Yama/Gulika, hora, tithi, nakshatra, day/night) shares this one setting via Ghati.angleForTime, so they're all consistent with each other either way. The rescaled alternative is kept available as VedicEngine.Ghati.currentRescaled. 'pala' vs 'vighati' as the name for 1/60 of a ghati still varies by text; both names are shown.",
+    "ghatiLengthSeconds": 1440,
+    "subunitNames": ["pala", "vighati"],
+    "palaPerGhati": 60,
+    "vipalaPerPala": 60,
+    "rescaledAlternative": { "ghatiPerHalfDay": 30, "note": "Sunrise-to-sunset and sunset-to-sunrise each forced to exactly 30 ghati; see VedicEngine.Ghati.currentRescaled." }
+  },
+
+  "amantaMasa": {
+    "status": "standard",
+    "note": "Amanta (South Indian / Karnataka) lunar month names, by sidereal solar rashi (0=Mesha) at the preceding new moon - see js/engine/masa.js. Shown only in the tithi ring's tooltip, since Sringeri itself uses Amanta (not the North Indian Purnimanta convention, which runs about half a month ahead during Krishna Paksha and is not implemented here).",
+    "names": ["Chaitra", "Vaishakha", "Jyeshtha", "Ashadha", "Shravana", "Bhadrapada", "Ashwina", "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"]
+  },
+
+  "vara": {
+    "status": "standard",
+    "note": "Weekday index 0=Sunday..6=Saturday, matching VedicEngine.Util.weekdayAtOffset.",
+    "names": ["Ravivara", "Somavara", "Mangalavara", "Budhavara", "Guruvara", "Shukravara", "Shanivara"]
+  },
+
+  "tithi": {
+    "status": "standard",
+    "note": "Index 1-15 within each paksha; 15th of shukla = Purnima, 15th of krishna = Amavasya.",
+    "names": [
+      "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
+      "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
+      "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima/Amavasya"
+    ],
+    "paksha": { "shukla": "Shukla Paksha (waxing)", "krishna": "Krishna Paksha (waning)" }
+  },
+
+  "nakshatra": {
+    "status": "standard",
+    "note": "Some traditions insert 'Abhijit' as an intercalary 28th nakshatra between Uttara Ashadha and Shravana; not included in this 27-nakshatra default list. Flagged, not implemented.",
+    "names": [
+      "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+      "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
+      "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+      "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha",
+      "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+    ],
+    "abhijitInserted": false
+  },
+
+  "yoga": {
+    "status": "standard",
+    "names": [
+      "Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda",
+      "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva",
+      "Vyaghata", "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyana",
+      "Parigha", "Shiva", "Siddha", "Sadhya", "Shubha", "Shukla",
+      "Brahma", "Indra", "Vaidhriti"
+    ]
+  },
+
+  "karana": {
+    "status": "standard",
+    "note": "Keys match VedicEngine.Karana's output: 'kimstughna' | 'shakuni' | 'chatushpada' | 'naga' | 'movable:0'..'movable:6'.",
+    "fixed": {
+      "kimstughna": "Kimstughna",
+      "shakuni": "Shakuni",
+      "chatushpada": "Chatushpada",
+      "naga": "Naga"
+    },
+    "movable": ["Bava", "Balava", "Kaulava", "Taitila", "Garaja", "Vanija", "Vishti"],
+    "movableSpellingVariant": "Some texts spell the 5th movable karana 'Gara' rather than 'Garaja'; drikpanchang.com (cross-checked for Sringeri, 2026) consistently uses 'Garaja', used here."
+  },
+
+  "hora": {
+    "status": "standard",
+    "note": "Classical Chaldean descending-speed order. Hora 0 of each Vedic day (starting at sunrise) is ruled by that weekday's own planet; the cycle then runs continuously through day and night (24 horas total: 12 scaled to day length, 12 to night length per js/engine/scaled-intervals.js).",
+    "chaldeanOrder": ["saturn", "jupiter", "mars", "sun", "venus", "mercury", "moon"],
+    "weekdayStartPlanet": ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]
+  },
+
+  "muhurta": {
+    "status": "standard",
+    "note": "CONTESTED, resolved to a specific cited primary source rather than a popular-site compilation: names below are Varahamihira's Brihat Samhita (6th c. CE), ch. on muhurtas, as translated by N. Chidambaram Iyer (Madura, South Indian Press, 1884-85; public-domain, hosted at Wellcome Collection and mirrored at wisdomlib.org). A second list is in wide circulation on modern astrology/panchangam sites (day differs at positions 2, 6, 9-13; night is almost entirely different) but is uncredited to any single primary text in every copy found, so it is recorded here as a named variant rather than used as the default. A third, further-differing night sequence appears in Bhagavata-Purana-derived sources and was not fully transcribed. The source also marks the 1st, 2nd, 6th and 7th NIGHT muhurtas (Ishvara, Ajapada, Yama, Vahni) as inauspicious for auspicious undertakings - not yet surfaced in the UI.",
+    "source": "Brihat Samhita of Varahamihira, tr. N. Chidambaram Iyer (1884-85), https://www.wisdomlib.org/hinduism/book/brihat-samhita/d/doc229363.html",
+    "contestedVariant": {
+      "label": "Common modern table (uncredited; seen on most popular panchangam/astrology sites)",
+      "day": ["Rudra", "Ahi", "Mitra", "Pitri", "Vasu", "Varaha", "Vishvedeva", "Vidhi", "Sutamukhi", "Puruhuta", "Vahini", "Naktanakara", "Varuna", "Aryaman", "Bhaga"],
+      "night": ["Girisha", "Ajapada", "Ahirbudhnya", "Pushya", "Ashwini", "Yama", "Agni", "Vidhatri", "Kanda", "Aditi", "Jiva (Amrita)", "Vishnu", "Dyumadgadyuti", "Brahma", "Samudra"]
+    },
+    "day": { "names": ["Rudra", "Sarpa", "Mitra", "Pitri", "Vasu", "Vara", "Vishvedeva", "Vidhi", "Brahma", "Indra", "Indragni", "Daitya", "Varuna", "Aryaman", "Bhaga"] },
+    "night": { "names": ["Ishvara", "Ajapada", "Ahirbudhnya", "Pushya", "Nasatya", "Yama", "Vahni", "Dhala", "Shashi", "Aditya", "Guru", "Achyuta", "Arka", "Tvashta", "Vayu"] }
+  },
+
+  "prahara": {
+    "status": "standard",
+    "note": "Displayed as 'Yaama' per the project owner's preference - 'yama/yaama' is a recognised synonym for this time unit (prahara), researched sources agree it's not individually named in Sanskrit texts beyond being numbered (first-fourth). Distinct from, and not to be confused with, 'Yamaganda/Yama kala' in the rahuYamaGulika scheme below, which is a specific named 1-of-8 segment, not a yaama/prahara - kept as separate internal keys ('prahara' vs 'rahuYamaGulika') specifically to avoid that mixup even though both surface the word 'yama' to the user.",
+    "ringTitle": "Yaama",
+    "day": { "names": ["First Yaama", "Second Yaama", "Third Yaama", "Fourth Yaama"] },
+    "night": { "names": ["First Yaama (night)", "Second Yaama (night)", "Third Yaama (night)", "Fourth Yaama (night)"] }
+  },
+
+  "kala": {
+    "status": "standard",
+    "note": "Resolved by the user: the five kalas are the classical daytime division Pratah (early morning) - Sangava (forenoon) - Madhyahna (midday) - Aparahna (afternoon) - Sayahna (evening). This scheme is inherently a DAYTIME division (sunrise-to-sunset); no traditional night-time equivalent under these names was identified, so the night half of this ring is left unlabeled rather than inventing five night names.",
+    "day": { "names": ["Pratah", "Sangava", "Madhyahna", "Aparahna", "Sayahna"] },
+    "night": { "status": "not-applicable", "note": "No traditional 5-fold night division under this scheme; rendered as a single unlabeled night band." }
+  },
+
+  "rahuYamaGulika": {
+    "status": "standard",
+    "note": "Weekday -> 0-based segment index within the 8-part DAYTIME (sunrise-to-sunset) division. Empirically derived by cross-checking drikpanchang.com's published Rahu Kalam/Yamaganda/Gulikai Kalam clock times for Sringeri against an 8-way division of that day's actual sunrise-sunset span, for one date per weekday (2026-01-15 Thu, 2026-03-03 Tue, 2026-04-08 Wed, 2026-05-16 Sat, 2026-06-21 Sun, 2026-07-20 Mon, 2026-08-21 Fri) - all 7 weekdays matched a single consistent table, so this is confirmed rather than guessed. CONTESTED/NOT COVERED: night-time Rahu/Yama/Gulika (used in some regional traditions) is not addressed by drikpanchang's daytime table and is left unimplemented here.",
+    "weekdaySegmentIndex": {
+      "rahu":       [7, 1, 6, 4, 5, 3, 2],
+      "yamaganda":  [4, 3, 2, 1, 0, 6, 5],
+      "gulika":     [6, 5, 4, 3, 2, 1, 0]
+    },
+    "weekdayIndexOrder": "0=Sunday..6=Saturday, matching VedicEngine.Util.weekdayAtOffset"
+  },
+
+  "nityaYoga": {
+    "status": "standard",
+    "note": "Amrita Yogam / Siddha Yogam / Marana Yogam: weekday x nakshatra classification used in Tamil panchangam to mark a nakshatra-span on a given weekday as auspicious (Amrita, most auspicious; Siddha, ordinary-auspicious) or inauspicious (Marana). Every weekday x nakshatra cell is exactly one of the three - transcribed by the project owner from a photographed printed Tamil panchangam table (an 'A/Si/M' = 'அ/சி/ம' grid, column headers the 27 nakshatras, row headers the 7 vaaram), cross-checked by re-reading the photo twice independently (precise per-column crops aligned against the weekday-label column) with full agreement both times. The table carries its own caveat line ('கலிக்காதெனவே கருது', roughly 'considered not to apply in Kali' - a traditional softening disclaimer not to treat these as binding doshas) which is noted here but not otherwise acted on. Marana Yogam here is a DIFFERENT thing from the 27-fold astronomical 'yoga' (Vishkambha..Vaidhriti, sum of sidereal Sun+Moon longitude) already computed by js/engine/yoga.js - same English word, unrelated computation.",
+    "legend": { "A": "Amrita Yogam (most auspicious)", "S": "Siddha Yogam (ordinary auspicious, not separately shown on the dial)", "M": "Marana Yogam (inauspicious)" },
+    "weekdayIndexOrder": "Each row is [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday], matching VedicEngine.Util.weekdayAtOffset.",
+    "nakshatraIndexOrder": "Row order matches nakshatra.names above (0=Ashwini..26=Revati).",
+    "table": [
+      ["S", "S", "S", "M", "A", "A", "S"],
+      ["S", "S", "S", "S", "S", "S", "S"],
+      ["S", "M", "S", "A", "M", "S", "A"],
+      ["S", "A", "A", "S", "M", "M", "A"],
+      ["S", "A", "S", "S", "M", "S", "S"],
+      ["S", "S", "M", "S", "M", "S", "S"],
+      ["S", "A", "S", "S", "A", "S", "S"],
+      ["S", "S", "S", "S", "A", "M", "S"],
+      ["S", "S", "S", "S", "S", "M", "M"],
+      ["M", "M", "S", "S", "A", "M", "A"],
+      ["S", "S", "S", "A", "S", "S", "S"],
+      ["A", "S", "A", "A", "M", "S", "M"],
+      ["A", "S", "S", "M", "S", "A", "M"],
+      ["S", "S", "S", "S", "S", "S", "M"],
+      ["S", "A", "S", "S", "A", "S", "A"],
+      ["M", "M", "M", "S", "S", "S", "S"],
+      ["M", "S", "S", "S", "S", "S", "S"],
+      ["M", "S", "S", "S", "S", "M", "S"],
+      ["A", "A", "M", "S", "A", "A", "S"],
+      ["S", "S", "S", "A", "S", "S", "S"],
+      ["A", "M", "S", "A", "S", "S", "S"],
+      ["A", "A", "S", "S", "S", "M", "S"],
+      ["M", "S", "S", "M", "S", "S", "S"],
+      ["S", "S", "M", "S", "M", "S", "A"],
+      ["S", "M", "M", "A", "S", "M", "M"],
+      ["A", "S", "A", "S", "S", "S", "S"],
+      ["A", "S", "S", "M", "S", "A", "M"]
+    ]
+  },
+
+  "sarvarthaSiddhiYoga": {
+    "status": "needs-sourcing",
+    "note": "CONTESTED: weekday x nakshatra combinations treated as universally auspicious ('accomplishes all purposes'). Sources disagree on the exact table and none of those checked cites a primary text (Muhurta Chintamani / Nirnaya Sindhu are claimed by some sites but not quoted). Table below follows hindu-blog.com's list (see source). Spot-checked against drikpanchang.com's own published Sarvartha Siddhi Yoga occurrences for Sringeri-equivalent (New Delhi) timings in October 2026: Monday+Pushya matched (confirmed), but Sunday+Ashwini was shown by drikpanchang (2026-10-25 occurrence, 7:22pm-6:29am) and is NOT in this table's Sunday list - so this table is known to be incomplete/disagreeing with drikpanchang's own (undocumented) rule. Shipped anyway per project convention for contested data (flag rather than silently resolve); revisit if a primary-text table turns up.",
+    "source": "https://www.hindu-blog.com/2019/01/sarvartha-siddhi-yoga-meaning-and-how-it-is-calculated.html",
+    "weekdayIndexOrder": "0=Sunday..6=Saturday, matching VedicEngine.Util.weekdayAtOffset",
+    "nakshatraIndicesByWeekday": [
+      [12, 7, 8, 11, 20, 25],
+      [4, 3, 7, 16, 21],
+      [0, 2, 7, 16, 21],
+      [15, 16, 2, 3, 4, 12],
+      [7, 0, 6, 16, 26],
+      [26, 0, 6, 16, 21],
+      [3, 14, 21]
+    ]
+  },
+
+  "raviYoga": {
+    "status": "standard",
+    "note": "Formed when the Moon's nakshatra, counted inclusively from the Sun's current (sidereal) nakshatra, lands on the 4th, 6th, 9th, 10th, 13th or 20th position (e.g. Sun in Ashwini -> qualifying Moon nakshatras are Rohini, Ardra, Ashlesha, Magha, Hasta, Purva Ashadha). Not restricted to Sundays despite the name - 'Ravi' refers to using the Sun's nakshatra as the counting origin. Sources agree on this count list (indastro.com, horasarvam.blogspot.com); one source (bhaktibharat.com) gives a conflicting near-inverse list and looks likely to be an error, not used here. Spot-checked against drikpanchang.com's published Ravi Yoga occurrences for New Delhi, October 2026: 2026-10-25 (Sun in Swati, Moon in Revati, count 13) matched exactly.",
+    "source": "https://www.indastro.com/learn-astrology/yoga-dasa/ravi-yoga.html ; https://horasarvam.blogspot.com/2023/04/ravi-yoga-when-is-it-formed-and.html",
+    "qualifyingCounts": [4, 6, 9, 10, 13, 20],
+    "countNote": "Count is 1-based and inclusive of the Sun's own nakshatra, i.e. count = ((moonNakshatraIndex - sunNakshatraIndex + 27) % 27) + 1."
+  },
+
+  "vishaYoga": {
+    "status": "needs-sourcing",
+    "note": "CONTESTED/SINGLE-SOURCE: weekday x tithi (paksha-relative, 1-15) combination treated as inauspicious ('poison yoga'). Only one source found with a concrete rule (a Muhurta Yogas PDF); not cross-checked against a second source or against drikpanchang (no public 'Visha Yoga date finder' found to spot-check against, unlike the other yogas on this dial). Shipped flagged rather than omitted, per project convention for contested/thin data.",
+    "source": "https://www.vedic-astrology.net/Articles/Muhurta-Yogas.pdf",
+    "weekdayIndexOrder": "0=Sunday..6=Saturday, matching VedicEngine.Util.weekdayAtOffset",
+    "tithiByWeekday": [4, 6, 7, 2, 8, 9, 7]
+  }
+}

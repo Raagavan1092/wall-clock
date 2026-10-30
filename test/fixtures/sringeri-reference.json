@@ -1,0 +1,95 @@
+{
+  "_readme": "Hand-recorded reference values from drikpanchang.com for Sringeri, Karnataka (geoname-id=1255633, lat 13.41698 lon 75.25271 elev 644m per their own geographic-details page — close to, but not identical to, our verified 672m; the few-metre difference changes sunrise/sunset horizon-dip by well under a minute). Retrieved 2026-10-29 via the built-in browser (read-only page views, no API/scraping automation). All times are local IST (UTC+5:30) as published by the site, which uses its own Lahiri ayanamsha implementation. 'tithiExpectedNumber' is derived from the published tithi name + paksha (1-30, see js/data/panchanga-data.json tithi.names). Nakshatra/yoga are compared by name (resolved from the engine's index via panchanga-data.json) rather than number.",
+  "source": "https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=1255633&date=DD/MM/YYYY",
+  "location": { "latitude": 13.41698, "longitude": 75.25271, "elevation_m": 644, "utcOffsetMinutes": 330 },
+  "dates": [
+    {
+      "date": "2026-01-15", "weekday": "Guruwara",
+      "sunrise": "2026-01-15T06:56:00+05:30", "sunset": "2026-01-15T18:21:00+05:30",
+      "tithiName": "Dwadashi", "paksha": "krishna", "tithiExpectedNumber": 27, "tithiEnd": "2026-01-15T20:16:00+05:30",
+      "nakshatraName": "Jyeshtha", "nakshatraEnd": "2026-01-16T05:47:00+05:30",
+      "yogaName": "Vriddhi", "yogaEnd": "2026-01-15T20:38:00+05:30",
+      "ayanamshaDeg": 24.227570
+    },
+    {
+      "date": "2026-02-19", "weekday": "Guruwara",
+      "sunrise": "2026-02-19T06:50:00+05:30", "sunset": "2026-02-19T18:35:00+05:30",
+      "tithiName": "Dwitiya", "paksha": "shukla", "tithiExpectedNumber": 2, "tithiEnd": "2026-02-19T15:58:00+05:30",
+      "nakshatraName": "Purva Bhadrapada", "nakshatraEnd": "2026-02-19T20:52:00+05:30",
+      "yogaName": "Siddha", "yogaEnd": "2026-02-19T20:42:00+05:30",
+      "ayanamshaDeg": 24.228908
+    },
+    {
+      "date": "2026-03-03", "weekday": "Mangalawara",
+      "sunrise": "2026-03-03T06:44:00+05:30", "sunset": "2026-03-03T18:38:00+05:30",
+      "tithiName": "Purnima", "paksha": "shukla", "tithiExpectedNumber": 15, "tithiEnd": "2026-03-03T17:07:00+05:30",
+      "nakshatraName": "Magha", "nakshatraEnd": "2026-03-03T07:31:00+05:30",
+      "yogaName": "Sukarma", "yogaEnd": "2026-03-03T10:25:00+05:30",
+      "ayanamshaDeg": 24.229367
+    },
+    {
+      "date": "2026-04-08", "weekday": "Budhawara",
+      "sunrise": "2026-04-08T06:21:00+05:30", "sunset": "2026-04-08T18:41:00+05:30",
+      "tithiName": "Shashthi", "paksha": "krishna", "tithiExpectedNumber": 21, "tithiEnd": "2026-04-08T19:01:00+05:30",
+      "nakshatraName": "Mula", "nakshatraEnd": null, "nakshatraEndNote": "published as 'upto Full Night' - no exact boundary to compare",
+      "yogaName": "Variyana", "yogaEnd": "2026-04-08T17:11:00+05:30",
+      "ayanamshaDeg": 24.230744
+    },
+    {
+      "date": "2026-05-16", "weekday": "Shaniwara",
+      "sunrise": "2026-05-16T06:03:00+05:30", "sunset": "2026-05-16T18:48:00+05:30",
+      "tithiName": "Amavasya", "paksha": "krishna", "tithiExpectedNumber": 30, "tithiEnd": "2026-05-17T01:30:00+05:30",
+      "nakshatraName": "Bharani", "nakshatraEnd": "2026-05-16T17:30:00+05:30",
+      "yogaName": "Saubhagya", "yogaEnd": "2026-05-16T10:26:00+05:30",
+      "ayanamshaDeg": 24.232197
+    },
+    {
+      "date": "2026-06-21", "weekday": "Raviwara",
+      "sunrise": "2026-06-21T06:03:00+05:30", "sunset": "2026-06-21T18:58:00+05:30",
+      "tithiName": "Saptami", "paksha": "shukla", "tithiExpectedNumber": 7, "tithiEnd": "2026-06-21T15:20:00+05:30",
+      "nakshatraName": "Purva Phalguni", "nakshatraEnd": "2026-06-21T09:31:00+05:30",
+      "yogaName": "Siddhi", "yogaEnd": "2026-06-21T11:21:00+05:30",
+      "ayanamshaDeg": 24.233574
+    },
+    {
+      "date": "2026-07-20", "weekday": "Somawara",
+      "sunrise": "2026-07-20T06:11:00+05:30", "sunset": "2026-07-20T19:00:00+05:30",
+      "tithiName": "Saptami", "paksha": "shukla", "tithiExpectedNumber": 7, "tithiEnd": "2026-07-21T04:02:00+05:30",
+      "nakshatraName": "Hasta", "nakshatraEnd": "2026-07-20T19:09:00+05:30",
+      "yogaName": "Shiva", "yogaEnd": "2026-07-20T18:37:00+05:30",
+      "ayanamshaDeg": 24.234683
+    },
+    {
+      "date": "2026-08-21", "weekday": "Shukrawara",
+      "sunrise": "2026-08-21T06:17:00+05:30", "sunset": "2026-08-21T18:47:00+05:30",
+      "tithiName": "Navami", "paksha": "shukla", "tithiExpectedNumber": 9, "tithiEnd": "2026-08-21T23:36:00+05:30",
+      "nakshatraName": "Anuradha", "nakshatraEnd": "2026-08-21T11:53:00+05:30",
+      "yogaName": "Vaidhriti", "yogaEnd": "2026-08-22T05:18:00+05:30",
+      "ayanamshaDeg": 24.235907
+    },
+    {
+      "date": "2026-09-23", "weekday": "Budhawara",
+      "sunrise": "2026-09-23T06:18:00+05:30", "sunset": "2026-09-23T18:25:00+05:30",
+      "tithiName": "Dwadashi", "paksha": "shukla", "tithiExpectedNumber": 12, "tithiEnd": "2026-09-23T22:50:00+05:30",
+      "nakshatraName": "Shravana", "nakshatraEnd": "2026-09-23T09:09:00+05:30",
+      "yogaName": "Sukarma", "yogaEnd": "2026-09-23T16:27:00+05:30",
+      "ayanamshaDeg": 24.237170
+    },
+    {
+      "date": "2026-10-29", "weekday": "Guruwara",
+      "sunrise": "2026-10-29T06:22:00+05:30", "sunset": "2026-10-29T18:03:00+05:30",
+      "tithiName": "Chaturthi", "paksha": "krishna", "tithiExpectedNumber": 19, "tithiEnd": "2026-10-29T22:09:00+05:30",
+      "nakshatraName": "Rohini", "nakshatraEnd": "2026-10-29T11:11:00+05:30",
+      "yogaName": "Parigha", "yogaEnd": "2026-10-30T00:06:00+05:30",
+      "ayanamshaDeg": 24.238547
+    },
+    {
+      "date": "2026-12-21", "weekday": "Somawara",
+      "sunrise": "2026-12-21T06:47:00+05:30", "sunset": "2026-12-21T18:07:00+05:30",
+      "tithiName": "Dwadashi", "paksha": "shukla", "tithiExpectedNumber": 12, "tithiEnd": "2026-12-21T17:36:00+05:30",
+      "nakshatraName": "Bharani", "nakshatraEnd": "2026-12-21T13:08:00+05:30",
+      "yogaName": "Siddha", "yogaEnd": "2026-12-22T01:32:00+05:30",
+      "ayanamshaDeg": 24.240575
+    }
+  ]
+}

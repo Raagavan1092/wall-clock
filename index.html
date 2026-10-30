@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Vedic Wall Clock</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15120d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vedic Clock">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+<div id="stage">
+  <svg id="dial"></svg>
+  <button id="settings-toggle" aria-label="Settings">&#9881;</button>
+</div>
+
+<div id="settings-panel" class="hidden">
+  <button id="settings-close" type="button" aria-label="Close">&times;</button>
+  <h2>Settings</h2>
+
+  <section>
+    <h3>Time</h3>
+    <label>Set clock to <input type="datetime-local" id="set-time"></label>
+    <button id="set-time-now" type="button">Now</button>
+    <button id="set-time-pause" type="button">Pause</button>
+    <p class="settings-note" id="set-time-live">Live (following real time)</p>
+  </section>
+
+  <section>
+    <h3>Location</h3>
+    <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
+    <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
+    <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>
+    <button id="set-location-reset" type="button">Reset to Sringeri</button>
+  </section>
+
+  <section>
+    <h3>Ayanamsa</h3>
+    <select id="set-ayanamsa">
+      <option value="lahiri">Lahiri (Chitrapaksha)</option>
+    </select>
+    <p class="settings-note">Only Lahiri is implemented in this prototype; see js/engine/ayanamsa.js.</p>
+  </section>
+
+  <section>
+    <h3>Sunrise definition</h3>
+    <label><input type="radio" name="sunriseEdge" value="upper-limb"> Upper limb, with refraction (default)</label>
+    <label><input type="radio" name="sunriseEdge" value="disc-centre"> Disc centre, geometric (no refraction)</label>
+  </section>
+
+  <section>
+    <h3>Outer ring order</h3>
+    <p class="settings-note">Tithi, nakshatra, and the good/bad-time rings (Rahu/Yama/Gulika, Marana, Visha, Amrita, Sarvartha Siddhi, Ravi Yoga) are always shown on their own rings; this order is for the switchable outer ring only.</p>
+    <ul id="set-ring-order"></ul>
+  </section>
+
+  <div class="settings-actions">
+    <button id="settings-save" type="button">Save</button>
+    <button id="settings-cancel" type="button">Cancel</button>
+  </div>
+</div>
+
+<script src="js/vendor/astronomy.browser.js"></script>
+<script src="js/engine/util.js"></script>
+<script src="js/engine/ayanamsa.js"></script>
+<script src="js/engine/sunrise.js"></script>
+<script src="js/engine/sidereal.js"></script>
+<script src="js/engine/elongation.js"></script>
+<script src="js/engine/tithi.js"></script>
+<script src="js/engine/nakshatra.js"></script>
+<script src="js/engine/yoga.js"></script>
+<script src="js/engine/karana.js"></script>
+<script src="js/engine/masa.js"></script>
+<script src="js/engine/scaled-intervals.js"></script>
+<script src="js/engine/ghati.js"></script>
+<script src="js/engine/panchanga.js"></script>
+<script src="js/render/ring-adapter.js"></script>
+<script src="js/render/dial.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+<script>
+  // Registers the offline cache (sw.js) so the clock keeps working once
+  // installed, even without a connection. Harmless no-op over plain http://
+  // or file:// where Service Worker isn't available/permitted.
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function (err) {
+        console.warn("Service worker registration failed:", err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
