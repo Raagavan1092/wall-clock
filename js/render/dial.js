@@ -8,14 +8,22 @@
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const SVG_NS = "http://www.w3.org/2000/svg";
 
-  const CX = 500, CY = 500;
-  // Concentric bands, outside in: the switchable ring (muhurta/prahara/kala/
-  // hora/goodBadYogas - whichever is toggled; see ring-adapter.js RING_ORDER),
-  // then two dedicated thin rings that always show tithi and nakshatra (these
-  // two are pulled out of the toggle because they're the ones people check
+  // CX/CY leave a permanent margin outside outerRingOuter (480) for the
+  // yoga-alert ring (yogaRingInner..yogaRingOuter below) - it's the ONE ring
+  // allowed to appear/disappear on its own (see renderYogaAlertRing), so the
+  // canvas has to have room for it whether or not it's drawn on a given day.
+  const CX = 540, CY = 540;
+  // Concentric bands, outside in: the yoga-alert ring (only actually drawn
+  // on days one of the five nitya yogas is active - see renderYogaAlertRing),
+  // then the switchable ring (muhurta/prahara/kala/hora/rahuYamaGulika -
+  // whichever is toggled; see ring-adapter.js RING_ORDER), then two
+  // dedicated thin rings that always show tithi and nakshatra (these two are
+  // pulled out of the toggle because they're the ones people check
   // constantly), then the fixed ghati/pala scale, then the innermost
   // always-on day/night ring, then the centre readout.
   const R = {
+    yogaRingOuter: 520,
+    yogaRingInner: 484, // 4-unit gap from outerRingOuter, matching the gaps between other bands
     outerRingOuter: 480,
     outerRingInner: 436,
     nakshatraRingOuter: 432,
@@ -47,6 +55,14 @@
   // Hour:minute, IST, for hover-tooltip time ranges on every ring segment.
   function fmtHM(date) {
     return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Every ring segment's tooltip shows BOTH the Vedic reading (ghati/pala,
+  // from ring-adapter.js's startGhatiPala/endGhatiPala - dial.js itself
+  // never touches VedicEngine, see file header) and the plain clock time,
+  // per the project owner: "ghati pala and hour and minutes", everywhere.
+  function timeRangeTooltip(seg) {
+    return seg.startGhatiPala + " (" + fmtHM(seg.startTime) + ")" + " – " + seg.endGhatiPala + " (" + fmtHM(seg.endTime) + ")";
   }
 
   // Custom dark-mode tooltip. SVG's native <title> tooltip is OS-rendered
@@ -211,7 +227,13 @@
 
   function buildStaticStructure(svg) {
     svg.innerHTML = "";
-    svg.setAttribute("viewBox", "0 0 1000 1000");
+    svg.setAttribute("viewBox", "0 0 " + (CX * 2) + " " + (CY * 2));
+
+    // Created up front like every other ring group, but renderYogaAlertRing
+    // leaves it empty (no boundary, no segments) on a day none of the five
+    // nitya yogas apply - see that function and the R.yogaRing* comment above.
+    const yogaRingGroup = el("g", { class: "yoga-ring" });
+    svg.appendChild(yogaRingGroup);
 
     const outerRingGroup = el("g", { class: "outer-ring" });
     svg.appendChild(outerRingGroup);
@@ -247,7 +269,7 @@
     const centreGroup = el("g", { class: "centre-text" });
     svg.appendChild(centreGroup);
 
-    return { outerRingGroup, nakshatraRingGroup, tithiRingGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup };
+    return { yogaRingGroup, outerRingGroup, nakshatraRingGroup, tithiRingGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup };
   }
 
   // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel? }
@@ -264,8 +286,7 @@
         class: "ring-segment" + (seg.contested ? " contested" : "") + (seg.isNext ? " next-segment" : "") + (seg.goodBad ? " " + seg.goodBad : "") + (seg.text ? "" : " neutral"),
       });
       if (seg.text) {
-        const tipText = seg.text + "\n" + fmtHM(seg.startTime) + " – " + fmtHM(seg.endTime) + (seg.extraTooltip ? "\n" + seg.extraTooltip : "");
-        attachTooltip(path, tipText);
+        attachTooltip(path, seg.text + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : ""));
       }
       group.appendChild(path);
 
@@ -287,27 +308,18 @@
     });
   }
 
-  // Rings with few, wide segments (Yaama: 8, Kala: 6, Good/Bad Yogas: usually
-  // just a handful of labelled stretches a day) get curved text, same as
-  // tithi/nakshatra - plenty of room per segment, unlike muhurta's 30
-  // segments at 12 deg each or hora's 24, where curved text would read
-  // worse, not better (see curvedLabel's own comment).
-  const CURVED_OUTER_RINGS = { prahara: true, kala: true, goodBadYogas: true };
+  // Rings with few, wide segments (Yaama: 8, Kala: 6, Rahu/Yama/Gulika: 9)
+  // get curved text, same as tithi/nakshatra - plenty of room per segment,
+  // unlike muhurta's 30 segments at 12 deg each or hora's 24, where curved
+  // text would read worse, not better (see curvedLabel's own comment).
+  const CURVED_OUTER_RINGS = { prahara: true, kala: true, rahuYamaGulika: true };
 
   function renderOuterRing(group, ringDescriptor) {
     const curved = !!CURVED_OUTER_RINGS[ringDescriptor.ringKey];
-    // Good/Bad Yogas can pack several short, back-to-back labelled segments
-    // when two or three of its six sources change within an hour of each
-    // other (e.g. a Rahu/Yama/Gulika slot ending right as a yoga starts) -
-    // a higher threshold than the other curved rings skips labelling the
-    // narrow slivers that would otherwise visually collide with their
-    // neighbour's curved text; the segment itself (and its tooltip) still
-    // shows regardless.
-    const minSpanForLabel = ringDescriptor.ringKey === "goodBadYogas" ? 11 : 6;
     renderRing(group, ringDescriptor, {
       rInner: R.outerRingInner, rOuter: R.outerRingOuter,
       fontSize: curved ? 14 : function (span) { return span >= 15 ? 15 : 11; },
-      minSpanForLabel: minSpanForLabel,
+      minSpanForLabel: 6,
       curved: curved,
     });
   }
@@ -316,6 +328,33 @@
   }
   function renderTithiRing(group, ringDescriptor) {
     renderRing(group, ringDescriptor, { rInner: R.tithiRingInner, rOuter: R.tithiRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true });
+  }
+
+  // The one ring that appears and disappears on its own: ring-adapter.js's
+  // buildYogaAlerts always returns a full day's worth of segments (mostly
+  // blank), but this function only actually DRAWS anything - boundary
+  // circles included - when at least one of them is active. On a day none
+  // of the five nitya yogas apply, the group is just left empty, so that
+  // band of the dial reads as plain background, not as an empty ring; see
+  // the R.yogaRing*/CX/CY comments above for why the canvas still reserves
+  // the space either way (so the rest of the dial never resizes/jumps).
+  // Same crowding guard as the old merged ring: a higher minSpanForLabel
+  // than the other curved rings, since two or three of the five sources can
+  // still change within an hour of each other and label-collide otherwise.
+  function renderYogaAlertRing(group, ringDescriptor) {
+    const hasActive = ringDescriptor.segments.some(function (seg) { return seg.text; });
+    if (!hasActive) {
+      while (group.firstChild) group.removeChild(group.firstChild);
+      return;
+    }
+    renderRing(group, ringDescriptor, {
+      rInner: R.yogaRingInner, rOuter: R.yogaRingOuter,
+      fontSize: 13,
+      minSpanForLabel: 11,
+      curved: true,
+    });
+    group.appendChild(el("circle", { cx: CX, cy: CY, r: R.yogaRingOuter, class: "ring-boundary" }));
+    group.appendChild(el("circle", { cx: CX, cy: CY, r: R.yogaRingInner, class: "ring-boundary" }));
   }
 
   // Innermost ring: just day/night, two segments, always the same two
@@ -329,7 +368,7 @@
         d: annularSectorPath(R.dayNightRingInner, R.dayNightRingOuter, seg.startAngle, span),
         class: "daynight-segment " + (seg.isDay ? "daynight-day" : "daynight-night"),
       });
-      attachTooltip(path, seg.text + "\n" + fmtHM(seg.startTime) + " – " + fmtHM(seg.endTime));
+      attachTooltip(path, seg.text + "\n" + timeRangeTooltip(seg));
       group.appendChild(path);
     });
   }
@@ -371,6 +410,7 @@
     renderOuterRing,
     renderNakshatraRing,
     renderTithiRing,
+    renderYogaAlertRing,
     renderDayNightRing,
     setHand,
     setPalaHand,

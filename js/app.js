@@ -142,12 +142,16 @@
     const ringKey = activeRingOrder[currentRingIndex];
 
     if (changed) {
-      // Tithi/nakshatra/day-night only depend on the snapshot, never on
-      // which ring is toggled, so they're rebuilt whenever the snapshot
-      // itself changes.
+      // Tithi/nakshatra/day-night/yoga-alerts only depend on the snapshot,
+      // never on which switchable ring is toggled, so they're all rebuilt
+      // whenever the snapshot itself changes. The yoga-alert ring draws
+      // itself only when at least one of its five yogas is active that day
+      // (see renderYogaAlertRing) - this call always runs, the appearing/
+      // disappearing happens inside dial.js.
       E.Dial.renderNakshatraRing(dialHandles.nakshatraRingGroup, E.RingAdapter.build("nakshatra", snapshot, data));
       E.Dial.renderTithiRing(dialHandles.tithiRingGroup, E.RingAdapter.build("tithi", snapshot, data));
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
+      E.Dial.renderYogaAlertRing(dialHandles.yogaRingGroup, E.RingAdapter.buildYogaAlerts(snapshot, data));
     }
     if (changed || ringKey !== lastRenderedRingKey) {
       lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
