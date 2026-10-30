@@ -188,8 +188,24 @@
     }, { passive: true });
   }
 
+  // English locale for the AirDatepicker widget (js/vendor/air-datepicker.js
+  // ships Russian as its built-in default) - 24h time to match the fmtHM
+  // clock-time format used everywhere else in the dial's tooltips.
+  const TIME_PICKER_LOCALE = {
+    days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    daysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    daysMin: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    monthsShort: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    today: "Today",
+    clear: "Clear",
+    dateFormat: "yyyy-MM-dd",
+    timeFormat: "HH:mm",
+    firstDay: 0,
+  };
+
   // Time control lives in the settings panel (see index.html's "Time"
-  // section) but applies immediately on change, unlike the other settings
+  // section) but applies immediately on select, unlike the other settings
   // which wait for Save - scrubbing time is a live control, not a persisted
   // preference, so there's nothing to persist and no reason to make it wait.
   function wireTimeControl() {
@@ -198,27 +214,35 @@
     const pauseBtn = document.getElementById("set-time-pause");
     const liveIndicator = document.getElementById("set-time-live");
 
+    const picker = new AirDatepicker(input, {
+      locale: TIME_PICKER_LOCALE,
+      dateFormat: "yyyy-MM-dd",
+      timeFormat: "HH:mm",
+      timepicker: true,
+      autoClose: true,
+      onSelect: function (opts) {
+        const picked = Array.isArray(opts.date) ? opts.date[0] : opts.date;
+        if (!picked) return;
+        if (pausedAt) {
+          pausedAt = picked; // stay paused, but at the newly-set instant
+        } else {
+          timeOffsetMs = picked.getTime() - Date.now();
+        }
+        syncInput();
+        render();
+      },
+    });
+
     function syncInput() {
       const now = getNow();
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-      input.value = local.toISOString().slice(0, 16);
+      // silent: don't re-fire onSelect from this programmatic update;
+      // updateTime: also drag the timepicker sliders to match `now`.
+      picker.selectDate(now, { updateTime: true, silent: true });
       liveIndicator.textContent = pausedAt ? "Paused" : timeOffsetMs === 0 ? "Live (following real time)" : "Overridden - not following real time";
       pauseBtn.textContent = pausedAt ? "Resume" : "Pause";
     }
     syncInput();
 
-    input.addEventListener("change", function () {
-      const parsed = new Date(input.value);
-      if (!isNaN(parsed.getTime())) {
-        if (pausedAt) {
-          pausedAt = parsed; // stay paused, but at the newly-set instant
-        } else {
-          timeOffsetMs = parsed.getTime() - Date.now();
-        }
-        syncInput();
-        render();
-      }
-    });
     nowBtn.addEventListener("click", function () {
       timeOffsetMs = 0;
       pausedAt = null;
@@ -237,10 +261,10 @@
       render();
     });
 
-    // Keep the field in sync while it's not focused, so it visibly ticks
+    // Keep the field in sync while the picker's closed, so it visibly ticks
     // forward if left open (and so reopening settings later shows "now").
     setInterval(function () {
-      if (document.activeElement !== input) syncInput();
+      if (!picker.visible) syncInput();
     }, 1000);
   }
 

@@ -188,7 +188,7 @@ html, body {
 #settings-panel section { margin-bottom: 22px; }
 #settings-panel label { display: block; margin-bottom: 8px; font-size: 14px; }
 #settings-panel input[type="number"],
-#settings-panel input[type="datetime-local"] {
+#settings-panel input[type="text"] {
   width: 100%;
   background: #262019;
   color: var(--centre-text);
@@ -196,6 +196,7 @@ html, body {
   padding: 5px 8px;
   margin-top: 3px;
 }
+#set-time { cursor: pointer; }
 #settings-panel select {
   width: 100%;
   background: #262019;
@@ -230,6 +231,46 @@ html, body {
 #settings-save { background: var(--ring-stroke); font-weight: 600; }
 #set-time { margin-right: 8px; }
 #set-time-live { font-style: italic; }
+
+/* Re-skins the vendored AirDatepicker (js/vendor/air-datepicker.js,
+   css/vendor/air-datepicker.css) via its own documented custom properties,
+   to match this panel's palette instead of the library's default white. */
+.air-datepicker {
+  --adp-font-family: "Segoe UI", system-ui, sans-serif;
+  --adp-background-color: #1a1510;
+  --adp-color: var(--centre-text);
+  --adp-color-secondary: #a89a78;
+  --adp-color-other-month: #5a4a2a;
+  --adp-color-other-month-hover: #a89a78;
+  --adp-color-disabled: #5a4a2a;
+  --adp-color-current-date: var(--centre-ghati);
+  --adp-accent-color: var(--centre-ghati);
+  --adp-border-color: var(--ring-stroke);
+  --adp-border-color-inner: #332817;
+  --adp-border-color-inline: var(--ring-stroke);
+  --adp-background-color-hover: #332817;
+  --adp-background-color-active: #3a3022;
+  --adp-background-color-in-range: rgba(255, 215, 122, 0.12);
+  --adp-background-color-in-range-focused: rgba(255, 215, 122, 0.2);
+  --adp-day-name-color: var(--numeral);
+  --adp-day-name-color-hover: var(--centre-ghati);
+  --adp-cell-background-color-hover: #332817;
+  --adp-cell-background-color-selected: var(--centre-ghati);
+  --adp-cell-background-color-selected-hover: #e8c268;
+  --adp-cell-background-color-in-range: rgba(255, 215, 122, 0.12);
+  --adp-cell-background-color-in-range-hover: rgba(255, 215, 122, 0.2);
+  --adp-nav-arrow-color: var(--numeral);
+  --adp-nav-color-secondary: #a89a78;
+  --adp-btn-color: var(--centre-ghati);
+  --adp-btn-color-hover: var(--centre-text);
+  --adp-btn-background-color-hover: #332817;
+  --adp-btn-background-color-active: #3a3022;
+  --adp-time-track-color: #5a4a2a;
+  --adp-time-track-color-hover: #a89a78;
+  --adp-time-day-period-color: #a89a78;
+}
+.air-datepicker-cell.-selected- { color: #1a1510; }
+.air-datepicker-overlay { --adp-overlay-background-color: rgba(0, 0, 0, 0.5); }
 
 /* Custom dark-mode tooltip for ring segments (replaces SVG's native <title>,
    which is OS-rendered and can't be styled - see dial.js attachTooltip).

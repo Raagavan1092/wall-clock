@@ -13,7 +13,8 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/vendor/air-datepicker.css">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 <div id="stage">
@@ -27,7 +28,7 @@
 
   <section>
     <h3>Time</h3>
-    <label>Set clock to <input type="datetime-local" id="set-time"></label>
+    <label>Set clock to <input type="text" id="set-time" autocomplete="off" readonly></label>
     <button id="set-time-now" type="button">Now</button>
     <button id="set-time-pause" type="button">Pause</button>
     <p class="settings-note" id="set-time-live">Live (following real time)</p>
@@ -67,6 +68,7 @@
   </div>
 </div>
 
+<script src="js/vendor/air-datepicker.js"></script>
 <script src="js/vendor/astronomy.browser.js"></script>
 <script src="js/engine/util.js"></script>
 <script src="js/engine/ayanamsa.js"></script>
