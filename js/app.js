@@ -112,17 +112,23 @@
       { text: varaName },
     ];
 
-    // Now/next for the active switchable ring.
+    // Now/next for the active switchable ring. Every segment in most rings
+    // (Muhurta/Yaama/Kala/Hora) is named, but Good/Bad Yogas has long blank
+    // stretches with no active yoga (seg.text === "") - skip the "now" line
+    // rather than show a bare "Good / Bad Yogas: ", and look past any
+    // immediately-following blank segment(s) for "Next" rather than just
+    // the next array entry.
     const nowSeg = ringDescriptor.segments.find(function (seg) {
       return now >= seg.startTime && now < seg.endTime;
     });
-    if (nowSeg) {
+    if (nowSeg && nowSeg.text) {
       lines.push({ text: ringDescriptor.title + ": " + nowSeg.text });
-      const idx = ringDescriptor.segments.indexOf(nowSeg);
-      const nextSeg = ringDescriptor.segments[idx + 1];
-      if (nextSeg && nextSeg.text) {
-        lines.push({ text: "Next: " + nextSeg.text + " @ " + fmtTime(nextSeg.startTime) });
-      }
+    }
+    const nextSeg = ringDescriptor.segments.find(function (seg) {
+      return seg.startTime > now && seg.text;
+    });
+    if (nextSeg) {
+      lines.push({ text: "Next: " + nextSeg.text + " @ " + fmtTime(nextSeg.startTime) });
     }
 
     // Tithi/nakshatra are no longer duplicated here - they have their own
@@ -136,17 +142,12 @@
     const ringKey = activeRingOrder[currentRingIndex];
 
     if (changed) {
-      // Tithi/nakshatra/day-night/good-bad-time rings only depend on the
-      // snapshot, never on which switchable ring is toggled, so they're all
-      // rebuilt whenever the snapshot itself changes.
+      // Tithi/nakshatra/day-night only depend on the snapshot, never on
+      // which ring is toggled, so they're rebuilt whenever the snapshot
+      // itself changes.
       E.Dial.renderNakshatraRing(dialHandles.nakshatraRingGroup, E.RingAdapter.build("nakshatra", snapshot, data));
       E.Dial.renderTithiRing(dialHandles.tithiRingGroup, E.RingAdapter.build("tithi", snapshot, data));
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
-
-      const goodBadRings = E.RingAdapter.buildGoodBadRings(snapshot, data);
-      goodBadRings.forEach(function (ring, i) {
-        E.Dial.renderGoodBadRing(dialHandles.goodBadRingGroups[ring.ringKey], ring, i);
-      });
     }
     if (changed || ringKey !== lastRenderedRingKey) {
       lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);

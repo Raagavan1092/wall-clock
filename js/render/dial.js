@@ -8,23 +8,14 @@
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const SVG_NS = "http://www.w3.org/2000/svg";
 
-  // Centre/viewBox were widened from the original 500/"0 0 1000 1000" to make
-  // room for the six good/bad-time rings (goodBadRingBounds below) outside
-  // the old outer edge (480). Every existing radius in R is unchanged - they
-  // just now occupy a smaller fraction of a bigger canvas, which re-centres
-  // for free since polarToXY is always CX/CY-relative.
-  const CX = 670, CY = 670;
-  // Concentric bands, outside in: six always-on "good/bad time" rings (Rahu/
-  // Yama/Gulika, Marana/Visha Yoga - bad - then Amrita/Sarvartha-Siddhi/Ravi
-  // Yoga - good; see ring-adapter.js buildGoodBadRings), then the switchable
-  // ring (muhurta/prahara/kala/hora - whichever is toggled), then two
-  // dedicated thin rings that always show tithi and nakshatra (these two are
-  // pulled out of the toggle because they're the ones people check constantly),
-  // then the fixed ghati/pala scale, then the innermost always-on day/night
-  // ring, then the centre readout.
-  const goodBadRingBounds = [480, 510, 540, 570, 600, 630, 660];
+  const CX = 500, CY = 500;
+  // Concentric bands, outside in: the switchable ring (muhurta/prahara/kala/
+  // hora/goodBadYogas - whichever is toggled; see ring-adapter.js RING_ORDER),
+  // then two dedicated thin rings that always show tithi and nakshatra (these
+  // two are pulled out of the toggle because they're the ones people check
+  // constantly), then the fixed ghati/pala scale, then the innermost
+  // always-on day/night ring, then the centre readout.
   const R = {
-    goodBadRingBounds: goodBadRingBounds,
     outerRingOuter: 480,
     outerRingInner: 436,
     nakshatraRingOuter: 432,
@@ -218,23 +209,9 @@
     root.appendChild(g);
   }
 
-  // Outer-to-inner order, matching ring-adapter.js buildGoodBadRings' array
-  // order - index i here is drawn between goodBadRingBounds[i] and [i+1].
-  const GOOD_BAD_RING_KEYS = ["rahuYamaGulika", "maranaYoga", "vishaYoga", "amritaYoga", "sarvarthaSiddhiYoga", "raviYoga"];
-
   function buildStaticStructure(svg) {
     svg.innerHTML = "";
-    svg.setAttribute("viewBox", "0 0 " + (CX * 2) + " " + (CY * 2));
-
-    const goodBadRingGroups = {};
-    GOOD_BAD_RING_KEYS.forEach(function (key) {
-      const g = el("g", { class: "good-bad-ring good-bad-ring-" + key });
-      svg.appendChild(g);
-      goodBadRingGroups[key] = g;
-    });
-    goodBadRingBounds.forEach(function (r) {
-      svg.appendChild(el("circle", { cx: CX, cy: CY, r: r, class: "ring-boundary" }));
-    });
+    svg.setAttribute("viewBox", "0 0 1000 1000");
 
     const outerRingGroup = el("g", { class: "outer-ring" });
     svg.appendChild(outerRingGroup);
@@ -270,7 +247,7 @@
     const centreGroup = el("g", { class: "centre-text" });
     svg.appendChild(centreGroup);
 
-    return { goodBadRingGroups, outerRingGroup, nakshatraRingGroup, tithiRingGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup };
+    return { outerRingGroup, nakshatraRingGroup, tithiRingGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup };
   }
 
   // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel? }
@@ -310,18 +287,27 @@
     });
   }
 
-  // Rings with few, wide segments (Yaama: 8, Kala: 6) get curved text, same
-  // as tithi/nakshatra - plenty of room per segment, unlike muhurta's 30
+  // Rings with few, wide segments (Yaama: 8, Kala: 6, Good/Bad Yogas: usually
+  // just a handful of labelled stretches a day) get curved text, same as
+  // tithi/nakshatra - plenty of room per segment, unlike muhurta's 30
   // segments at 12 deg each or hora's 24, where curved text would read
   // worse, not better (see curvedLabel's own comment).
-  const CURVED_OUTER_RINGS = { prahara: true, kala: true };
+  const CURVED_OUTER_RINGS = { prahara: true, kala: true, goodBadYogas: true };
 
   function renderOuterRing(group, ringDescriptor) {
     const curved = !!CURVED_OUTER_RINGS[ringDescriptor.ringKey];
+    // Good/Bad Yogas can pack several short, back-to-back labelled segments
+    // when two or three of its six sources change within an hour of each
+    // other (e.g. a Rahu/Yama/Gulika slot ending right as a yoga starts) -
+    // a higher threshold than the other curved rings skips labelling the
+    // narrow slivers that would otherwise visually collide with their
+    // neighbour's curved text; the segment itself (and its tooltip) still
+    // shows regardless.
+    const minSpanForLabel = ringDescriptor.ringKey === "goodBadYogas" ? 11 : 6;
     renderRing(group, ringDescriptor, {
       rInner: R.outerRingInner, rOuter: R.outerRingOuter,
       fontSize: curved ? 14 : function (span) { return span >= 15 ? 15 : 11; },
-      minSpanForLabel: 6,
+      minSpanForLabel: minSpanForLabel,
       curved: curved,
     });
   }
@@ -330,22 +316,6 @@
   }
   function renderTithiRing(group, ringDescriptor) {
     renderRing(group, ringDescriptor, { rInner: R.tithiRingInner, rOuter: R.tithiRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true });
-  }
-
-  // The six good/bad-time rings (Rahu/Yama/Gulika, Marana/Visha/Amrita/
-  // Sarvartha-Siddhi/Ravi Yoga). `index` picks the band out of
-  // goodBadRingBounds, in the same outer-to-inner order as GOOD_BAD_RING_KEYS
-  // and ring-adapter.js's buildGoodBadRings. Curved labels throughout per the
-  // project owner's request - these rings mostly have few, wide (or blank)
-  // segments, same shape as prahara/kala, where curved text reads well (see
-  // curvedLabel's own comment for why the 30-segment muhurta ring differs).
-  function renderGoodBadRing(group, ringDescriptor, index) {
-    renderRing(group, ringDescriptor, {
-      rInner: R.goodBadRingBounds[index], rOuter: R.goodBadRingBounds[index + 1],
-      fontSize: 13,
-      minSpanForLabel: 5,
-      curved: true,
-    });
   }
 
   // Innermost ring: just day/night, two segments, always the same two
@@ -397,12 +367,10 @@
 
   VedicEngine.Dial = {
     R, CX, CY,
-    GOOD_BAD_RING_KEYS,
     buildStaticStructure,
     renderOuterRing,
     renderNakshatraRing,
     renderTithiRing,
-    renderGoodBadRing,
     renderDayNightRing,
     setHand,
     setPalaHand,

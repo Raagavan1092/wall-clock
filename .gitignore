@@ -1,3 +1,5 @@
 .DS_Store
 Thumbs.db
 WhatsApp Image*.jpeg
+.claude/scheduled_tasks.lock
+.claude/*.lock
