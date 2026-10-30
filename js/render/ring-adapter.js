@@ -36,12 +36,12 @@
     return Ghati.angleForTime(date, anchors);
   }
 
-  // "Ghati 15 · Pala 21" - same wording as the centre readout
-  // (app.js buildCentreLines), used in every ring segment's tooltip
-  // alongside the plain hour:minute dial.js already shows there.
+  // "15:21" (ghati:pala, zero-padded like the HH:MM dial.js shows
+  // alongside it) - used in every ring segment's tooltip.
   function ghatiPalaLabel(date, anchors) {
     const g = Ghati.current(date, anchors);
-    return "Ghati " + g.ghati + " · Pala " + g.pala;
+    const pad2 = function (n) { return (n < 10 ? "0" : "") + n; };
+    return pad2(g.ghati) + ":" + pad2(g.pala);
   }
 
   // Fills in startAngle/endAngle for any segment that doesn't already have
