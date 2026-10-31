@@ -212,11 +212,11 @@
   }
 
   function wireInput(svg) {
-    svg.addEventListener("click", function () { cycleRing(1); });
-
-    // The centre buttons sit inside the SVG, so they stop their click from
-    // also reaching the whole-dial click above (which would cycle the ring
-    // a second time, or cycle it on "Switch time").
+    // Tapping the dial itself no longer cycles the ring (per the project
+    // owner) - so a tap on a segment just shows its tooltip. The "Switch
+    // display" button, swipes and arrow keys do it instead. The buttons sit
+    // inside the SVG, so they stop their events here rather than letting
+    // them reach the dial's own handlers.
     function wireButton(button, action) {
       button.addEventListener("click", function (e) { e.stopPropagation(); action(); });
       button.addEventListener("keydown", function (e) {

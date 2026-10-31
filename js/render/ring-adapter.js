@@ -102,16 +102,16 @@
     const segments = r.day.map(function (iv, i) {
       return segmentFromInterval(iv, anchors, data.kala.day.names[i], false);
     });
-    const night = combinedBand(r.night, anchors, "Night (kala not defined)", true);
+    // Kala isn't defined at night: a plain blank (neutral) band, no label.
+    const night = combinedBand(r.night, anchors, "", false);
     if (night) segments.push(night);
     return segments;
   }
 
   // All three named segments are inauspicious, drawn in their own lighter
   // brown ("kala" class in style.css) so they stand out clearly from the
-  // dark unnamed day segments around them; the "not covered"
-  // night band keeps its existing `contested` (dashed, data-gap) styling
-  // rather than being marked bad - it means "unknown", not "confirmed bad".
+  // dark unnamed day segments around them. Night isn't covered by these
+  // three, so it's one plain blank (neutral) band, no label.
   function buildRahuYamaGulika(snapshot, data) {
     const anchors = snapshot.anchors;
     const r = snapshot.scaledRings.rahuYamaGulika;
@@ -127,7 +127,7 @@
       if (label) seg.goodBad = "kala";
       return seg;
     });
-    const night = combinedBand(r.night, anchors, "Night (not covered)", true);
+    const night = combinedBand(r.night, anchors, "", false);
     if (night) segments.push(night);
     return segments;
   }

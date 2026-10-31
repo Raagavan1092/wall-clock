@@ -20,12 +20,14 @@
   --centre-ghati: #ffd77a;
   --centre-clock-secondary: #a89a78;
   --contested: #e0392b;
-  --bad-fill: #3a1512;
-  --bad-label: #ff8a75;
-  --good-fill: #10283a;
-  --good-label: #7cc4ff;
-  --mixed-fill: #2e1d3e;
-  --mixed-label: #d0a8ff;
+  /* Yoga ring: bad = the same lighter brown as Rahu/Yama/Gulika, good = a
+     bright blue, mixed = the even blend of the two fills. */
+  --bad-fill: #8a5d32;
+  --bad-label: #fff1d6;
+  --good-fill: #2f6fb8;
+  --good-label: #f0f7ff;
+  --mixed-fill: #5d6675;
+  --mixed-label: #f4f1ea;
   --kala-fill: #8a5d32;
   --kala-label: #fff1d6;
   --label: #f3e6c0;
@@ -62,7 +64,7 @@ html, body {
   border-radius: 50%;
   touch-action: pan-y;
   user-select: none;
-  cursor: pointer;
+  cursor: default;
 }
 
 .ring-boundary, .ghati-scale-boundary {
