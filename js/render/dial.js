@@ -8,30 +8,27 @@
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const SVG_NS = "http://www.w3.org/2000/svg";
 
-  // CX/CY leave a permanent margin outside outerRingOuter (480) for the
-  // yoga-alert ring (yogaRingInner..yogaRingOuter below) - it's the ONE ring
-  // allowed to appear/disappear on its own (see renderYogaAlertRing), so the
-  // canvas has to have room for it whether or not it's drawn on a given day.
-  // Beyond that, a further margin (520..615) holds the Āvartana/Niśītha
-  // labels, so they sit clear of every ring.
+  // The rings end at radius 520; the margin beyond (520..615) holds the
+  // marker-line labels (Āvartana, Niśītha, ...), so they sit clear of every
+  // ring.
   const CX = 615, CY = 615;
-  // Concentric bands, outside in: the yoga-alert ring (only actually drawn
-  // on days one of the five nitya yogas is active - see renderYogaAlertRing),
-  // then the switchable ring (muhurta/prahara/kala/hora/rahuYamaGulika -
-  // whichever is toggled; see ring-adapter.js RING_ORDER), then two
-  // dedicated thin rings that always show tithi and nakshatra (these two are
-  // pulled out of the toggle because they're the ones people check
-  // constantly), then the fixed ghati/pala scale, then the innermost
-  // always-on day/night ring, then the centre readout.
+  // Concentric bands, outside in (per the project owner, the changing ring
+  // is outermost): the switchable ring (whichever of ring-adapter.js
+  // RING_ORDER is toggled), then nakṣatra, then the yoga-alert ring (only
+  // actually drawn on days one of the five nitya yogas is active - see
+  // renderYogaAlertRing; its band is reserved either way, so nothing moves
+  // when it comes and goes), then tithi, then the fixed ghaṭī/pala scale,
+  // then the innermost day/night ring, then the centre readout. Bands are
+  // separated by 4-unit gaps.
   const R = {
-    yogaRingOuter: 520,
-    yogaRingInner: 484, // 4-unit gap from outerRingOuter, matching the gaps between other bands
-    outerRingOuter: 480,
-    outerRingInner: 436,
-    nakshatraRingOuter: 432,
-    nakshatraRingInner: 400, // 32 thick (was 20) - thicker band for bigger labels
-    tithiRingOuter: 396,
-    tithiRingInner: 364, // 32 thick (was 20)
+    outerRingOuter: 520,
+    outerRingInner: 476,
+    nakshatraRingOuter: 472,
+    nakshatraRingInner: 440,
+    yogaRingOuter: 436,
+    yogaRingInner: 404,
+    tithiRingOuter: 400,
+    tithiRingInner: 368,
     ghatiMajorTickOuter: 356,
     ghatiMajorTickInner: 322,
     ghatiMinorTickOuter: 356,
@@ -56,6 +53,15 @@
 
   function angularSpanClockwise(startAngle, endAngle) {
     return ((endAngle - startAngle) % 360 + 360) % 360;
+  }
+
+  // A segment's angular span. One that lasts the whole sunrise-to-sunrise
+  // day (e.g. a nakṣatra that holds all day) starts and ends at the same
+  // angle, which the plain angle difference would read as ~0, not 360.
+  function segmentSpan(seg) {
+    const span = angularSpanClockwise(seg.startAngle, seg.endAngle);
+    const longerThanHalfDay = seg.startTime && seg.endTime && seg.endTime - seg.startTime > 12 * 3600 * 1000;
+    return span < 1 && longerThanHalfDay ? 360 : span;
   }
 
   // Hour:minute, IST, for hover-tooltip time ranges on every ring segment.
@@ -120,6 +126,17 @@
   }
 
   function annularSectorPath(rInner, rOuter, startAngle, span) {
+    if (span >= 359.99) {
+      // A full ring: an arc can't start and end at the same point, so go
+      // round as two half-circle arcs, outer clockwise then inner back.
+      const o1 = polarToXY(startAngle, rOuter), o2 = polarToXY(startAngle + 180, rOuter);
+      const i1 = polarToXY(startAngle, rInner), i2 = polarToXY(startAngle + 180, rInner);
+      return [
+        "M", o1.x, o1.y, "A", rOuter, rOuter, 0, 1, 1, o2.x, o2.y, "A", rOuter, rOuter, 0, 1, 1, o1.x, o1.y,
+        "M", i1.x, i1.y, "A", rInner, rInner, 0, 1, 0, i2.x, i2.y, "A", rInner, rInner, 0, 1, 0, i1.x, i1.y,
+        "Z",
+      ].join(" ");
+    }
     const endAngle = startAngle + span;
     const outerStart = polarToXY(startAngle, rOuter);
     const outerEnd = polarToXY(endAngle, rOuter);
@@ -369,7 +386,7 @@
     const minSpanForLabel = geom.minSpanForLabel != null ? geom.minSpanForLabel : 6;
 
     ringDescriptor.segments.forEach(function (seg, i) {
-      const span = angularSpanClockwise(seg.startAngle, seg.endAngle);
+      const span = segmentSpan(seg);
       if (span <= 0.0001) return;
       const alternateClass = geom.alternate && seg.text && !seg.goodBad ? (i % 2 ? " div-alt" : " div-base") : "";
       const path = el("path", {
@@ -449,8 +466,8 @@
   // circles included - when at least one of them is active. On a day none
   // of the five nitya yogas apply, the group is just left empty, so that
   // band of the dial reads as plain background, not as an empty ring; see
-  // the R.yogaRing*/CX/CY comments above for why the canvas still reserves
-  // the space either way (so the rest of the dial never resizes/jumps).
+  // the R comment above for why its band is reserved either way (so the
+  // rest of the dial never resizes/jumps).
   // Same crowding guard as the old merged ring: a higher minSpanForLabel
   // than the other curved rings, since two or three of the five sources can
   // still change within an hour of each other and label-collide otherwise.

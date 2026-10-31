@@ -123,8 +123,8 @@
   }
 
   // The daily good/bad time windows, on one ring ("Good / Bad Times"):
-  // Rahu Kalam, Yamaganda, Gulika Kalam and Durmuhurta (bad), and Abhijit
-  // (good). They can overlap (e.g. Wednesday's Rahu Kalam and midday), so
+  // Rāhu Kālam, Yamagaṇḍa, Gulika Kālam and Durmuhūrta (bad), and Abhijit,
+  // Pradoṣa and Godhūli (good). They can overlap (e.g. Wednesday's Rahu Kalam and midday), so
   // they go through the same merge as the yoga ring - an overlap of a good
   // and a bad window gets the "mixed" colour. Everything else is blank.
   function buildRahuYamaGulika(snapshot, data) {
@@ -146,6 +146,11 @@
     if (data.abhijit.skipWeekdays.indexOf(v) === -1) {
       intervals.push(windowOf(muhurta.day[data.abhijit.dayIndex], "Abhijit", "good"));
     }
+    const pradoshaEnd = muhurta.night[data.pradosha.nightMuhurtaCount - 1].endTime;
+    intervals.push(windowOf({ startTime: snapshot.anchors.sunsetToday, endTime: pradoshaEnd }, "Pradoṣa", "good"));
+    const godhuliHalfMs = data.godhuli.halfWidthGhati * Ghati.FIXED_SECONDS_PER_GHATI * 1000;
+    const sunset = snapshot.anchors.sunsetToday.getTime();
+    intervals.push(windowOf({ startTime: new Date(sunset - godhuliHalfMs), endTime: new Date(sunset + godhuliHalfMs) }, "Godhūli", "good"));
     return mergeActiveIntervals(intervals, snapshot.anchors.governingSunrise, snapshot.anchors.nextSunrise);
   }
 
