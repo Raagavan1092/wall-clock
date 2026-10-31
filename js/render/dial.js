@@ -14,19 +14,19 @@
   const CX = 615, CY = 615;
   // Concentric bands, outside in (per the project owner, the changing ring
   // is outermost): the switchable ring (whichever of ring-adapter.js
-  // RING_ORDER is toggled), then nakṣatra, then the yoga-alert ring (only
-  // actually drawn on days one of the five nitya yogas is active - see
+  // RING_ORDER is toggled), then the yoga-alert ring (only actually drawn
+  // on days one of the five nitya yogas is active - see
   // renderYogaAlertRing; its band is reserved either way, so nothing moves
-  // when it comes and goes), then tithi, then the fixed ghaṭī/pala scale,
+  // when it comes and goes), then nakṣatra, then tithi, then the fixed ghaṭī/pala scale,
   // then the innermost day/night ring, then the centre readout. Bands are
   // separated by 4-unit gaps.
   const R = {
     outerRingOuter: 520,
     outerRingInner: 476,
-    nakshatraRingOuter: 472,
-    nakshatraRingInner: 440,
-    yogaRingOuter: 436,
-    yogaRingInner: 404,
+    yogaRingOuter: 472,
+    yogaRingInner: 440,
+    nakshatraRingOuter: 436,
+    nakshatraRingInner: 404,
     tithiRingOuter: 400,
     tithiRingInner: 368,
     ghatiMajorTickOuter: 356,
