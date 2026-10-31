@@ -380,12 +380,46 @@
   //   red then green then red... ("div-base"/"div-alt" in style.css), for
   //   every ring of plain divisions - never for good/bad-time rings, whose
   //   colour means something.
+  // geom.mergeRuns (good/bad-time rings): consecutive segments of the same
+  // kind (bad next to bad, good next to good, mixed next to mixed) are drawn
+  // as ONE block, with no border between them and a single label naming
+  // each window once ("Gulika Kālam · Durmuhūrta · Rāhu Kālam"). Each
+  // original piece stays underneath as an invisible hover target, so the
+  // tooltip still says exactly what is active when.
+  function groupRuns(segments) {
+    const runs = [];
+    segments.forEach(function (seg) {
+      const prev = runs[runs.length - 1];
+      if (prev && seg.goodBad && prev.goodBad === seg.goodBad) {
+        prev.parts.push(seg);
+        prev.endAngle = seg.endAngle;
+        prev.endTime = seg.endTime;
+      } else {
+        runs.push(Object.assign({}, seg, { parts: [seg] }));
+      }
+    });
+    runs.forEach(function (run) {
+      if (run.parts.length < 2) return;
+      const names = [];
+      run.parts.forEach(function (part) {
+        part.text.split(" + ").forEach(function (n) { if (names.indexOf(n) === -1) names.push(n); });
+      });
+      run.text = names.join(" · ");
+    });
+    return runs;
+  }
+
+  function segmentTooltip(seg) {
+    return seg.text + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : "");
+  }
+
   function renderRing(group, ringDescriptor, geom) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const fontSizeFn = typeof geom.fontSize === "function" ? geom.fontSize : function () { return geom.fontSize; };
     const minSpanForLabel = geom.minSpanForLabel != null ? geom.minSpanForLabel : 6;
+    const items = geom.mergeRuns ? groupRuns(ringDescriptor.segments) : ringDescriptor.segments;
 
-    ringDescriptor.segments.forEach(function (seg, i) {
+    items.forEach(function (seg, i) {
       const span = segmentSpan(seg);
       if (span <= 0.0001) return;
       const alternateClass = geom.alternate && seg.text && !seg.goodBad ? (i % 2 ? " div-alt" : " div-base") : "";
@@ -393,10 +427,19 @@
         d: annularSectorPath(geom.rInner, geom.rOuter, seg.startAngle, span),
         class: "ring-segment" + alternateClass + (seg.contested ? " contested" : "") + (seg.goodBad ? " " + seg.goodBad : "") + (seg.text ? "" : " neutral"),
       });
-      if (seg.text) {
-        attachTooltip(path, seg.text + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : ""));
-      }
       group.appendChild(path);
+      if (seg.parts && seg.parts.length > 1) {
+        seg.parts.forEach(function (part) {
+          const hit = el("path", {
+            d: annularSectorPath(geom.rInner, geom.rOuter, part.startAngle, segmentSpan(part)),
+            class: "ring-segment-hit",
+          });
+          attachTooltip(hit, segmentTooltip(part));
+          group.appendChild(hit);
+        });
+      } else if (seg.text) {
+        attachTooltip(path, segmentTooltip(seg));
+      }
 
       if (seg.text && span >= minSpanForLabel) {
         const midAngle = seg.startAngle + span / 2;
@@ -406,11 +449,11 @@
         let shrunkSize = null;
         if (geom.curved) {
           // Shrink a curved label to fit its arc (short windows like a
-          // part-overlapped Abhijit, or "Gulika Kalam + Durmuhurta"); skip
-          // it only if even small text won't fit - the tooltip still has it.
-          // Measured against the size actually shown (.dial-label's CSS
-          // font-size wins over the font-size attribute), and applied as an
-          // inline style, which in turn wins over the CSS.
+          // part-overlapped Abhijit); skip it only if even small text won't
+          // fit - the tooltip still has it. Measured against the size
+          // actually shown (.dial-label's CSS font-size wins over the
+          // font-size attribute), and applied as an inline style, which in
+          // turn wins over the CSS.
           const arcLength = (Math.min(span, 170) * Math.PI / 180) * midRadius * 0.9;
           const fitted = arcLength / (seg.text.length * AVG_GLYPH_WIDTH);
           fits = fitted >= MIN_CURVED_FONT;
@@ -422,7 +465,7 @@
         } else if (geom.curved) {
           curvedLabel(group, seg.text, midAngle, span, midRadius, shrunkSize || fontSize, labelClass, shrunkSize);
         } else {
-          // "Tvashta (Brahma Muhurta)" is too long for one 12-deg muhurta
+          // "Tvaṣṭā (Brahma Muhūrta)" is too long for one 12-deg muhūrta
           // cell, so a parenthetical goes on a second line.
           group.appendChild(radialLabel(seg.text.replace(" (", "\n("), midAngle, midRadius, fontSize, labelClass));
         }
@@ -451,6 +494,7 @@
       minSpanForLabel: curved ? 2 : 6, // curved labels shrink to fit instead (see renderRing)
       curved: curved,
       alternate: !GOOD_BAD_OUTER_RINGS[ringDescriptor.ringKey],
+      mergeRuns: !!GOOD_BAD_OUTER_RINGS[ringDescriptor.ringKey],
     });
   }
   function renderNakshatraRing(group, ringDescriptor) {
@@ -482,6 +526,7 @@
       fontSize: 13,
       minSpanForLabel: 11,
       curved: true,
+      mergeRuns: true,
     });
     group.appendChild(el("circle", { cx: CX, cy: CY, r: R.yogaRingOuter, class: "ring-boundary" }));
     group.appendChild(el("circle", { cx: CX, cy: CY, r: R.yogaRingInner, class: "ring-boundary" }));

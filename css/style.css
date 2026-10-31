@@ -79,6 +79,9 @@ html, body {
 }
 .ring-segment:nth-of-type(odd) { fill: var(--ring-fill-alt); }
 .ring-segment.neutral { fill: var(--ring-neutral); }
+/* Invisible hover targets for the pieces of a merged good/bad run (see
+   dial.js groupRuns): they carry the tooltips, the run's own path the look. */
+.ring-segment-hit { fill: transparent; stroke: none; }
 .ring-segment.contested { stroke: var(--contested); stroke-dasharray: 4 3; }
 
 .ring-segment.div-base { fill: var(--div-base); }
