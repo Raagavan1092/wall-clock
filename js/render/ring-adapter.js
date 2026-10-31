@@ -123,8 +123,8 @@
   }
 
   // The daily good/bad time windows, on one ring ("Good / Bad Times"):
-  // Rāhu Kālam, Yamagaṇḍa, Gulika Kālam and Durmuhūrta (bad), and Abhijit,
-  // Pradoṣa and Godhūli (good). They can overlap (e.g. Wednesday's Rahu Kalam and midday), so
+  // Rāhu Kālam, Yamagaṇḍa, Gulika Kālam, Durmuhūrta and Varjyam (bad), and
+  // Abhijit, Pradoṣa, Godhūli and Amṛta Kālam (good). They can overlap (e.g. Wednesday's Rahu Kalam and midday), so
   // they go through the same merge as the yoga ring - an overlap of a good
   // and a bad window gets the "mixed" colour. Everything else is blank.
   function buildRahuYamaGulika(snapshot, data) {
@@ -151,6 +151,20 @@
     const godhuliHalfMs = data.godhuli.halfWidthGhati * Ghati.FIXED_SECONDS_PER_GHATI * 1000;
     const sunset = snapshot.anchors.sunsetToday.getTime();
     intervals.push(windowOf({ startTime: new Date(sunset - godhuliHalfMs), endTime: new Date(sunset + godhuliHalfMs) }, "Godhūli", "good"));
+    // Varjyam / Amṛta Kālam: 4 "ghaṭīs" of each nakṣatra touching this day,
+    // where a ghaṭī here is 1/60 of that nakṣatra's own full length (its
+    // true start/end, not the part clipped to this day). Windows falling
+    // outside the day are dropped by the merge below.
+    const va = data.varjyamAmrita;
+    snapshot.nakshatraSequence.forEach(function (n) {
+      const ghatiMs = (n.endTime.getTime() - n.startTime.getTime()) / 60;
+      function nakWindow(startGhati) {
+        const t = n.startTime.getTime() + startGhati * ghatiMs;
+        return { startTime: new Date(t), endTime: new Date(t + va.windowGhati * ghatiMs) };
+      }
+      intervals.push(windowOf(nakWindow(va.varjyamStartGhati[n.index]), "Varjyam", "bad"));
+      intervals.push(windowOf(nakWindow(va.amritaStartGhati[n.index]), "Amṛta Kālam", "good"));
+    });
     return mergeActiveIntervals(intervals, snapshot.anchors.governingSunrise, snapshot.anchors.nextSunrise);
   }
 
