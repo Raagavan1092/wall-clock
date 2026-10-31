@@ -168,6 +168,7 @@
       E.Dial.renderTithiRing(dialHandles.tithiRingGroup, E.RingAdapter.build("tithi", snapshot, data));
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderYogaAlertRing(dialHandles.yogaRingGroup, E.RingAdapter.buildYogaAlerts(snapshot, data));
+      E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot));
     }
     if (changed || ringKey !== lastRenderedRingKey) {
       lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);

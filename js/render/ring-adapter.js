@@ -384,6 +384,21 @@
     return { ringKey: "dayNight", title: "Day/Night", segments: segments };
   }
 
+  // Avartana (midpoint of sunrise..sunset) and Nishitha (midpoint of
+  // sunset..next sunrise), for dial.js's marker lines.
+  function buildDayMarkers(snapshot) {
+    const a = snapshot.anchors;
+    function mid(t1, t2) { return new Date((t1.getTime() + t2.getTime()) / 2); }
+    return [
+      { text: "Avartana", time: mid(a.governingSunrise, a.sunsetToday) },
+      { text: "Nishitha", time: mid(a.sunsetToday, a.nextSunrise) },
+    ].map(function (m) {
+      m.angle = angleOf(m.time, a);
+      m.ghatiPala = ghatiPalaLabel(m.time, a);
+      return m;
+    });
+  }
+
   // Marks for the hour-mode scale (the "Switch time" view): the 24 whole IST
   // clock hours, each at its true angle on the same sunrise-anchored scale
   // every ring uses (fixed-rate: 60 ghati = 24h, so no ring has to move),
@@ -403,5 +418,5 @@
     return { hours: hours, sunriseLabel: sunriseLabel };
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, buildHourScale, RING_ORDER, RING_TITLES };
+  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);

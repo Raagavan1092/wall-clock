@@ -39,6 +39,8 @@
     dayNightRingInner: 258, // thin band - a little thicker than the tithi ring
     hand: 270, // same length as palaHand, per the project owner
     palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
+    markerLineOuter: 524, // Avartana/Nishitha lines run out past the yoga ring...
+    markerLabel: 531, // ...with their name just beyond, inside the dial's edge (540)
     hub: 14,
     centrePlate: 186,
     centreTextY: -24, // centre readout sits a little above centre, leaving room for...
@@ -134,6 +136,8 @@
   // muhurta) tangent-following text reads worse, not better, at this size,
   // and horizontal text is never upside-down regardless of which side of the
   // dial it falls on.
+  // A "\n" in `text` splits it over two lines, the second a little smaller,
+  // centred together on the same point.
   function radialLabel(text, angleDeg, radius, fontSize, extraClass) {
     const p = polarToXY(angleDeg, radius);
     const t = el("text", {
@@ -143,7 +147,14 @@
       "font-size": fontSize,
       class: "dial-label" + (extraClass ? " " + extraClass : ""),
     });
-    t.textContent = text;
+    const lines = text.split("\n");
+    if (lines.length === 1) {
+      t.textContent = text;
+      return t;
+    }
+    const subSize = Math.max(10, Math.round(fontSize * 0.9));
+    t.appendChild(el("tspan", { x: p.x, y: p.y - subSize * 0.6 })).textContent = lines[0];
+    t.appendChild(el("tspan", { x: p.x, y: p.y + fontSize * 0.6, "font-size": subSize })).textContent = lines[1];
     return t;
   }
 
@@ -291,6 +302,10 @@
     const dayNightRingGroup = el("g", { class: "daynight-ring" });
     svg.appendChild(dayNightRingGroup);
 
+    // Avartana/Nishitha marker lines, over every ring but under the hands.
+    const markerGroup = el("g", { class: "day-markers" });
+    svg.appendChild(markerGroup);
+
     // Centre plate is drawn BEFORE the hands now, so the hands are visibly
     // whole spokes reaching all the way from the true centre point outward
     // (like a real clock's hands, which always cross the dial face) rather
@@ -321,7 +336,7 @@
     svg.appendChild(timeButton);
     svg.appendChild(displayButton);
 
-    return { yogaRingGroup, outerRingGroup, nakshatraRingGroup, tithiRingGroup, scaleGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
+    return { yogaRingGroup, outerRingGroup, nakshatraRingGroup, tithiRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
   }
 
   function centreButton(label, x, y, w, h) {
@@ -359,7 +374,9 @@
         if (geom.curved) {
           curvedLabel(group, seg.text, midAngle, span, midRadius, fontSize, labelClass);
         } else {
-          group.appendChild(radialLabel(seg.text, midAngle, midRadius, fontSize, labelClass));
+          // "Tvashta (Brahma Muhurta)" is too long for one 12-deg muhurta
+          // cell, so a parenthetical goes on a second line.
+          group.appendChild(radialLabel(seg.text.replace(" (", "\n("), midAngle, midRadius, fontSize, labelClass));
         }
       }
       if (seg.contested) {
@@ -435,6 +452,23 @@
     });
   }
 
+  // Avartana (midday) and Nishitha (midnight): a line from the day/night
+  // ring out through every ring, with the name curved just past its end.
+  // `markers` is ring-adapter.js's buildDayMarkers output.
+  function renderDayMarkers(group, markers) {
+    while (group.firstChild) group.removeChild(group.firstChild);
+    markers.forEach(function (m) {
+      const p1 = polarToXY(m.angle, R.dayNightRingInner);
+      const p2 = polarToXY(m.angle, R.markerLineOuter);
+      group.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-line" }));
+      // Wide invisible twin so the thin line is easy to hover/tap.
+      const hit = el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-hit" });
+      attachTooltip(hit, m.text + "\n" + m.ghatiPala + "\n" + fmtHM(m.time));
+      group.appendChild(hit);
+      curvedLabel(group, m.text, m.angle, 14, R.markerLabel, 14, "day-marker-label");
+    });
+  }
+
   function setHand(handGroup, angleDeg) {
     handGroup.setAttribute("transform", `rotate(${angleDeg} ${CX} ${CY})`);
   }
@@ -474,6 +508,7 @@
     renderTithiRing,
     renderYogaAlertRing,
     renderDayNightRing,
+    renderDayMarkers,
     renderGhatiScale,
     renderHourScale,
     setHand,

@@ -108,7 +108,7 @@
 
   "muhurta": {
     "status": "standard",
-    "note": "CONTESTED, resolved to a specific cited primary source rather than a popular-site compilation: names below are Varahamihira's Brihat Samhita (6th c. CE), ch. on muhurtas, as translated by N. Chidambaram Iyer (Madura, South Indian Press, 1884-85; public-domain, hosted at Wellcome Collection and mirrored at wisdomlib.org). A second list is in wide circulation on modern astrology/panchangam sites (day differs at positions 2, 6, 9-13; night is almost entirely different) but is uncredited to any single primary text in every copy found, so it is recorded here as a named variant rather than used as the default. A third, further-differing night sequence appears in Bhagavata-Purana-derived sources and was not fully transcribed. The source also marks the 1st, 2nd, 6th and 7th NIGHT muhurtas (Ishvara, Ajapada, Yama, Vahni) as inauspicious for auspicious undertakings - not yet surfaced in the UI.",
+    "note": "CONTESTED, resolved to a specific cited primary source rather than a popular-site compilation: names below are Varahamihira's Brihat Samhita (6th c. CE), ch. on muhurtas, as translated by N. Chidambaram Iyer (Madura, South Indian Press, 1884-85; public-domain, hosted at Wellcome Collection and mirrored at wisdomlib.org). A second list is in wide circulation on modern astrology/panchangam sites (day differs at positions 2, 6, 9-13; night is almost entirely different) but is uncredited to any single primary text in every copy found, so it is recorded here as a named variant rather than used as the default. A third, further-differing night sequence appears in Bhagavata-Purana-derived sources and was not fully transcribed. The source also marks the 1st, 2nd, 6th and 7th NIGHT muhurtas (Ishvara, Ajapada, Yama, Vahni) as inauspicious for auspicious undertakings - not yet surfaced in the UI. The 14th night muhurta is Tvashta here (Muhurta Chintamani reportedly agrees: Tvashtra, ruled by Chitra); it is the same span Ayurveda/dharmashastra call Brahma Muhurta (Ashtanga Hridaya Su. 2.1, Arunadatta: 14th muhurta of the night), a time designation rather than a deity name, so per the project owner it is labelled 'Tvashta (Brahma Muhurta)'.",
     "source": "Brihat Samhita of Varahamihira, tr. N. Chidambaram Iyer (1884-85), https://www.wisdomlib.org/hinduism/book/brihat-samhita/d/doc229363.html",
     "contestedVariant": {
       "label": "Common modern table (uncredited; seen on most popular panchangam/astrology sites)",
@@ -116,7 +116,7 @@
       "night": ["Girisha", "Ajapada", "Ahirbudhnya", "Pushya", "Ashwini", "Yama", "Agni", "Vidhatri", "Kanda", "Aditi", "Jiva (Amrita)", "Vishnu", "Dyumadgadyuti", "Brahma", "Samudra"]
     },
     "day": { "names": ["Rudra", "Sarpa", "Mitra", "Pitri", "Vasu", "Vara", "Vishvedeva", "Vidhi", "Brahma", "Indra", "Indragni", "Daitya", "Varuna", "Aryaman", "Bhaga"] },
-    "night": { "names": ["Ishvara", "Ajapada", "Ahirbudhnya", "Pushya", "Nasatya", "Yama", "Vahni", "Dhala", "Shashi", "Aditya", "Guru", "Achyuta", "Arka", "Tvashta", "Vayu"] }
+    "night": { "names": ["Ishvara", "Ajapada", "Ahirbudhnya", "Pushya", "Nasatya", "Yama", "Vahni", "Dhala", "Shashi", "Aditya", "Guru", "Achyuta", "Arka", "Tvashta (Brahma Muhurta)", "Vayu"] }
   },
 
   "prahara": {
