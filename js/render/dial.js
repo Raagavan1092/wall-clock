@@ -12,7 +12,9 @@
   // yoga-alert ring (yogaRingInner..yogaRingOuter below) - it's the ONE ring
   // allowed to appear/disappear on its own (see renderYogaAlertRing), so the
   // canvas has to have room for it whether or not it's drawn on a given day.
-  const CX = 540, CY = 540;
+  // Beyond that, a further margin (520..615) holds the Āvartana/Niśītha
+  // labels, so they sit clear of every ring.
+  const CX = 615, CY = 615;
   // Concentric bands, outside in: the yoga-alert ring (only actually drawn
   // on days one of the five nitya yogas is active - see renderYogaAlertRing),
   // then the switchable ring (muhurta/prahara/kala/hora/rahuYamaGulika -
@@ -39,8 +41,8 @@
     dayNightRingInner: 258, // thin band - a little thicker than the tithi ring
     hand: 270, // same length as palaHand, per the project owner
     palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
-    markerLineOuter: 536, // Avartana/Nishitha lines run out nearly to the dial's edge (540)...
-    markerLabel: 532, // ...with their name along the line, ending just short of its tip
+    markerLineOuter: 608, // Āvartana/Niśītha lines run out past every ring, nearly to the edge (615)...
+    markerLabel: 527, // ...with their name along the line, starting just outside the yoga ring (520)
     hub: 14,
     centrePlate: 186,
     centreTextY: -24, // centre readout sits a little above centre, leaving room for...
@@ -65,9 +67,11 @@
   // from ring-adapter.js's startGhatiPala/endGhatiPala - dial.js itself
   // never touches VedicEngine, see file header) and the plain clock time,
   // per the project owner: "ghati pala and hour and minutes", everywhere.
-  // Two short lines - "GG:PP – GG:PP" then "HH:MM – HH:MM" - under the topic.
+  // Two short lines under the topic, each naming its convention:
+  // "GG:PP – GG:PP (Gh:Pal)" then "HH:MM – HH:MM (Hr:Min)".
+  const GP_TAG = " (Gh:Pal)", HM_TAG = " (Hr:Min)";
   function timeRangeTooltip(seg) {
-    return seg.startGhatiPala + " – " + seg.endGhatiPala + "\n" + fmtHM(seg.startTime) + " – " + fmtHM(seg.endTime);
+    return seg.startGhatiPala + " – " + seg.endGhatiPala + GP_TAG + "\n" + fmtHM(seg.startTime) + " – " + fmtHM(seg.endTime) + HM_TAG;
   }
 
   // Custom dark-mode tooltip. SVG's native <title> tooltip is OS-rendered
@@ -484,8 +488,8 @@
 
   // Avartana (midday) and Nishitha (midnight): a line from the day/night
   // ring out through every ring almost to the dial's edge, with the name
-  // written along the line at its outer end, just above it. On the left
-  // half of the dial the text is flipped so it still reads left-to-right.
+  // written along the line beyond the outermost ring, just above it. On the
+  // left half of the dial the text is flipped so it still reads left-to-right.
   // `markers` is ring-adapter.js's buildDayMarkers output.
   function renderDayMarkers(group, markers) {
     while (group.firstChild) group.removeChild(group.firstChild);
@@ -495,20 +499,22 @@
       group.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-line" }));
       // Wide invisible twin so the thin line is easy to hover/tap.
       const hit = el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-hit" });
-      attachTooltip(hit, m.text + "\n" + m.ghatiPala + "\n" + fmtHM(m.time));
+      attachTooltip(hit, m.text + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + HM_TAG);
       group.appendChild(hit);
       group.appendChild(markerLabel(m.text, m.angle));
     });
   }
 
   function markerLabel(text, angle) {
-    const end = polarToXY(angle, R.markerLabel);
+    const start = polarToXY(angle, R.markerLabel);
     const leftHalf = angle > 180;
     const rotation = leftHalf ? angle + 90 : angle - 90;
     const t = el("text", {
       x: 0, y: -6,
-      "text-anchor": leftHalf ? "start" : "end",
-      transform: `translate(${end.x} ${end.y}) rotate(${rotation})`,
+      // Runs outward from `start` either way: on the left half the baseline
+      // points inward, so the text is anchored at its end instead.
+      "text-anchor": leftHalf ? "end" : "start",
+      transform: `translate(${start.x} ${start.y}) rotate(${rotation})`,
       class: "day-marker-label",
     });
     t.textContent = text;

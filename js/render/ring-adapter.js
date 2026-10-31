@@ -25,15 +25,18 @@
   // needs a label without computing a full snapshot. Kept in sync with the
   // `title` values set in build() below.
   const RING_TITLES = {
-    muhurta: "Muhurta", prahara: "Yaama", kala: "Kala", hora: "Hora",
+    // Display names follow IAST, per the project owner.
+    muhurta: "Muhūrta", prahara: "Yāma", kala: "Kāla", hora: "Horā",
     rahuYamaGulika: "Good / Bad Times",
-    yoga: "Yoga", karana: "Karana", lagna: "Lagna",
-    tithi: "Tithi", nakshatra: "Nakshatra",
+    yoga: "Yoga", karana: "Karaṇa", lagna: "Lagna",
+    tithi: "Tithi", nakshatra: "Nakṣatra",
   };
 
   // `anchors` is snapshot.anchors ({governingSunrise, sunsetToday, nextSunrise,
   // previousSunset}) - Ghati.angleForTime needs the whole thing now that the
   // ghati scale is day/night-rescaled rather than a single fixed rate.
+  const PAKSHA_LABEL = { shukla: "śukla", krishna: "kṛṣṇa" }; // engine key -> IAST
+
   function angleOf(date, anchors) {
     return Ghati.angleForTime(date, anchors);
   }
@@ -124,12 +127,12 @@
       return { startTime: iv.startTime, endTime: iv.endTime, text: text, goodBad: goodBad };
     }
     const intervals = [
-      windowOf(r.day[idx.rahu[v]], "Rahu Kalam", "bad"),
-      windowOf(r.day[idx.yamaganda[v]], "Yamaganda", "bad"),
-      windowOf(r.day[idx.gulika[v]], "Gulika Kalam", "bad"),
+      windowOf(r.day[idx.rahu[v]], "Rāhu Kālam", "bad"),
+      windowOf(r.day[idx.yamaganda[v]], "Yamagaṇḍa", "bad"),
+      windowOf(r.day[idx.gulika[v]], "Gulika Kālam", "bad"),
     ];
     data.durmuhurta.byWeekday[v].forEach(function (d) {
-      intervals.push(windowOf(muhurta[d.part][d.index], "Durmuhurta", "bad"));
+      intervals.push(windowOf(muhurta[d.part][d.index], "Durmuhūrta", "bad"));
     });
     if (data.abhijit.skipWeekdays.indexOf(v) === -1) {
       intervals.push(windowOf(muhurta.day[data.abhijit.dayIndex], "Abhijit", "good"));
@@ -159,7 +162,7 @@
   function buildMaranaYoga(snapshot, data) {
     const v = snapshot.varaIndex;
     const table = data.nityaYoga.table;
-    return buildNakshatraDrivenRing(snapshot, "Marana Yogam", "bad", function (entry) {
+    return buildNakshatraDrivenRing(snapshot, "Maraṇa Yogam", "bad", function (entry) {
       return table[entry.index][v] === "M";
     });
   }
@@ -167,14 +170,14 @@
   function buildAmritaYoga(snapshot, data) {
     const v = snapshot.varaIndex;
     const table = data.nityaYoga.table;
-    return buildNakshatraDrivenRing(snapshot, "Amrita Yogam", "good", function (entry) {
+    return buildNakshatraDrivenRing(snapshot, "Amṛta Yogam", "good", function (entry) {
       return table[entry.index][v] === "A";
     });
   }
 
   function buildSarvarthaSiddhiYoga(snapshot, data) {
     const list = data.sarvarthaSiddhiYoga.nakshatraIndicesByWeekday[snapshot.varaIndex];
-    return buildNakshatraDrivenRing(snapshot, "Sarvartha Siddhi", "good", function (entry) {
+    return buildNakshatraDrivenRing(snapshot, "Sarvārtha Siddhi", "good", function (entry) {
       return list.indexOf(entry.index) !== -1;
     });
   }
@@ -202,7 +205,7 @@
       return {
         startAngle: null, endAngle: null,
         startTime: entry.segStart, endTime: entry.segEnd,
-        text: active ? "Visha Yoga" : "",
+        text: active ? "Viṣa Yoga" : "",
         contested: false,
         goodBad: active ? "bad" : undefined,
       };
@@ -218,7 +221,7 @@
     const all = r.day.concat(r.night); // 24 continuous hora indices from sunrise
     return all.map(function (iv, horaIndex) {
       const planet = order[(startIdx + horaIndex) % order.length];
-      return segmentFromInterval(iv, anchors, planet, false);
+      return segmentFromInterval(iv, anchors, data.hora.names[planet], false);
     });
   }
 
@@ -255,19 +258,19 @@
 
     switch (ringKey) {
       case "muhurta":
-        title = "Muhurta";
+        title = RING_TITLES.muhurta;
         segments = buildSimpleDivided(snapshot.scaledRings.muhurta.day, snapshot.scaledRings.muhurta.night, anchors, data.muhurta.day, data.muhurta.night);
         break;
       case "prahara":
-        title = "Yaama";
+        title = RING_TITLES.prahara;
         segments = buildSimpleDivided(snapshot.scaledRings.prahara.day, snapshot.scaledRings.prahara.night, anchors, data.prahara.day, data.prahara.night);
         break;
       case "kala":
-        title = "Kala";
+        title = RING_TITLES.kala;
         segments = buildKala(snapshot, data);
         break;
       case "hora":
-        title = "Hora";
+        title = RING_TITLES.hora;
         segments = buildHora(snapshot, data);
         break;
       case "rahuYamaGulika":
@@ -275,33 +278,37 @@
         segments = buildRahuYamaGulika(snapshot, data);
         break;
       case "tithi": {
-        title = "Tithi";
+        title = RING_TITLES.tithi;
         segments = buildSequenceSegments(
           snapshot.tithiSequence,
-          function (t) { return data.tithi.names[t.pakshaIndex - 1] + " (" + t.paksha + ")"; },
-          function (t) { return "Masa: " + data.amantaMasa.names[t.amantaMasaRashiIndex] + " (Amanta)"; }
+          function (t) {
+            // The 15th is "Pūrṇimā/Amāvāsyā" in the data - name the one it is.
+            const name = data.tithi.names[t.pakshaIndex - 1].split("/")[t.pakshaIndex === 15 && t.paksha === "krishna" ? 1 : 0];
+            return name + " (" + PAKSHA_LABEL[t.paksha] + ")";
+          },
+          function (t) { return "Māsa: " + data.amantaMasa.names[t.amantaMasaRashiIndex] + " (Amānta)"; }
         );
         break;
       }
       case "nakshatra": {
-        title = "Nakshatra";
+        title = RING_TITLES.nakshatra;
         segments = buildSequenceSegments(snapshot.nakshatraSequence, function (n) {
           return data.nakshatra.names[n.index];
         });
         break;
       }
       case "yoga":
-        title = "Yoga";
+        title = RING_TITLES.yoga;
         segments = buildSequenceSegments(snapshot.yogaSequence, function (y) { return data.yoga.names[y.index]; });
         break;
       case "karana":
-        title = "Karana";
+        title = RING_TITLES.karana;
         segments = buildSequenceSegments(snapshot.karanaSequence, function (k) {
           return k.key.indexOf("movable:") === 0 ? data.karana.movable[Number(k.key.split(":")[1])] : data.karana.fixed[k.key];
         });
         break;
       case "lagna":
-        title = "Lagna";
+        title = RING_TITLES.lagna;
         segments = buildSequenceSegments(snapshot.lagnaSequence, function (l) { return data.rashi.names[l.index]; });
         break;
       default:
@@ -381,10 +388,10 @@
   // See dial.js renderYogaAlertRing.
   function buildYogaAlerts(snapshot, data) {
     const intervals = []
-      .concat(activeIntervalsFor("Marana Yogam", "bad", buildMaranaYoga(snapshot, data)))
-      .concat(activeIntervalsFor("Visha Yoga", "bad", buildVishaYoga(snapshot, data)))
-      .concat(activeIntervalsFor("Amrita Yogam", "good", buildAmritaYoga(snapshot, data)))
-      .concat(activeIntervalsFor("Sarvartha Siddhi", "good", buildSarvarthaSiddhiYoga(snapshot, data)))
+      .concat(activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)))
+      .concat(activeIntervalsFor("Viṣa Yoga", "bad", buildVishaYoga(snapshot, data)))
+      .concat(activeIntervalsFor("Amṛta Yogam", "good", buildAmritaYoga(snapshot, data)))
+      .concat(activeIntervalsFor("Sarvārtha Siddhi", "good", buildSarvarthaSiddhiYoga(snapshot, data)))
       .concat(activeIntervalsFor("Ravi Yoga", "good", buildRaviYoga(snapshot, data)));
 
     const segments = mergeActiveIntervals(intervals, snapshot.anchors.governingSunrise, snapshot.anchors.nextSunrise);
@@ -411,8 +418,8 @@
     const a = snapshot.anchors;
     function mid(t1, t2) { return new Date((t1.getTime() + t2.getTime()) / 2); }
     return [
-      { text: "Avartana", time: mid(a.governingSunrise, a.sunsetToday) },
-      { text: "Nishitha", time: mid(a.sunsetToday, a.nextSunrise) },
+      { text: "Āvartana", time: mid(a.governingSunrise, a.sunsetToday) },
+      { text: "Niśītha", time: mid(a.sunsetToday, a.nextSunrise) },
     ].map(function (m) {
       m.angle = angleOf(m.time, a);
       m.ghatiPala = ghatiPalaLabel(m.time, a);

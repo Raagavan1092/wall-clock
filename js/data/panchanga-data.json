@@ -42,35 +42,35 @@
   "amantaMasa": {
     "status": "standard",
     "note": "Amanta (South Indian / Karnataka) lunar month names, by sidereal solar rashi (0=Mesha) at the preceding new moon - see js/engine/masa.js. Shown only in the tithi ring's tooltip, since Sringeri itself uses Amanta (not the North Indian Purnimanta convention, which runs about half a month ahead during Krishna Paksha and is not implemented here).",
-    "names": ["Chaitra", "Vaishakha", "Jyeshtha", "Ashadha", "Shravana", "Bhadrapada", "Ashwina", "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"]
+    "names": ["Caitra", "Vaiśākha", "Jyeṣṭha", "Āṣāḍha", "Śrāvaṇa", "Bhādrapada", "Āśvina", "Kārttika", "Mārgaśīrṣa", "Pauṣa", "Māgha", "Phālguna"]
   },
 
   "vara": {
     "status": "standard",
     "note": "Weekday index 0=Sunday..6=Saturday, matching VedicEngine.Util.weekdayAtOffset.",
-    "names": ["Ravivara", "Somavara", "Mangalavara", "Budhavara", "Guruvara", "Shukravara", "Shanivara"]
+    "names": ["Ravivāra", "Somavāra", "Maṅgalavāra", "Budhavāra", "Guruvāra", "Śukravāra", "Śanivāra"]
   },
 
   "tithi": {
     "status": "standard",
     "note": "Index 1-15 within each paksha; 15th of shukla = Purnima, 15th of krishna = Amavasya.",
     "names": [
-      "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
-      "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
-      "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima/Amavasya"
+      "Pratipadā", "Dvitīyā", "Tṛtīyā", "Caturthī", "Pañcamī",
+      "Ṣaṣṭhī", "Saptamī", "Aṣṭamī", "Navamī", "Daśamī",
+      "Ekādaśī", "Dvādaśī", "Trayodaśī", "Caturdaśī", "Pūrṇimā/Amāvāsyā"
     ],
-    "paksha": { "shukla": "Shukla Paksha (waxing)", "krishna": "Krishna Paksha (waning)" }
+    "paksha": { "shukla": "Śukla Pakṣa (waxing)", "krishna": "Kṛṣṇa Pakṣa (waning)" }
   },
 
   "nakshatra": {
     "status": "standard",
     "note": "Some traditions insert 'Abhijit' as an intercalary 28th nakshatra between Uttara Ashadha and Shravana; not included in this 27-nakshatra default list. Flagged, not implemented.",
     "names": [
-      "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
-      "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
-      "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
-      "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha",
-      "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+      "Aśvinī", "Bharaṇī", "Kṛttikā", "Rohiṇī", "Mṛgaśīrṣa", "Ārdrā",
+      "Punarvasu", "Puṣya", "Āśleṣā", "Maghā", "Pūrva Phalgunī", "Uttara Phalgunī",
+      "Hasta", "Citrā", "Svātī", "Viśākhā", "Anurādhā", "Jyeṣṭhā",
+      "Mūla", "Pūrva Āṣāḍhā", "Uttara Āṣāḍhā", "Śravaṇa", "Dhaniṣṭhā", "Śatabhiṣā",
+      "Pūrva Bhādrapadā", "Uttara Bhādrapadā", "Revatī"
     ],
     "abhijitInserted": false
   },
@@ -78,11 +78,11 @@
   "yoga": {
     "status": "standard",
     "names": [
-      "Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda",
-      "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva",
-      "Vyaghata", "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyana",
-      "Parigha", "Shiva", "Siddha", "Sadhya", "Shubha", "Shukla",
-      "Brahma", "Indra", "Vaidhriti"
+      "Viṣkambha", "Prīti", "Āyuṣmān", "Saubhāgya", "Śobhana", "Atigaṇḍa",
+      "Sukarmā", "Dhṛti", "Śūla", "Gaṇḍa", "Vṛddhi", "Dhruva",
+      "Vyāghāta", "Harṣaṇa", "Vajra", "Siddhi", "Vyatīpāta", "Varīyān",
+      "Parigha", "Śiva", "Siddha", "Sādhya", "Śubha", "Śukla",
+      "Brahma", "Indra", "Vaidhṛti"
     ]
   },
 
@@ -90,39 +90,40 @@
     "status": "standard",
     "note": "Keys match VedicEngine.Karana's output: 'kimstughna' | 'shakuni' | 'chatushpada' | 'naga' | 'movable:0'..'movable:6'.",
     "fixed": {
-      "kimstughna": "Kimstughna",
-      "shakuni": "Shakuni",
-      "chatushpada": "Chatushpada",
-      "naga": "Naga"
+      "kimstughna": "Kiṃstughna",
+      "shakuni": "Śakuni",
+      "chatushpada": "Catuṣpada",
+      "naga": "Nāga"
     },
-    "movable": ["Bava", "Balava", "Kaulava", "Taitila", "Garaja", "Vanija", "Vishti"],
+    "movable": ["Bava", "Bālava", "Kaulava", "Taitila", "Garaja", "Vaṇija", "Viṣṭi"],
     "movableSpellingVariant": "Some texts spell the 5th movable karana 'Gara' rather than 'Garaja'; drikpanchang.com (cross-checked for Sringeri, 2026) consistently uses 'Garaja', used here."
   },
 
   "hora": {
     "status": "standard",
     "note": "Classical Chaldean descending-speed order. Hora 0 of each Vedic day (starting at sunrise) is ruled by that weekday's own planet; the cycle then runs continuously through day and night (24 horas total: 12 scaled to day length, 12 to night length per js/engine/scaled-intervals.js).",
+    "names": { "sun": "Sūrya", "moon": "Candra", "mars": "Maṅgala", "mercury": "Budha", "jupiter": "Guru", "venus": "Śukra", "saturn": "Śani" },
     "chaldeanOrder": ["saturn", "jupiter", "mars", "sun", "venus", "mercury", "moon"],
     "weekdayStartPlanet": ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]
   },
 
   "muhurta": {
     "status": "standard",
-    "note": "CONTESTED, resolved to a specific cited primary source rather than a popular-site compilation: names below are Varahamihira's Brihat Samhita (6th c. CE), ch. on muhurtas, as translated by N. Chidambaram Iyer (Madura, South Indian Press, 1884-85; public-domain, hosted at Wellcome Collection and mirrored at wisdomlib.org). A second list is in wide circulation on modern astrology/panchangam sites (day differs at positions 2, 6, 9-13; night is almost entirely different) but is uncredited to any single primary text in every copy found, so it is recorded here as a named variant rather than used as the default. A third, further-differing night sequence appears in Bhagavata-Purana-derived sources and was not fully transcribed. The source also marks the 1st, 2nd, 6th and 7th NIGHT muhurtas (Ishvara, Ajapada, Yama, Vahni) as inauspicious for auspicious undertakings - not yet surfaced in the UI. The 14th night muhurta is Tvashta here (Muhurta Chintamani reportedly agrees: Tvashtra, ruled by Chitra); it is the same span Ayurveda/dharmashastra call Brahma Muhurta (Ashtanga Hridaya Su. 2.1, Arunadatta: 14th muhurta of the night), a time designation rather than a deity name, so per the project owner it is labelled 'Tvashta (Brahma Muhurta)'.",
+    "note": "CONTESTED, resolved to a specific cited primary source rather than a popular-site compilation: names below are Varahamihira's Brihat Samhita (6th c. CE), ch. on muhurtas, as translated by N. Chidambaram Iyer (Madura, South Indian Press, 1884-85; public-domain, hosted at Wellcome Collection and mirrored at wisdomlib.org). A second list is in wide circulation on modern astrology/panchangam sites (day differs at positions 2, 6, 9-13; night is almost entirely different) but is uncredited to any single primary text in every copy found, so it is recorded here as a named variant rather than used as the default. A third, further-differing night sequence appears in Bhagavata-Purana-derived sources and was not fully transcribed. The source also marks the 1st, 2nd, 6th and 7th NIGHT muhurtas (Ishvara, Ajapada, Yama, Vahni) as inauspicious for auspicious undertakings - not yet surfaced in the UI. The 14th night muhurta is Tvashta here (Muhurta Chintamani reportedly agrees: Tvashtra, ruled by Chitra); it is the same span Ayurveda/dharmashastra call Brahma Muhurta (Ashtanga Hridaya Su. 2.1, Arunadatta: 14th muhurta of the night), a time designation rather than a deity name, so per the project owner it is labelled 'Tvaṣṭā (Brahma Muhūrta)'. Display names are in IAST per the project owner; 'Vara' (day 6) and 'Dhala' (night 8) are kept as the 1884 translation spells them, since neither is a clear Sanskrit form (another translation reads the latter as Dhātṛ), so no diacritics were guessed.",
     "source": "Brihat Samhita of Varahamihira, tr. N. Chidambaram Iyer (1884-85), https://www.wisdomlib.org/hinduism/book/brihat-samhita/d/doc229363.html",
     "contestedVariant": {
       "label": "Common modern table (uncredited; seen on most popular panchangam/astrology sites)",
       "day": ["Rudra", "Ahi", "Mitra", "Pitri", "Vasu", "Varaha", "Vishvedeva", "Vidhi", "Sutamukhi", "Puruhuta", "Vahini", "Naktanakara", "Varuna", "Aryaman", "Bhaga"],
       "night": ["Girisha", "Ajapada", "Ahirbudhnya", "Pushya", "Ashwini", "Yama", "Agni", "Vidhatri", "Kanda", "Aditi", "Jiva (Amrita)", "Vishnu", "Dyumadgadyuti", "Brahma", "Samudra"]
     },
-    "day": { "names": ["Rudra", "Sarpa", "Mitra", "Pitri", "Vasu", "Vara", "Vishvedeva", "Vidhi", "Brahma", "Indra", "Indragni", "Daitya", "Varuna", "Aryaman", "Bhaga"] },
-    "night": { "names": ["Ishvara", "Ajapada", "Ahirbudhnya", "Pushya", "Nasatya", "Yama", "Vahni", "Dhala", "Shashi", "Aditya", "Guru", "Achyuta", "Arka", "Tvashta (Brahma Muhurta)", "Vayu"] }
+    "day": { "names": ["Rudra", "Sarpa", "Mitra", "Pitṛ", "Vasu", "Vara", "Viśvedeva", "Vidhi", "Brahma", "Indra", "Indrāgnī", "Daitya", "Varuṇa", "Aryaman", "Bhaga"] },
+    "night": { "names": ["Īśvara", "Ajapāda", "Ahirbudhnya", "Puṣya", "Nāsatya", "Yama", "Vahni", "Dhala", "Śaśī", "Āditya", "Guru", "Acyuta", "Arka", "Tvaṣṭā (Brahma Muhūrta)", "Vāyu"] }
   },
 
   "rashi": {
     "status": "standard",
     "note": "Sidereal rashi names, 0=Mesha..11=Meena, used for the Lagna ring.",
-    "names": ["Mesha", "Vrishabha", "Mithuna", "Karka", "Simha", "Kanya", "Tula", "Vrishchika", "Dhanu", "Makara", "Kumbha", "Meena"]
+    "names": ["Meṣa", "Vṛṣabha", "Mithuna", "Karka", "Siṃha", "Kanyā", "Tulā", "Vṛścika", "Dhanu", "Makara", "Kumbha", "Mīna"]
   },
 
   "durmuhurta": {
@@ -149,15 +150,15 @@
   "prahara": {
     "status": "standard",
     "note": "Displayed as 'Yaama' per the project owner's preference - 'yama/yaama' is a recognised synonym for this time unit (prahara), researched sources agree it's not individually named in Sanskrit texts beyond being numbered (first-fourth). Distinct from, and not to be confused with, 'Yamaganda/Yama kala' in the rahuYamaGulika scheme below, which is a specific named 1-of-8 segment, not a yaama/prahara - kept as separate internal keys ('prahara' vs 'rahuYamaGulika') specifically to avoid that mixup even though both surface the word 'yama' to the user.",
-    "ringTitle": "Yaama",
-    "day": { "names": ["First Yaama", "Second Yaama", "Third Yaama", "Fourth Yaama"] },
-    "night": { "names": ["First Yaama (night)", "Second Yaama (night)", "Third Yaama (night)", "Fourth Yaama (night)"] }
+    "ringTitle": "Yāma",
+    "day": { "names": ["First Yāma", "Second Yāma", "Third Yāma", "Fourth Yāma"] },
+    "night": { "names": ["First Yāma (night)", "Second Yāma (night)", "Third Yāma (night)", "Fourth Yāma (night)"] }
   },
 
   "kala": {
     "status": "standard",
     "note": "Resolved by the user: the five kalas are the classical daytime division Pratah (early morning) - Sangava (forenoon) - Madhyahna (midday) - Aparahna (afternoon) - Sayahna (evening). This scheme is inherently a DAYTIME division (sunrise-to-sunset); no traditional night-time equivalent under these names was identified, so the night half of this ring is left unlabeled rather than inventing five night names.",
-    "day": { "names": ["Pratah", "Sangava", "Madhyahna", "Aparahna", "Sayahna"] },
+    "day": { "names": ["Prātaḥ", "Saṅgava", "Madhyāhna", "Aparāhṇa", "Sāyāhna"] },
     "night": { "status": "not-applicable", "note": "No traditional 5-fold night division under this scheme; rendered as a single unlabeled night band." }
   },
 
