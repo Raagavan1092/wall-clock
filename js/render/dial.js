@@ -377,6 +377,7 @@
 
   function renderOuterRing(group, ringDescriptor) {
     const curved = !!CURVED_OUTER_RINGS[ringDescriptor.ringKey];
+    group.setAttribute("data-ring", ringDescriptor.ringKey); // per-ring fills in style.css
     renderRing(group, ringDescriptor, {
       rInner: R.outerRingInner, rOuter: R.outerRingOuter,
       fontSize: curved ? 14 : function (span) { return span >= 15 ? 15 : 11; },
