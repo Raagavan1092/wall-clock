@@ -6,10 +6,9 @@
   --ring-neutral: #1c180f;
   --ring-stroke: #5a4a2a;
   /* Tithi/nakshatra: the current (first) entry in the red-brown, the next
-     one in the muted grey. The same red-brown fills the Kala/Yaama/Muhurta
-     divisions, with Muhurta alternating against a slightly darker shade. */
+     one in the muted olive green. The same red-brown fills the Kala/Yaama/
+     Muhurta divisions, with Muhurta alternating against that olive green. */
   --red-shade: #7e3c16;
-  --red-shade-alt: #602b0e;
   --nakshatra-ring-fill: var(--red-shade);
   --tithi-ring-fill: var(--red-shade);
   --next-fill: #363329;
@@ -108,7 +107,7 @@ html, body {
 .outer-ring[data-ring="kala"] .ring-segment:not(.neutral),
 .outer-ring[data-ring="prahara"] .ring-segment:not(.neutral),
 .outer-ring[data-ring="muhurta"] .ring-segment:not(.neutral) { fill: var(--red-shade); }
-.outer-ring[data-ring="muhurta"] .ring-segment:not(.neutral):nth-of-type(even) { fill: var(--red-shade-alt); }
+.outer-ring[data-ring="muhurta"] .ring-segment:not(.neutral):nth-of-type(even) { fill: var(--next-fill); }
 .next-label { fill: var(--next-label); font-style: italic; }
 
 .tick-major { stroke: var(--tick-major); stroke-width: 2.5; }
