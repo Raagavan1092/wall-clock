@@ -6,7 +6,7 @@
   "use strict";
 
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
-  const { Sunrise, Ghati, Util, Tithi, Nakshatra, Yoga, Karana, Lagna, Masa, ScaledIntervals } = VedicEngine;
+  const { Sunrise, Ghati, Util, Tithi, Nakshatra, Yoga, Karana, Lagna, DayEvents, Masa, ScaledIntervals } = VedicEngine;
 
   const DEFAULT_SETTINGS = {
     location: {
@@ -129,6 +129,7 @@
       yogaSequence,
       karanaSequence,
       lagnaSequence,
+      dayEvents: DayEvents.compute(anchors, location, settings.ayanamsa), // moonrise/moonset/saṅkrānti
       sunNakshatraIndex,
       yoga: Yoga.current(date, settings.ayanamsa),
       karana: Karana.current(date),

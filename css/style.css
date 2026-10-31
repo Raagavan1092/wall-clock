@@ -252,6 +252,7 @@ html, body {
   font-size: 14px;
 }
 #set-ring-order li button { padding: 2px 8px; margin: 0 0 0 4px; }
+#set-ring-order li label { margin: 0; flex: 1; }
 .settings-actions { display: flex; gap: 10px; }
 .settings-actions button { flex: 1; }
 #settings-save { background: var(--ring-stroke); font-weight: 600; }

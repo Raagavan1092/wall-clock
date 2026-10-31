@@ -38,7 +38,12 @@
   // so cycling/rendering code doesn't care whether it came from a saved
   // setting or the engine's own default order.
   let settings = E.Settings.load();
-  let activeRingOrder = settings.ringOrder.slice();
+  // The Switch display cycle: the saved order minus any ring hidden in
+  // Settings. Can be empty, in which case the outer ring is left blank.
+  function visibleRingOrder() {
+    return settings.ringOrder.filter(function (k) { return settings.hiddenRings.indexOf(k) === -1; });
+  }
+  let activeRingOrder = visibleRingOrder();
   let currentRingIndex = 0;
 
   // Cache: a full Panchanga.compute() involves several astronomical searches
@@ -134,6 +139,7 @@
     // rather than show a bare "Good / Bad Yogas: ", and look past any
     // immediately-following blank segment(s) for "Next" rather than just
     // the next array entry.
+    if (!ringDescriptor) return lines; // every switchable ring hidden
     const nowSeg = ringDescriptor.segments.find(function (seg) {
       return now >= seg.startTime && now < seg.endTime;
     });
@@ -168,11 +174,17 @@
       E.Dial.renderTithiRing(dialHandles.tithiRingGroup, E.RingAdapter.build("tithi", snapshot, data));
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderYogaAlertRing(dialHandles.yogaRingGroup, E.RingAdapter.buildYogaAlerts(snapshot, data));
-      E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot));
+      E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
+      applyFixedRingVisibility();
     }
     if (changed || ringKey !== lastRenderedRingKey) {
-      lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
-      E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor);
+      if (ringKey) {
+        lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
+        E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor);
+      } else {
+        lastOuterRingDescriptor = null;
+        E.Dial.clearGroup(dialHandles.outerRingGroup);
+      }
       lastRenderedRingKey = ringKey;
     }
 
@@ -207,7 +219,20 @@
     render();
   }
 
+  // Always-on rings hidden in Settings are simply not displayed; the band
+  // they'd occupy stays as plain background, so nothing else moves.
+  function applyFixedRingVisibility() {
+    const groups = {
+      tithi: dialHandles.tithiRingGroup, nakshatra: dialHandles.nakshatraRingGroup,
+      yogaAlerts: dialHandles.yogaRingGroup, dayNight: dialHandles.dayNightRingGroup,
+    };
+    Object.keys(groups).forEach(function (k) {
+      groups[k].style.display = settings.hiddenRings.indexOf(k) === -1 ? "" : "none";
+    });
+  }
+
   function cycleRing(delta) {
+    if (!activeRingOrder.length) return;
     currentRingIndex = (currentRingIndex + delta + activeRingOrder.length) % activeRingOrder.length;
     render();
   }
@@ -312,15 +337,45 @@
     const cancelBtn = document.getElementById("settings-cancel");
     const closeBtn = document.getElementById("settings-close");
 
-    // Working copy of the ring order, only committed to `settings` on Save.
-    let workingRingOrder = activeRingOrder.slice();
+    const fixedRingList = document.getElementById("set-fixed-rings");
+    const markerList = document.getElementById("set-markers");
+
+    // Working copies of the ring order and the hidden rings/markers, only
+    // committed to `settings` on Save.
+    let workingRingOrder = settings.ringOrder.slice();
+    let workingHiddenRings = settings.hiddenRings.slice();
+    let workingHiddenMarkers = settings.hiddenMarkers.slice();
+
+    // A "show" checkbox bound to whether `key` is absent from `hiddenList`.
+    function showCheckbox(key, hiddenList) {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = hiddenList.indexOf(key) === -1;
+      box.addEventListener("change", function () {
+        const at = hiddenList.indexOf(key);
+        if (box.checked && at !== -1) hiddenList.splice(at, 1);
+        if (!box.checked && at === -1) hiddenList.push(key);
+      });
+      return box;
+    }
+
+    function renderCheckboxList(container, titles, hiddenList) {
+      container.innerHTML = "";
+      Object.keys(titles).forEach(function (key) {
+        const label = document.createElement("label");
+        label.appendChild(showCheckbox(key, hiddenList));
+        label.appendChild(document.createTextNode(" " + titles[key]));
+        container.appendChild(label);
+      });
+    }
 
     function renderRingOrderList() {
       ringOrderList.innerHTML = "";
       workingRingOrder.forEach(function (key, i) {
         const li = document.createElement("li");
-        const label = document.createElement("span");
-        label.textContent = E.RingAdapter.RING_TITLES[key] || key;
+        const label = document.createElement("label");
+        label.appendChild(showCheckbox(key, workingHiddenRings));
+        label.appendChild(document.createTextNode(" " + (E.RingAdapter.RING_TITLES[key] || key)));
         li.appendChild(label);
 
         const upBtn = document.createElement("button");
@@ -355,8 +410,12 @@
       Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
         radio.checked = radio.value === settings.sunriseEdge;
       });
-      workingRingOrder = activeRingOrder.slice();
+      workingRingOrder = settings.ringOrder.slice();
+      workingHiddenRings = settings.hiddenRings.slice();
+      workingHiddenMarkers = settings.hiddenMarkers.slice();
       renderRingOrderList();
+      renderCheckboxList(fixedRingList, E.RingAdapter.FIXED_RING_TITLES, workingHiddenRings);
+      renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
 
     function open() {
@@ -395,9 +454,11 @@
         ayanamsa: ayanamsaSelect.value,
         sunriseEdge: sunriseEdge,
         ringOrder: workingRingOrder.slice(),
+        hiddenRings: workingHiddenRings.slice(),
+        hiddenMarkers: workingHiddenMarkers.slice(),
       };
       E.Settings.save(settings);
-      activeRingOrder = settings.ringOrder.slice();
+      activeRingOrder = visibleRingOrder();
       currentRingIndex = 0;
       invalidateCache();
       render();

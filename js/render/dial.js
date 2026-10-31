@@ -491,26 +491,40 @@
   // written along the line beyond the outermost ring, just above it. On the
   // left half of the dial the text is flipped so it still reads left-to-right.
   // `markers` is ring-adapter.js's buildDayMarkers output.
+  //
+  // Two markers can land close together (e.g. moonrise near Āvartana); when
+  // one is within MARKER_CLASH_DEG of the previous, its label goes on the
+  // other side of its line so the two don't overprint.
+  const MARKER_CLASH_DEG = 6;
   function renderDayMarkers(group, markers) {
     while (group.firstChild) group.removeChild(group.firstChild);
-    markers.forEach(function (m) {
+    let prevAngle = null, prevBelow = false;
+    markers.slice().sort(function (a, b) { return a.angle - b.angle; }).forEach(function (m) {
+      const below = prevAngle != null && m.angle - prevAngle < MARKER_CLASH_DEG ? !prevBelow : false;
+      prevAngle = m.angle; prevBelow = below;
       const p1 = polarToXY(m.angle, R.dayNightRingInner);
       const p2 = polarToXY(m.angle, R.markerLineOuter);
       group.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-line" }));
       // Wide invisible twin so the thin line is easy to hover/tap.
       const hit = el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-hit" });
-      attachTooltip(hit, m.text + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + HM_TAG);
+      attachTooltip(hit, (m.tooltipTitle || m.text) + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + HM_TAG);
       group.appendChild(hit);
-      group.appendChild(markerLabel(m.text, m.angle));
+      const label = markerLabel(m.text, m.angle, below);
+      group.appendChild(label);
+      // Shrink to fit between the outermost ring and the dial's edge.
+      const room = R.markerLineOuter - R.markerLabel;
+      const length = label.getComputedTextLength ? label.getComputedTextLength() : 0;
+      if (length > room) label.style.fontSize = (MARKER_FONT * room / length).toFixed(1) + "px";
     });
   }
 
-  function markerLabel(text, angle) {
+  const MARKER_FONT = 14; // .day-marker-label's font-size in style.css
+  function markerLabel(text, angle, below) {
     const start = polarToXY(angle, R.markerLabel);
     const leftHalf = angle > 180;
     const rotation = leftHalf ? angle + 90 : angle - 90;
     const t = el("text", {
-      x: 0, y: -6,
+      x: 0, y: below ? 16 : -6,
       // Runs outward from `start` either way: on the left half the baseline
       // points inward, so the text is anchored at its end instead.
       "text-anchor": leftHalf ? "end" : "start",
@@ -552,8 +566,13 @@
     });
   }
 
+  function clearGroup(group) {
+    while (group.firstChild) group.removeChild(group.firstChild);
+  }
+
   VedicEngine.Dial = {
     R, CX, CY,
+    clearGroup,
     buildStaticStructure,
     renderOuterRing,
     renderNakshatraRing,

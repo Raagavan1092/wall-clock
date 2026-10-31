@@ -37,6 +37,15 @@
   // ghati scale is day/night-rescaled rather than a single fixed rate.
   const PAKSHA_LABEL = { shukla: "śukla", krishna: "kṛṣṇa" }; // engine key -> IAST
 
+  // Marker lines (buildDayMarkers), by key, for the dial and Settings.
+  const MARKER_TITLES = {
+    avartana: "Āvartana", nishitha: "Niśītha", arunodaya: "Aruṇodaya",
+    moonrise: "Candrodaya", moonset: "Candrāsta", sankranti: "Saṅkrānti",
+  };
+  // The rings that are always on (not part of the Switch display cycle);
+  // each can still be hidden in Settings.
+  const FIXED_RING_TITLES = { tithi: "Tithi", nakshatra: "Nakṣatra", yogaAlerts: "Yogas (appears on its own)", dayNight: "Day / Night" };
+
   function angleOf(date, anchors) {
     return Ghati.angleForTime(date, anchors);
   }
@@ -414,13 +423,28 @@
 
   // Avartana (midpoint of sunrise..sunset) and Nishitha (midpoint of
   // sunset..next sunrise), for dial.js's marker lines.
-  function buildDayMarkers(snapshot) {
+  //
+  // Plus the other point-in-time events of the day (any of which can be
+  // hidden in Settings, by key - see MARKER_TITLES):
+  //  - Aruṇodaya: 4 ghaṭī (96 min) before the next sunrise.
+  //  - Candrodaya / Candrāsta: moonrise / moonset, when they fall in this
+  //    Vedic day (engine/day-events.js).
+  //  - Saṅkrānti: the Sun entering a new rāśi, only on the day it happens.
+  function buildDayMarkers(snapshot, data, hiddenKeys) {
     const a = snapshot.anchors;
+    const ev = snapshot.dayEvents;
     function mid(t1, t2) { return new Date((t1.getTime() + t2.getTime()) / 2); }
-    return [
-      { text: "Āvartana", time: mid(a.governingSunrise, a.sunsetToday) },
-      { text: "Niśītha", time: mid(a.sunsetToday, a.nextSunrise) },
-    ].map(function (m) {
+    const markers = [
+      { key: "avartana", text: MARKER_TITLES.avartana, time: mid(a.governingSunrise, a.sunsetToday) },
+      { key: "nishitha", text: MARKER_TITLES.nishitha, time: mid(a.sunsetToday, a.nextSunrise) },
+      { key: "arunodaya", text: MARKER_TITLES.arunodaya, time: new Date(a.nextSunrise.getTime() - 4 * Ghati.FIXED_SECONDS_PER_GHATI * 1000) },
+    ];
+    if (ev.moonrise) markers.push({ key: "moonrise", text: MARKER_TITLES.moonrise, time: ev.moonrise });
+    if (ev.moonset) markers.push({ key: "moonset", text: MARKER_TITLES.moonset, time: ev.moonset });
+    // The line's label is just "Saṅkrānti" (the full name is too long for
+    // the space outside the rings); the tooltip names the rāśi.
+    if (ev.sankranti) markers.push({ key: "sankranti", text: MARKER_TITLES.sankranti, tooltipTitle: data.rashi.names[ev.sankranti.rashiIndex] + " Saṅkrānti", time: ev.sankranti.time });
+    return markers.filter(function (m) { return (hiddenKeys || []).indexOf(m.key) === -1; }).map(function (m) {
       m.angle = angleOf(m.time, a);
       m.ghatiPala = ghatiPalaLabel(m.time, a);
       return m;
@@ -446,5 +470,5 @@
     return { hours: hours, sunriseLabel: sunriseLabel };
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES };
+  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES, MARKER_TITLES, FIXED_RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);

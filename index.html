@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
 <div id="stage">
@@ -57,8 +57,19 @@
 
   <section>
     <h3>Outer ring order</h3>
-    <p class="settings-note">Tithi and nakṣatra are always shown on their own rings; this order is for the switchable outer ring only. A sixth ring for Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi Yoga appears on its own, outside this order, only on days one of them is actually active.</p>
+    <p class="settings-note">Untick a ring to leave it out of Switch display. This order is for the switchable outer ring only; tithi and nakṣatra have their own rings (see Always-on rings below). A sixth ring for Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi Yoga appears on its own, outside this order, only on days one of them is actually active.</p>
     <ul id="set-ring-order"></ul>
+  </section>
+
+  <section>
+    <h3>Always-on rings</h3>
+    <div id="set-fixed-rings"></div>
+  </section>
+
+  <section>
+    <h3>Marker lines</h3>
+    <div id="set-markers"></div>
+    <p class="settings-note">Candrodaya/Candrāsta (moonrise/moonset) appear only when they fall within the day; Saṅkrānti only on the day the Sun enters a new rāśi.</p>
   </section>
 
   <div class="settings-actions">
@@ -78,6 +89,7 @@
 <script src="js/engine/yoga.js"></script>
 <script src="js/engine/karana.js"></script>
 <script src="js/engine/lagna.js"></script>
+<script src="js/engine/day-events.js"></script>
 <script src="js/engine/masa.js"></script>
 <script src="js/engine/scaled-intervals.js"></script>
 <script src="js/engine/ghati.js"></script>
