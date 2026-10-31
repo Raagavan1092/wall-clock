@@ -101,6 +101,9 @@ html, body {
 }
 .ghati-numeral { fill: var(--numeral); font-weight: 600; }
 .ghati-numeral-minor { fill: var(--tick-minor); font-weight: 400; }
+.hour-numeral { fill: var(--numeral); font-weight: 400; opacity: 0.8; }
+.sunrise-numeral { fill: var(--daynight-day); font-weight: 700; }
+.tick-sunrise { stroke: var(--daynight-day); stroke-width: 3; }
 .contested-label { fill: var(--contested); }
 .contested-marker { fill: var(--contested); pointer-events: none; }
 .label-path { fill: none; stroke: none; }
@@ -110,6 +113,14 @@ html, body {
 .hand-hub { fill: var(--hub); }
 .pala-hand-line { stroke: var(--centre-ghati); stroke-width: 2.5; stroke-linecap: round; opacity: 0.85; }
 .centre-plate { fill: var(--dial-bg); }
+
+/* "Switch time" / "Switch display" buttons in the centre of the dial
+   (SVG, see dial.js centreButton). */
+.centre-button { cursor: pointer; outline: none; }
+.centre-button-bg { fill: var(--ring-fill-alt); stroke: var(--ring-stroke); stroke-width: 1.5; }
+.centre-button:hover .centre-button-bg,
+.centre-button:focus-visible .centre-button-bg { fill: var(--ring-stroke); }
+.centre-button-label { fill: var(--centre-text); font-size: 15px; font-weight: 600; pointer-events: none; }
 
 .daynight-segment { stroke: var(--dial-bg); stroke-width: 2; }
 .daynight-day { fill: var(--daynight-day); }
@@ -128,7 +139,7 @@ html, body {
 }
 .centre-line-clock-secondary {
   fill: var(--centre-clock-secondary);
-  font-size: 18px;
+  font-size: 26px;
   font-variant-numeric: tabular-nums;
 }
 .centre-line-sub {

@@ -41,6 +41,8 @@
     palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
     hub: 14,
     centrePlate: 186,
+    centreTextY: -24, // centre readout sits a little above centre, leaving room for...
+    centreButtonsY: 112, // ...the Switch time / Switch display buttons below it
   };
 
   function polarToXY(angleDeg, radius) {
@@ -187,8 +189,11 @@
     parent.appendChild(t);
   }
 
-  function buildFixedGhatiScale(root) {
-    const g = el("g", { class: "fixed-ghati-scale" });
+  // Static framing only - the ticks/numerals between these circles live in
+  // their own group (see renderGhatiScale/renderHourScale), since "Switch
+  // time" swaps that scale between 60 ghatis and 24 hours.
+  function buildScaleFrame(root) {
+    const g = el("g", { class: "scale-frame" });
 
     // Boundary circles, purely decorative framing between bands.
     [R.outerRingOuter, R.outerRingInner, R.nakshatraRingInner, R.tithiRingInner].forEach(function (r) {
@@ -198,6 +203,19 @@
     [R.dayNightRingOuter, R.dayNightRingInner].forEach(function (r) {
       g.appendChild(el("circle", { cx: CX, cy: CY, r: r, class: "ring-boundary" }));
     });
+    root.appendChild(g);
+  }
+
+  function tick(g, angle, rInner, rOuter, cls) {
+    const p1 = polarToXY(angle, rInner);
+    const p2 = polarToXY(angle, rOuter);
+    g.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: cls }));
+  }
+
+  // The ghati scale never depends on the day (ghati 0 is sunrise, always at
+  // the top), so it's identical every time it's drawn.
+  function renderGhatiScale(g) {
+    while (g.firstChild) g.removeChild(g.firstChild);
 
     // Minor ticks: 5 sub-lines between each pair of major (per-ghati) ticks,
     // i.e. 6 divisions per ghati (360 positions total; skip the 1-in-6 that
@@ -207,23 +225,45 @@
     for (let q = 0; q < minorCount; q++) {
       const angle = q * (360 / minorCount);
       if (q % MINOR_DIVISIONS_PER_GHATI === 0) continue; // major tick will be drawn on top
-      const p1 = polarToXY(angle, R.ghatiMinorTickInner);
-      const p2 = polarToXY(angle, R.ghatiMinorTickOuter);
-      g.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "tick-minor" }));
+      tick(g, angle, R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
     }
 
     // Major ticks + numerals: all 60 ghatis numbered (multiples of 5 a bit
     // larger/bolder, keeping them as landmarks, but nothing skipped).
     for (let gh = 0; gh < 60; gh++) {
       const angle = gh * 6;
-      const p1 = polarToXY(angle, R.ghatiMajorTickInner);
-      const p2 = polarToXY(angle, R.ghatiMajorTickOuter);
-      g.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "tick-major" }));
+      tick(g, angle, R.ghatiMajorTickInner, R.ghatiMajorTickOuter, "tick-major");
       const isLandmark = gh % 5 === 0;
       g.appendChild(radialLabel(String(gh), angle, R.ghatiNumeral, isLandmark ? 16 : 12, isLandmark ? "ghati-numeral" : "ghati-numeral-minor"));
     }
+  }
 
-    root.appendChild(g);
+  // Hour-mode scale: 24 divisions, one per IST clock hour, each at its true
+  // angle on the same sunrise-anchored scale (15 deg per hour, since 60
+  // ghati = 24h), so no ring has to move. The top is sunrise, labelled with
+  // its time; hour numerals too close to it to fit are left as ticks only.
+  // `scale` is ring-adapter.js's buildHourScale output.
+  function renderHourScale(g, scale) {
+    while (g.firstChild) g.removeChild(g.firstChild);
+    const QUARTERS = 4; // minor ticks every 15 minutes
+    scale.hours.forEach(function (h) {
+      for (let q = 1; q < QUARTERS; q++) {
+        tick(g, h.angle + q * (15 / QUARTERS), R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
+      }
+      tick(g, h.angle, R.ghatiMajorTickInner, R.ghatiMajorTickOuter, "tick-major");
+      const distFromTop = Math.min(h.angle, 360 - h.angle);
+      if (distFromTop < 7) return;
+      const isLandmark = h.hour % 6 === 0;
+      g.appendChild(radialLabel(String(h.hour), h.angle, R.ghatiNumeral, isLandmark ? 20 : 17, isLandmark ? "ghati-numeral" : "hour-numeral"));
+    });
+    // The first whole hour after sunrise is less than 15 deg clockwise of the
+    // top, so the quarter ticks before it still need drawing.
+    const first = scale.hours[0];
+    for (let a = first.angle - 15 / QUARTERS; a > 0.5; a -= 15 / QUARTERS) {
+      tick(g, a, R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
+    }
+    tick(g, 0, R.ghatiMajorTickInner - 6, R.ghatiMajorTickOuter, "tick-sunrise");
+    g.appendChild(radialLabel(scale.sunriseLabel, 0, R.ghatiNumeral, 18, "sunrise-numeral"));
   }
 
   function buildStaticStructure(svg) {
@@ -243,7 +283,10 @@
     const tithiRingGroup = el("g", { class: "tithi-ring" });
     svg.appendChild(tithiRingGroup);
 
-    buildFixedGhatiScale(svg);
+    buildScaleFrame(svg);
+    const scaleGroup = el("g", { class: "time-scale" });
+    svg.appendChild(scaleGroup);
+    renderGhatiScale(scaleGroup);
 
     const dayNightRingGroup = el("g", { class: "daynight-ring" });
     svg.appendChild(dayNightRingGroup);
@@ -270,7 +313,24 @@
     const centreGroup = el("g", { class: "centre-text" });
     svg.appendChild(centreGroup);
 
-    return { yogaRingGroup, outerRingGroup, nakshatraRingGroup, tithiRingGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup };
+    // Two buttons side by side under the centre readout, drawn in the SVG
+    // so they scale with the dial on every screen size.
+    const BTN_W = 112, BTN_H = 36, BTN_GAP = 10, BTN_Y = CY + R.centreButtonsY;
+    const timeButton = centreButton("Switch time", CX - BTN_GAP / 2 - BTN_W, BTN_Y, BTN_W, BTN_H);
+    const displayButton = centreButton("Switch display", CX + BTN_GAP / 2, BTN_Y, BTN_W, BTN_H);
+    svg.appendChild(timeButton);
+    svg.appendChild(displayButton);
+
+    return { yogaRingGroup, outerRingGroup, nakshatraRingGroup, tithiRingGroup, scaleGroup, dayNightRingGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
+  }
+
+  function centreButton(label, x, y, w, h) {
+    const g = el("g", { class: "centre-button", role: "button", tabindex: "0", "aria-label": label });
+    g.appendChild(el("rect", { x: x, y: y, width: w, height: h, rx: h / 2, class: "centre-button-bg" }));
+    const t = el("text", { x: x + w / 2, y: y + h / 2, "text-anchor": "middle", "dominant-baseline": "central", class: "centre-button-label" });
+    t.textContent = label;
+    g.appendChild(t);
+    return g;
   }
 
   // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel? }
@@ -389,7 +449,7 @@
   function setCentreText(centreGroup, lines) {
     while (centreGroup.firstChild) centreGroup.removeChild(centreGroup.firstChild);
     const lineHeight = 34;
-    const startY = CY - ((lines.length - 1) * lineHeight) / 2;
+    const startY = CY + R.centreTextY - ((lines.length - 1) * lineHeight) / 2;
     lines.forEach(function (line, i) {
       const t = el("text", {
         x: CX, y: startY + i * lineHeight,
@@ -413,6 +473,8 @@
     renderTithiRing,
     renderYogaAlertRing,
     renderDayNightRing,
+    renderGhatiScale,
+    renderHourScale,
     setHand,
     setPalaHand,
     setCentreText,

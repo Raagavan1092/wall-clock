@@ -76,6 +76,14 @@
     lastRenderedRingKey = null;
   }
 
+  // "Switch time": "ghati" (Vedic readout leads, 60-ghati scale, pala hand)
+  // or "hour" (clock readout leads, 24-hour scale, minute hand). Remembered
+  // across reloads; it's a viewing preference, not a Settings-panel setting.
+  const TIME_MODE_KEY = "vedicWallClock.timeMode";
+  let timeMode = "ghati";
+  try { if (localStorage.getItem(TIME_MODE_KEY) === "hour") timeMode = "hour"; } catch (e) { /* storage unavailable */ }
+  let lastRenderedTimeMode = null;
+
   let data = null;
   let dialHandles = null;
   let lastRenderedRingKey = null;
@@ -103,14 +111,22 @@
       timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric",
     });
 
-    // Ghati/pala leads (this is a Vedic clock first); the modern clock is a
-    // smaller secondary line underneath it, not the headline.
-    const lines = [
-      { text: "Ghati " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
-      { text: now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false }), emphasis: "clock-secondary" },
+    // Ghati/pala leads by default (this is a Vedic clock first), with the
+    // modern clock as the smaller line underneath; "Switch time" swaps them.
+    const clockText = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
+    const timeLines = timeMode === "hour"
+      ? [
+          { text: clockText, emphasis: "ghati" },
+          { text: "Ghati " + g.ghati + " · Pala " + g.pala + " · Vipala " + g.vipala, emphasis: "clock-secondary" },
+        ]
+      : [
+          { text: "Ghati " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
+          { text: clockText, emphasis: "clock-secondary" },
+        ];
+    const lines = timeLines.concat([
       { text: dateText },
       { text: varaName },
-    ];
+    ]);
 
     // Now/next for the active switchable ring. Every segment in most rings
     // (Muhurta/Yaama/Kala/Hora) is named, but Good/Bad Yogas has long blank
@@ -159,10 +175,35 @@
       lastRenderedRingKey = ringKey;
     }
 
+    // The scale under the hands: 60 ghatis, or (hour mode) 24 IST clock
+    // hours placed on the same sunrise-anchored angles, so no ring moves.
+    // The hour scale depends on the day's sunrise, so it's redrawn with the
+    // snapshot too.
+    if (timeMode !== lastRenderedTimeMode || (changed && timeMode === "hour")) {
+      if (timeMode === "hour") E.Dial.renderHourScale(dialHandles.scaleGroup, E.RingAdapter.buildHourScale(snapshot));
+      else E.Dial.renderGhatiScale(dialHandles.scaleGroup);
+      lastRenderedTimeMode = timeMode;
+    }
+
     const ghatiNow = E.Ghati.current(now, snapshot.anchors);
+    // The day hand is the same in both modes (one turn per sunrise-to-
+    // sunrise day). The second hand is the pala hand (one turn per ghati,
+    // 24 min) or, in hour mode, a minute hand (one turn per IST hour).
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
-    E.Dial.setPalaHand(dialHandles.palaHandGroup, ghatiNow.palaAngleDeg);
+    E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
     E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow));
+  }
+
+  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
+  function minuteAngle(now) {
+    const msIntoHour = (now.getTime() + IST_OFFSET_MS) % 3600000;
+    return (msIntoHour / 3600000) * 360;
+  }
+
+  function toggleTimeMode() {
+    timeMode = timeMode === "hour" ? "ghati" : "hour";
+    try { localStorage.setItem(TIME_MODE_KEY, timeMode); } catch (e) { /* storage unavailable */ }
+    render();
   }
 
   function cycleRing(delta) {
@@ -172,6 +213,19 @@
 
   function wireInput(svg) {
     svg.addEventListener("click", function () { cycleRing(1); });
+
+    // The centre buttons sit inside the SVG, so they stop their click from
+    // also reaching the whole-dial click above (which would cycle the ring
+    // a second time, or cycle it on "Switch time").
+    function wireButton(button, action) {
+      button.addEventListener("click", function (e) { e.stopPropagation(); action(); });
+      button.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); action(); }
+      });
+      button.addEventListener("touchend", function (e) { e.stopPropagation(); }, { passive: true });
+    }
+    wireButton(dialHandles.timeButton, toggleTimeMode);
+    wireButton(dialHandles.displayButton, function () { cycleRing(1); });
 
     window.addEventListener("keydown", function (e) {
       if (e.key === "ArrowRight" || e.key === " ") cycleRing(1);

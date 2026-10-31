@@ -379,5 +379,24 @@
     return { ringKey: "dayNight", title: "Day/Night", segments: segments };
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, RING_ORDER, RING_TITLES };
+  // Marks for the hour-mode scale (the "Switch time" view): the 24 whole IST
+  // clock hours, each at its true angle on the same sunrise-anchored scale
+  // every ring uses (fixed-rate: 60 ghati = 24h, so no ring has to move),
+  // plus the sunrise time itself, which always sits at the top.
+  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
+  const HOUR_MS = 3600 * 1000;
+  function buildHourScale(snapshot) {
+    const anchors = snapshot.anchors;
+    const sunrise = anchors.governingSunrise;
+    const firstHour = Math.ceil((sunrise.getTime() + IST_OFFSET_MS) / HOUR_MS) * HOUR_MS - IST_OFFSET_MS;
+    const hours = [];
+    for (let i = 0; i < 24; i++) {
+      const t = new Date(firstHour + i * HOUR_MS);
+      hours.push({ angle: angleOf(t, anchors), hour: (Math.round((t.getTime() + IST_OFFSET_MS) / HOUR_MS)) % 24 });
+    }
+    const sunriseLabel = sunrise.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
+    return { hours: hours, sunriseLabel: sunriseLabel };
+  }
+
+  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, buildHourScale, RING_ORDER, RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);
