@@ -325,7 +325,7 @@
   }
 
   const LAYER_TITLES = {
-    switchable: "Switchable ring", yogaAlerts: "Yogas", nakshatra: "Nakṣatra", tithi: "Tithi",
+    switchable: "Switchable ring", yogaAlerts: "Yogas", nakshatra: "Nakṣatra", tithi: "Tithi", dayNight: "Day / Night",
   };
 
   function wireSettingsPanel() {
@@ -341,7 +341,6 @@
     const cancelBtn = document.getElementById("settings-cancel");
     const closeBtn = document.getElementById("settings-close");
 
-    const fixedRingList = document.getElementById("set-fixed-rings");
     const layerOrderList = document.getElementById("set-layer-order");
     const markerList = document.getElementById("set-markers");
 
@@ -353,30 +352,38 @@
     let workingLayerOrder = settings.layerOrder.slice();
 
     // An ↑/↓ reorderable list of `order` (mutated in place), labelled by
-    // `titleFor(key)`; `extraFor(key)`, if given, adds content (e.g. a show
-    // checkbox) before the title.
-    function renderReorderList(container, order, titleFor, extraFor) {
+    // `titleFor(key)`; `extraFor(key)`, if given, returns content (e.g. a
+    // show checkbox) to place before the title, or a falsy value for none.
+    // `fixedKeys`, if given, are appended after `order` as extra rows with
+    // no reorder buttons - for rings whose position can't be changed but
+    // still belong in the same list (e.g. hide/unhide for Day / Night).
+    function renderReorderList(container, order, titleFor, extraFor, fixedKeys) {
       container.innerHTML = "";
-      order.forEach(function (key, i) {
+      function appendRow(key, reorderable, i) {
         const li = document.createElement("li");
         const label = document.createElement("label");
-        if (extraFor) label.appendChild(extraFor(key));
-        label.appendChild(document.createTextNode((extraFor ? " " : "") + titleFor(key)));
+        const extra = extraFor && extraFor(key);
+        if (extra) label.appendChild(extra);
+        label.appendChild(document.createTextNode((extra ? " " : "") + titleFor(key)));
         li.appendChild(label);
-        [["↑", -1], ["↓", 1]].forEach(function (pair) {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.textContent = pair[0];
-          const j = i + pair[1];
-          btn.disabled = j < 0 || j >= order.length;
-          btn.addEventListener("click", function () {
-            [order[i], order[j]] = [order[j], order[i]];
-            renderReorderList(container, order, titleFor, extraFor);
+        if (reorderable) {
+          [["↑", -1], ["↓", 1]].forEach(function (pair) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = pair[0];
+            const j = i + pair[1];
+            btn.disabled = j < 0 || j >= order.length;
+            btn.addEventListener("click", function () {
+              [order[i], order[j]] = [order[j], order[i]];
+              renderReorderList(container, order, titleFor, extraFor, fixedKeys);
+            });
+            li.appendChild(btn);
           });
-          li.appendChild(btn);
-        });
+        }
         container.appendChild(li);
-      });
+      }
+      order.forEach(function (key, i) { appendRow(key, true, i); });
+      (fixedKeys || []).forEach(function (key) { appendRow(key, false); });
     }
 
     // A "show" checkbox bound to whether `key` is absent from `hiddenList`.
@@ -421,8 +428,9 @@
       workingHiddenMarkers = settings.hiddenMarkers.slice();
       workingLayerOrder = settings.layerOrder.slice();
       renderRingOrderList();
-      renderReorderList(layerOrderList, workingLayerOrder, function (key) { return LAYER_TITLES[key]; });
-      renderCheckboxList(fixedRingList, E.RingAdapter.FIXED_RING_TITLES, workingHiddenRings);
+      renderReorderList(layerOrderList, workingLayerOrder, function (key) { return LAYER_TITLES[key]; },
+        function (key) { return E.RingAdapter.FIXED_RING_TITLES[key] && showCheckbox(key, workingHiddenRings); },
+        ["dayNight"]);
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
 
