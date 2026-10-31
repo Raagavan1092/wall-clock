@@ -6,7 +6,7 @@
   "use strict";
 
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
-  const { Sunrise, Ghati, Util, Tithi, Nakshatra, Yoga, Karana, Masa, ScaledIntervals } = VedicEngine;
+  const { Sunrise, Ghati, Util, Tithi, Nakshatra, Yoga, Karana, Lagna, Masa, ScaledIntervals } = VedicEngine;
 
   const DEFAULT_SETTINGS = {
     location: {
@@ -79,7 +79,7 @@
     function buildSequence(computeAt) {
       const sequence = [];
       let t = governingSunrise;
-      for (let guard = 0; guard < 10; guard++) { // generous cap; real runs are 1-3 iterations
+      for (let guard = 0; guard < 20; guard++) { // generous cap; real runs are 1-3 (5-6 for karana, ~13 for lagna)
         const value = computeAt(t);
         const segEnd = value.endTime < nextSunrise ? value.endTime : nextSunrise;
         const isCurrent = date >= t && date < segEnd;
@@ -96,6 +96,9 @@
       return Object.assign({}, entry, { amantaMasaRashiIndex: Masa.amantaMasaForDate(entry.segStart, settings.ayanamsa).rashiIndex });
     });
     const nakshatraSequence = buildSequence(function (t) { return Nakshatra.current(t, settings.ayanamsa); });
+    const yogaSequence = buildSequence(function (t) { return Yoga.current(t, settings.ayanamsa); });
+    const karanaSequence = buildSequence(Karana.current);
+    const lagnaSequence = buildSequence(function (t) { return Lagna.current(t, location, settings.ayanamsa); });
 
     const scaledRings = {};
     Object.keys(SCALED_RING_DIVISIONS).forEach(function (key) {
@@ -123,6 +126,9 @@
       tithiSequence,
       nakshatra,
       nakshatraSequence,
+      yogaSequence,
+      karanaSequence,
+      lagnaSequence,
       sunNakshatraIndex,
       yoga: Yoga.current(date, settings.ayanamsa),
       karana: Karana.current(date),

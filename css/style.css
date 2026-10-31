@@ -5,14 +5,10 @@
   --ring-fill-alt: #332817;
   --ring-neutral: #1c180f;
   --ring-stroke: #5a4a2a;
-  /* Tithi/nakshatra: the current (first) entry in the red-brown, the next
-     one in the muted olive green. The same red-brown fills the Kala/Yaama/
-     Muhurta divisions, with Muhurta alternating against that olive green. */
-  --red-shade: #7e3c16;
-  --nakshatra-ring-fill: var(--red-shade);
-  --tithi-ring-fill: var(--red-shade);
-  --next-fill: #363329;
-  --next-label: #f0cba8;
+  /* Every ring of plain divisions (tithi, nakshatra, muhurta, yaama, kala,
+     hora, yoga, karana, lagna) alternates these two by position. */
+  --div-base: #7e3c16; /* red-brown */
+  --div-alt: #363329; /* olive green */
   --daynight-day: #ffb000;
   --daynight-night: #000000;
   --tick-major: #c9a85c;
@@ -24,16 +20,15 @@
   --centre-ghati: #ffd77a;
   --centre-clock-secondary: #a89a78;
   --contested: #e0392b;
-  /* Yoga ring: bad = the same lighter brown as Rahu/Yama/Gulika, good = a
-     bright blue, mixed = the even blend of the two fills. */
-  --bad-fill: #8a5d32;
-  --bad-label: #fff1d6;
+  /* Good/bad-time rings (Good / Bad Times, and the yoga alert ring): bad =
+     the project owner's dark brown, good = bright blue, mixed = the even
+     blend of those two fills, ((#512700 + #2f6fb8) / 2). */
+  --bad-fill: #512700;
+  --bad-label: #ffe9cc;
   --good-fill: #2f6fb8;
   --good-label: #f0f7ff;
-  --mixed-fill: #5d6675;
+  --mixed-fill: #404b5c;
   --mixed-label: #f4f1ea;
-  --kala-fill: #8a5d32;
-  --kala-label: #fff1d6;
   --label: #f3e6c0;
   --tooltip-bg: #1c1812;
   --tooltip-text: #f0e6c8;
@@ -86,29 +81,20 @@ html, body {
 .ring-segment.neutral { fill: var(--ring-neutral); }
 .ring-segment.contested { stroke: var(--contested); stroke-dasharray: 4 3; }
 
-/* Good/bad-time rings (Rahu/Yama/Gulika, Marana/Visha/Amrita/Sarvartha-
-   Siddhi/Ravi Yoga, see ring-adapter.js buildGoodBadRings): inauspicious
-   spans in red, auspicious ones in blue. These rules come after the
-   `:nth-of-type(odd)`/`.neutral` ones above so they win the (equal-
-   specificity) cascade on an active segment regardless of its position. */
+.ring-segment.div-base { fill: var(--div-base); }
+.ring-segment.div-alt { fill: var(--div-alt); }
+
+/* Good/bad-time rings (Rahu/Yama/Gulika/Durmuhurta/Abhijit, and Marana/
+   Visha/Amrita/Sarvartha-Siddhi/Ravi Yoga): inauspicious spans in dark
+   brown, auspicious ones in blue, overlaps of the two in their blend.
+   These come after the `:nth-of-type(odd)`/`.neutral` rules above so they
+   win the (equal-specificity) cascade regardless of position. */
 .ring-segment.bad { fill: var(--bad-fill); }
 .ring-segment.good { fill: var(--good-fill); }
 .ring-segment.mixed { fill: var(--mixed-fill); }
-.ring-segment.kala { fill: var(--kala-fill); }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
 .mixed-label { fill: var(--mixed-label); font-weight: 600; }
-.kala-label { fill: var(--kala-label); font-weight: 600; }
-
-.nakshatra-ring .ring-segment { fill: var(--nakshatra-ring-fill); }
-.tithi-ring .ring-segment { fill: var(--tithi-ring-fill); }
-.ring-segment.next-segment { fill: var(--next-fill); }
-
-.outer-ring[data-ring="kala"] .ring-segment:not(.neutral),
-.outer-ring[data-ring="prahara"] .ring-segment:not(.neutral),
-.outer-ring[data-ring="muhurta"] .ring-segment:not(.neutral) { fill: var(--red-shade); }
-.outer-ring[data-ring="muhurta"] .ring-segment:not(.neutral):nth-of-type(even) { fill: var(--next-fill); }
-.next-label { fill: var(--next-label); font-style: italic; }
 
 .tick-major { stroke: var(--tick-major); stroke-width: 2.5; }
 .tick-minor { stroke: var(--tick-minor); stroke-width: 1; }

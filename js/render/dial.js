@@ -159,6 +159,9 @@
   }
 
   let curvedLabelCounter = 0;
+  const AVG_GLYPH_WIDTH = 0.55; // rough average advance per character, in ems
+  const MIN_CURVED_FONT = 9;
+  const CSS_LABEL_FONT = 15; // .dial-label's font-size in style.css
 
   // Text that flows along the circle's curve, centred on `midAngle`. Used for
   // the tithi/nakshatra rings, where each segment is usually a single,
@@ -172,7 +175,9 @@
   // way and render upside-down, so the path is drawn in the opposite
   // (decreasing-angle) direction instead - which, for an arc in the bottom
   // half, still sweeps left-to-right on screen, with glyphs upright.
-  function curvedLabel(parent, text, midAngle, span, radius, fontSize, extraClass) {
+  // `forcedSize`, when given, is set as an inline style so it overrides the
+  // .dial-label CSS font-size (used to shrink a label to fit its segment).
+  function curvedLabel(parent, text, midAngle, span, radius, fontSize, extraClass, forcedSize) {
     const halfSpan = Math.min(span, 170) / 2;
     const bottomHalf = midAngle > 90 && midAngle < 270;
     const a1 = bottomHalf ? midAngle + halfSpan : midAngle - halfSpan;
@@ -193,6 +198,7 @@
     parent.appendChild(path);
 
     const t = el("text", { class: "dial-label curved-label" + (extraClass ? " " + extraClass : ""), "font-size": fontSize });
+    if (forcedSize) t.style.fontSize = forcedSize.toFixed(1) + "px";
     const textPath = el("textPath", { startOffset: "50%", "text-anchor": "middle" });
     textPath.setAttribute("href", "#" + id);
     textPath.textContent = text;
@@ -348,18 +354,23 @@
     return g;
   }
 
-  // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel? }
+  // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel?,
+  //   curved?, alternate? }. `alternate` colours named segments by position,
+  //   red then green then red... ("div-base"/"div-alt" in style.css), for
+  //   every ring of plain divisions - never for good/bad-time rings, whose
+  //   colour means something.
   function renderRing(group, ringDescriptor, geom) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const fontSizeFn = typeof geom.fontSize === "function" ? geom.fontSize : function () { return geom.fontSize; };
     const minSpanForLabel = geom.minSpanForLabel != null ? geom.minSpanForLabel : 6;
 
-    ringDescriptor.segments.forEach(function (seg) {
+    ringDescriptor.segments.forEach(function (seg, i) {
       const span = angularSpanClockwise(seg.startAngle, seg.endAngle);
       if (span <= 0.0001) return;
+      const alternateClass = geom.alternate && seg.text && !seg.goodBad ? (i % 2 ? " div-alt" : " div-base") : "";
       const path = el("path", {
         d: annularSectorPath(geom.rInner, geom.rOuter, seg.startAngle, span),
-        class: "ring-segment" + (seg.contested ? " contested" : "") + (seg.isNext ? " next-segment" : "") + (seg.goodBad ? " " + seg.goodBad : "") + (seg.text ? "" : " neutral"),
+        class: "ring-segment" + alternateClass + (seg.contested ? " contested" : "") + (seg.goodBad ? " " + seg.goodBad : "") + (seg.text ? "" : " neutral"),
       });
       if (seg.text) {
         attachTooltip(path, seg.text + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : ""));
@@ -370,9 +381,25 @@
         const midAngle = seg.startAngle + span / 2;
         const midRadius = (geom.rInner + geom.rOuter) / 2;
         const fontSize = fontSizeFn(span);
-        const labelClass = [seg.contested ? "contested-label" : "", seg.isNext ? "next-label" : "", seg.goodBad ? seg.goodBad + "-label" : ""].filter(Boolean).join(" ") || undefined;
+        let fits = true;
+        let shrunkSize = null;
         if (geom.curved) {
-          curvedLabel(group, seg.text, midAngle, span, midRadius, fontSize, labelClass);
+          // Shrink a curved label to fit its arc (short windows like a
+          // part-overlapped Abhijit, or "Gulika Kalam + Durmuhurta"); skip
+          // it only if even small text won't fit - the tooltip still has it.
+          // Measured against the size actually shown (.dial-label's CSS
+          // font-size wins over the font-size attribute), and applied as an
+          // inline style, which in turn wins over the CSS.
+          const arcLength = (Math.min(span, 170) * Math.PI / 180) * midRadius * 0.9;
+          const fitted = arcLength / (seg.text.length * AVG_GLYPH_WIDTH);
+          fits = fitted >= MIN_CURVED_FONT;
+          if (fitted < CSS_LABEL_FONT) shrunkSize = fitted;
+        }
+        const labelClass = [seg.contested ? "contested-label" : "", seg.goodBad ? seg.goodBad + "-label" : ""].filter(Boolean).join(" ") || undefined;
+        if (!fits) {
+          // no room - tooltip only
+        } else if (geom.curved) {
+          curvedLabel(group, seg.text, midAngle, span, midRadius, shrunkSize || fontSize, labelClass, shrunkSize);
         } else {
           // "Tvashta (Brahma Muhurta)" is too long for one 12-deg muhurta
           // cell, so a parenthetical goes on a second line.
@@ -390,23 +417,26 @@
   // get curved text, same as tithi/nakshatra - plenty of room per segment,
   // unlike muhurta's 30 segments at 12 deg each or hora's 24, where curved
   // text would read worse, not better (see curvedLabel's own comment).
-  const CURVED_OUTER_RINGS = { prahara: true, kala: true, rahuYamaGulika: true };
+  const CURVED_OUTER_RINGS = { prahara: true, kala: true, rahuYamaGulika: true, yoga: true, karana: true, lagna: true };
+  // The good/bad-time ring keeps its meaning-colours; every other outer ring
+  // is plain divisions and alternates.
+  const GOOD_BAD_OUTER_RINGS = { rahuYamaGulika: true };
 
   function renderOuterRing(group, ringDescriptor) {
     const curved = !!CURVED_OUTER_RINGS[ringDescriptor.ringKey];
-    group.setAttribute("data-ring", ringDescriptor.ringKey); // per-ring fills in style.css
     renderRing(group, ringDescriptor, {
       rInner: R.outerRingInner, rOuter: R.outerRingOuter,
       fontSize: curved ? 14 : function (span) { return span >= 15 ? 15 : 11; },
-      minSpanForLabel: 6,
+      minSpanForLabel: curved ? 2 : 6, // curved labels shrink to fit instead (see renderRing)
       curved: curved,
+      alternate: !GOOD_BAD_OUTER_RINGS[ringDescriptor.ringKey],
     });
   }
   function renderNakshatraRing(group, ringDescriptor) {
-    renderRing(group, ringDescriptor, { rInner: R.nakshatraRingInner, rOuter: R.nakshatraRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true });
+    renderRing(group, ringDescriptor, { rInner: R.nakshatraRingInner, rOuter: R.nakshatraRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true, alternate: true });
   }
   function renderTithiRing(group, ringDescriptor) {
-    renderRing(group, ringDescriptor, { rInner: R.tithiRingInner, rOuter: R.tithiRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true });
+    renderRing(group, ringDescriptor, { rInner: R.tithiRingInner, rOuter: R.tithiRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true, alternate: true });
   }
 
   // The one ring that appears and disappears on its own: ring-adapter.js's

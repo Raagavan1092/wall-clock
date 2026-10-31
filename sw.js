@@ -3,7 +3,7 @@
 // bumped on a new deploy), with a network fallback for anything not listed.
 // Bump CACHE_NAME whenever a cached file's content changes, so installs
 // pick up the new version instead of serving stale assets forever.
-const CACHE_NAME = "vedic-wall-clock-v10";
+const CACHE_NAME = "vedic-wall-clock-v11";
 
 const ASSETS = [
   "./",
@@ -17,6 +17,7 @@ const ASSETS = [
   "./js/engine/elongation.js",
   "./js/engine/ghati.js",
   "./js/engine/karana.js",
+  "./js/engine/lagna.js",
   "./js/engine/masa.js",
   "./js/engine/nakshatra.js",
   "./js/engine/panchanga.js",

@@ -12,20 +12,22 @@
 
   // Tithi and nakshatra are checked constantly, so they get their own always-
   // visible thin rings (dial.js) instead of taking a turn in this toggle.
-  // Rahu/Yama/Gulika is back as its own switchable entry (same as before) -
-  // unlike the five nitya-yoga rings below, it has something to show EVERY
-  // day without fail, so it earns a permanent spot in the cycle the same way
-  // Muhurta/Yaama/Kala/Hora do. Yoga (the 27-fold Vishkambha..Vaidhriti
-  // cycle) and Karana were dropped entirely per the project owner's request
-  // - no ring shows them any more.
-  const RING_ORDER = ["muhurta", "prahara", "kala", "hora", "rahuYamaGulika"];
+  // "rahuYamaGulika" (titled Good / Bad Times: Rahu/Yama/Gulika plus
+  // Durmuhurta and Abhijit) has something to show EVERY day, unlike the five
+  // nitya-yoga rings below, so it earns a permanent spot in the cycle the
+  // same way Muhurta/Yaama/Kala/Hora do. Yoga (the 27-fold Vishkambha..
+  // Vaidhriti cycle), Karana and Lagna were added back to the cycle at the
+  // project owner's request, completing the five limbs alongside vara,
+  // tithi and nakshatra.
+  const RING_ORDER = ["muhurta", "prahara", "kala", "hora", "rahuYamaGulika", "yoga", "karana", "lagna"];
 
   // Static display titles, for UI (e.g. the settings ring-order list) that
   // needs a label without computing a full snapshot. Kept in sync with the
   // `title` values set in build() below.
   const RING_TITLES = {
     muhurta: "Muhurta", prahara: "Yaama", kala: "Kala", hora: "Hora",
-    rahuYamaGulika: "Rahu / Yama / Gulika",
+    rahuYamaGulika: "Good / Bad Times",
+    yoga: "Yoga", karana: "Karana", lagna: "Lagna",
     tithi: "Tithi", nakshatra: "Nakshatra",
   };
 
@@ -108,28 +110,31 @@
     return segments;
   }
 
-  // All three named segments are inauspicious, drawn in their own lighter
-  // brown ("kala" class in style.css) so they stand out clearly from the
-  // dark unnamed day segments around them. Night isn't covered by these
-  // three, so it's one plain blank (neutral) band, no label.
+  // The daily good/bad time windows, on one ring ("Good / Bad Times"):
+  // Rahu Kalam, Yamaganda, Gulika Kalam and Durmuhurta (bad), and Abhijit
+  // (good). They can overlap (e.g. Wednesday's Rahu Kalam and midday), so
+  // they go through the same merge as the yoga ring - an overlap of a good
+  // and a bad window gets the "mixed" colour. Everything else is blank.
   function buildRahuYamaGulika(snapshot, data) {
-    const anchors = snapshot.anchors;
     const r = snapshot.scaledRings.rahuYamaGulika;
+    const muhurta = snapshot.scaledRings.muhurta;
     const idx = data.rahuYamaGulika.weekdaySegmentIndex;
     const v = snapshot.varaIndex;
-    const named = {};
-    named[idx.rahu[v]] = "Rahu Kalam";
-    named[idx.yamaganda[v]] = "Yamaganda";
-    named[idx.gulika[v]] = "Gulika Kalam";
-    const segments = r.day.map(function (iv, i) {
-      const label = named[i] || "";
-      const seg = segmentFromInterval(iv, anchors, label, false);
-      if (label) seg.goodBad = "kala";
-      return seg;
+    function windowOf(iv, text, goodBad) {
+      return { startTime: iv.startTime, endTime: iv.endTime, text: text, goodBad: goodBad };
+    }
+    const intervals = [
+      windowOf(r.day[idx.rahu[v]], "Rahu Kalam", "bad"),
+      windowOf(r.day[idx.yamaganda[v]], "Yamaganda", "bad"),
+      windowOf(r.day[idx.gulika[v]], "Gulika Kalam", "bad"),
+    ];
+    data.durmuhurta.byWeekday[v].forEach(function (d) {
+      intervals.push(windowOf(muhurta[d.part][d.index], "Durmuhurta", "bad"));
     });
-    const night = combinedBand(r.night, anchors, "", false);
-    if (night) segments.push(night);
-    return segments;
+    if (data.abhijit.skipWeekdays.indexOf(v) === -1) {
+      intervals.push(windowOf(muhurta.day[data.abhijit.dayIndex], "Abhijit", "good"));
+    }
+    return mergeActiveIntervals(intervals, snapshot.anchors.governingSunrise, snapshot.anchors.nextSunrise);
   }
 
   // Shared helper for the three nakshatra-sequence-driven good/bad rings
@@ -226,7 +231,9 @@
   // (user-specified): the first entry (sunrise to the first boundary) gets
   // one colour, every entry after the first boundary gets the other -
   // this is independent of which one happens to be "current" right now,
-  // since the hand already shows that.
+  // since the hand already shows that. Colouring alternates by position
+  // (dial.js's `alternate` option), so a 3rd entry in the day gets the
+  // first entry's colour again rather than repeating the second's.
   // `extraFor`, when given, adds a second tooltip line (e.g. the Amanta
   // lunar month for the tithi ring) without affecting the on-ring label.
   function buildSequenceSegments(sequence, labelFor, extraFor) {
@@ -235,7 +242,7 @@
         startAngle: null, endAngle: null,
         startTime: entry.segStart, endTime: entry.segEnd,
         text: labelFor(entry), contested: false,
-        isCurrentValue: entry.isCurrent, isNext: i > 0,
+        isCurrentValue: entry.isCurrent,
         extraTooltip: extraFor ? extraFor(entry) : undefined,
       };
     });
@@ -264,7 +271,7 @@
         segments = buildHora(snapshot, data);
         break;
       case "rahuYamaGulika":
-        title = "Rahu / Yama / Gulika";
+        title = RING_TITLES.rahuYamaGulika;
         segments = buildRahuYamaGulika(snapshot, data);
         break;
       case "tithi": {
@@ -283,6 +290,20 @@
         });
         break;
       }
+      case "yoga":
+        title = "Yoga";
+        segments = buildSequenceSegments(snapshot.yogaSequence, function (y) { return data.yoga.names[y.index]; });
+        break;
+      case "karana":
+        title = "Karana";
+        segments = buildSequenceSegments(snapshot.karanaSequence, function (k) {
+          return k.key.indexOf("movable:") === 0 ? data.karana.movable[Number(k.key.split(":")[1])] : data.karana.fixed[k.key];
+        });
+        break;
+      case "lagna":
+        title = "Lagna";
+        segments = buildSequenceSegments(snapshot.lagnaSequence, function (l) { return data.rashi.names[l.index]; });
+        break;
       default:
         throw new Error("Unknown ring key: " + ringKey);
     }
