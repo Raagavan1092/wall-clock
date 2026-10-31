@@ -24,6 +24,10 @@
   --bad-label: #ff8a75;
   --good-fill: #10283a;
   --good-label: #7cc4ff;
+  --mixed-fill: #2e1d3e;
+  --mixed-label: #d0a8ff;
+  --kala-fill: #8a5d32;
+  --kala-label: #fff1d6;
   --label: #f3e6c0;
   --tooltip-bg: #1c1812;
   --tooltip-text: #f0e6c8;
@@ -83,8 +87,12 @@ html, body {
    specificity) cascade on an active segment regardless of its position. */
 .ring-segment.bad { fill: var(--bad-fill); }
 .ring-segment.good { fill: var(--good-fill); }
+.ring-segment.mixed { fill: var(--mixed-fill); }
+.ring-segment.kala { fill: var(--kala-fill); }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
+.mixed-label { fill: var(--mixed-label); font-weight: 600; }
+.kala-label { fill: var(--kala-label); font-weight: 600; }
 
 .nakshatra-ring .ring-segment { fill: var(--nakshatra-ring-fill); }
 .tithi-ring .ring-segment { fill: var(--tithi-ring-fill); }

@@ -107,7 +107,9 @@
     return segments;
   }
 
-  // All three named segments are inauspicious (bad/red); the "not covered"
+  // All three named segments are inauspicious, drawn in their own lighter
+  // brown ("kala" class in style.css) so they stand out clearly from the
+  // dark unnamed day segments around them; the "not covered"
   // night band keeps its existing `contested` (dashed, data-gap) styling
   // rather than being marked bad - it means "unknown", not "confirmed bad".
   function buildRahuYamaGulika(snapshot, data) {
@@ -122,7 +124,7 @@
     const segments = r.day.map(function (iv, i) {
       const label = named[i] || "";
       const seg = segmentFromInterval(iv, anchors, label, false);
-      if (label) seg.goodBad = "bad";
+      if (label) seg.goodBad = "kala";
       return seg;
     });
     const night = combinedBand(r.night, anchors, "Night (not covered)", true);
@@ -299,9 +301,10 @@
   // at once (e.g. Marana Yogam's nakshatra-based span overlapping Visha
   // Yoga's tithi-based one, or even a good one overlapping a bad one) -
   // when that happens the segment names everything active ("X + Y") and
-  // reads bad if ANY active source is bad, good only if all active sources
-  // are good (a warning should never be masked by a simultaneous good
-  // omen).
+  // reads good (blue) or bad (red) if every active source agrees, or
+  // "mixed" (purple, the blend of the two) when a good and a bad one
+  // overlap - per the project owner, so the overlap is visible rather than
+  // either colour masking the other.
   // `label`, when given, overrides every active segment's own text with one
   // fixed name (used for the nakshatra/tithi-driven yogas, which are each a
   // single yes/no condition).
@@ -332,7 +335,9 @@
       const seg = { startAngle: null, endAngle: null, startTime: new Date(segStartMs), endTime: new Date(segEndMs), contested: false };
       if (active.length) {
         seg.text = active.map(function (a) { return a.text; }).join(" + ");
-        seg.goodBad = active.some(function (a) { return a.goodBad === "bad"; }) ? "bad" : "good";
+        const anyBad = active.some(function (a) { return a.goodBad === "bad"; });
+        const anyGood = active.some(function (a) { return a.goodBad === "good"; });
+        seg.goodBad = anyBad && anyGood ? "mixed" : anyBad ? "bad" : "good";
       } else {
         seg.text = "";
       }
