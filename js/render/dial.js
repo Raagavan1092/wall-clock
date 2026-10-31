@@ -39,8 +39,8 @@
     dayNightRingInner: 258, // thin band - a little thicker than the tithi ring
     hand: 270, // same length as palaHand, per the project owner
     palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
-    markerLineOuter: 524, // Avartana/Nishitha lines run out past the yoga ring...
-    markerLabel: 531, // ...with their name just beyond, inside the dial's edge (540)
+    markerLineOuter: 536, // Avartana/Nishitha lines run out nearly to the dial's edge (540)...
+    markerLabel: 532, // ...with their name along the line, ending just short of its tip
     hub: 14,
     centrePlate: 186,
     centreTextY: -24, // centre readout sits a little above centre, leaving room for...
@@ -483,7 +483,9 @@
   }
 
   // Avartana (midday) and Nishitha (midnight): a line from the day/night
-  // ring out through every ring, with the name curved just past its end.
+  // ring out through every ring almost to the dial's edge, with the name
+  // written along the line at its outer end, just above it. On the left
+  // half of the dial the text is flipped so it still reads left-to-right.
   // `markers` is ring-adapter.js's buildDayMarkers output.
   function renderDayMarkers(group, markers) {
     while (group.firstChild) group.removeChild(group.firstChild);
@@ -495,8 +497,22 @@
       const hit = el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-hit" });
       attachTooltip(hit, m.text + "\n" + m.ghatiPala + "\n" + fmtHM(m.time));
       group.appendChild(hit);
-      curvedLabel(group, m.text, m.angle, 14, R.markerLabel, 14, "day-marker-label");
+      group.appendChild(markerLabel(m.text, m.angle));
     });
+  }
+
+  function markerLabel(text, angle) {
+    const end = polarToXY(angle, R.markerLabel);
+    const leftHalf = angle > 180;
+    const rotation = leftHalf ? angle + 90 : angle - 90;
+    const t = el("text", {
+      x: 0, y: -6,
+      "text-anchor": leftHalf ? "start" : "end",
+      transform: `translate(${end.x} ${end.y}) rotate(${rotation})`,
+      class: "day-marker-label",
+    });
+    t.textContent = text;
+    return t;
   }
 
   function setHand(handGroup, angleDeg) {

@@ -128,9 +128,15 @@ html, body {
 .centre-button-label { fill: var(--centre-text); font-size: 15px; font-weight: 600; pointer-events: none; }
 
 /* Avartana / Nishitha marker lines (dial.js renderDayMarkers). */
-.day-marker-line { stroke: var(--centre-ghati); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.day-marker-line { stroke: #ffffff; stroke-opacity: 0.6; stroke-width: 2; pointer-events: none; }
 .day-marker-hit { stroke: transparent; stroke-width: 14; }
-.day-marker-label { fill: var(--centre-ghati); font-weight: 700; letter-spacing: 0.04em; }
+.day-marker-label {
+  fill: #ffffff; fill-opacity: 0.9;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
+  /* dark halo so the text stays legible over whichever ring it crosses */
+  stroke: var(--dial-bg); stroke-width: 3px; stroke-opacity: 0.8; paint-order: stroke;
+  pointer-events: none;
+}
 
 .daynight-segment { stroke: var(--dial-bg); stroke-width: 2; }
 .daynight-day { fill: var(--daynight-day); }
