@@ -324,6 +324,10 @@
     }, 1000);
   }
 
+  const LAYER_TITLES = {
+    switchable: "Switchable ring", yogaAlerts: "Yogas", nakshatra: "Nakṣatra", tithi: "Tithi",
+  };
+
   function wireSettingsPanel() {
     const toggleBtn = document.getElementById("settings-toggle");
     const panel = document.getElementById("settings-panel");
@@ -338,6 +342,7 @@
     const closeBtn = document.getElementById("settings-close");
 
     const fixedRingList = document.getElementById("set-fixed-rings");
+    const layerOrderList = document.getElementById("set-layer-order");
     const markerList = document.getElementById("set-markers");
 
     // Working copies of the ring order and the hidden rings/markers, only
@@ -345,6 +350,34 @@
     let workingRingOrder = settings.ringOrder.slice();
     let workingHiddenRings = settings.hiddenRings.slice();
     let workingHiddenMarkers = settings.hiddenMarkers.slice();
+    let workingLayerOrder = settings.layerOrder.slice();
+
+    // An ↑/↓ reorderable list of `order` (mutated in place), labelled by
+    // `titleFor(key)`; `extraFor(key)`, if given, adds content (e.g. a show
+    // checkbox) before the title.
+    function renderReorderList(container, order, titleFor, extraFor) {
+      container.innerHTML = "";
+      order.forEach(function (key, i) {
+        const li = document.createElement("li");
+        const label = document.createElement("label");
+        if (extraFor) label.appendChild(extraFor(key));
+        label.appendChild(document.createTextNode((extraFor ? " " : "") + titleFor(key)));
+        li.appendChild(label);
+        [["↑", -1], ["↓", 1]].forEach(function (pair) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = pair[0];
+          const j = i + pair[1];
+          btn.disabled = j < 0 || j >= order.length;
+          btn.addEventListener("click", function () {
+            [order[i], order[j]] = [order[j], order[i]];
+            renderReorderList(container, order, titleFor, extraFor);
+          });
+          li.appendChild(btn);
+        });
+        container.appendChild(li);
+      });
+    }
 
     // A "show" checkbox bound to whether `key` is absent from `hiddenList`.
     function showCheckbox(key, hiddenList) {
@@ -370,36 +403,9 @@
     }
 
     function renderRingOrderList() {
-      ringOrderList.innerHTML = "";
-      workingRingOrder.forEach(function (key, i) {
-        const li = document.createElement("li");
-        const label = document.createElement("label");
-        label.appendChild(showCheckbox(key, workingHiddenRings));
-        label.appendChild(document.createTextNode(" " + (E.RingAdapter.RING_TITLES[key] || key)));
-        li.appendChild(label);
-
-        const upBtn = document.createElement("button");
-        upBtn.type = "button";
-        upBtn.textContent = "↑";
-        upBtn.disabled = i === 0;
-        upBtn.addEventListener("click", function () {
-          [workingRingOrder[i - 1], workingRingOrder[i]] = [workingRingOrder[i], workingRingOrder[i - 1]];
-          renderRingOrderList();
-        });
-
-        const downBtn = document.createElement("button");
-        downBtn.type = "button";
-        downBtn.textContent = "↓";
-        downBtn.disabled = i === workingRingOrder.length - 1;
-        downBtn.addEventListener("click", function () {
-          [workingRingOrder[i], workingRingOrder[i + 1]] = [workingRingOrder[i + 1], workingRingOrder[i]];
-          renderRingOrderList();
-        });
-
-        li.appendChild(upBtn);
-        li.appendChild(downBtn);
-        ringOrderList.appendChild(li);
-      });
+      renderReorderList(ringOrderList, workingRingOrder, function (key) {
+        return E.RingAdapter.RING_TITLES[key] || key;
+      }, function (key) { return showCheckbox(key, workingHiddenRings); });
     }
 
     function populateForm() {
@@ -413,7 +419,9 @@
       workingRingOrder = settings.ringOrder.slice();
       workingHiddenRings = settings.hiddenRings.slice();
       workingHiddenMarkers = settings.hiddenMarkers.slice();
+      workingLayerOrder = settings.layerOrder.slice();
       renderRingOrderList();
+      renderReorderList(layerOrderList, workingLayerOrder, function (key) { return LAYER_TITLES[key]; });
       renderCheckboxList(fixedRingList, E.RingAdapter.FIXED_RING_TITLES, workingHiddenRings);
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
@@ -456,8 +464,10 @@
         ringOrder: workingRingOrder.slice(),
         hiddenRings: workingHiddenRings.slice(),
         hiddenMarkers: workingHiddenMarkers.slice(),
+        layerOrder: workingLayerOrder.slice(),
       };
       E.Settings.save(settings);
+      E.Dial.setLayerOrder(settings.layerOrder);
       activeRingOrder = visibleRingOrder();
       currentRingIndex = 0;
       invalidateCache();
@@ -478,6 +488,7 @@
 
     const svg = document.getElementById("dial");
     dialHandles = E.Dial.buildStaticStructure(svg);
+    E.Dial.setLayerOrder(settings.layerOrder);
 
     wireInput(svg);
     wireTimeControl();

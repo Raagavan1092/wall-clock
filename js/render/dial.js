@@ -12,23 +12,16 @@
   // marker-line labels (Āvartana, Niśītha, ...), so they sit clear of every
   // ring.
   const CX = 615, CY = 615;
-  // Concentric bands, outside in (per the project owner, the changing ring
-  // is outermost): the switchable ring (whichever of ring-adapter.js
-  // RING_ORDER is toggled), then the yoga-alert ring (only actually drawn
-  // on days one of the five nitya yogas is active - see
-  // renderYogaAlertRing; its band is reserved either way, so nothing moves
-  // when it comes and goes), then nakṣatra, then tithi, then the fixed ghaṭī/pala scale,
-  // then the innermost day/night ring, then the centre readout. Bands are
-  // separated by 4-unit gaps.
+  // Concentric bands, outside in: four ring LAYERS - by default the
+  // switchable ring (whichever of ring-adapter.js RING_ORDER is toggled),
+  // the yoga-alert ring (only actually drawn on days one of the five nitya
+  // yogas is active - see renderYogaAlertRing; its band is reserved either
+  // way, so nothing moves when it comes and goes), nakṣatra, then tithi,
+  // reorderable in Settings (setLayerOrder) - then the fixed ghaṭī/pala
+  // scale, then the innermost day/night ring, then the centre readout.
+  // The layers' radii (outerRing*/yogaRing*/nakshatraRing*/tithiRing*) are
+  // filled in by setLayerOrder below.
   const R = {
-    outerRingOuter: 520,
-    outerRingInner: 476,
-    yogaRingOuter: 472,
-    yogaRingInner: 440,
-    nakshatraRingOuter: 436,
-    nakshatraRingInner: 404,
-    tithiRingOuter: 400,
-    tithiRingInner: 368,
     ghatiMajorTickOuter: 356,
     ghatiMajorTickInner: 322,
     ghatiMinorTickOuter: 356,
@@ -230,13 +223,49 @@
   // Static framing only - the ticks/numerals between these circles live in
   // their own group (see renderGhatiScale/renderHourScale), since "Switch
   // time" swaps that scale between 60 ghatis and 24 hours.
+  // The four reorderable ring layers, outside in by default, and each one's
+  // band thickness (the switchable ring is a little thicker, for its
+  // denser labels). Whatever the order, they pack inward from radius 520
+  // with 4-unit gaps and always end at the same inner radius (368), so the
+  // ghaṭī scale and everything inside never move.
+  const LAYER_KEYS = ["switchable", "yogaAlerts", "nakshatra", "tithi"];
+  const LAYER_THICKNESS = { switchable: 44, yogaAlerts: 32, nakshatra: 32, tithi: 32 };
+  const LAYER_RADIUS_PREFIX = { switchable: "outerRing", yogaAlerts: "yogaRing", nakshatra: "nakshatraRing", tithi: "tithiRing" };
+  const LAYERS_OUTER = 520, LAYER_GAP = 4;
+  let layerFrame = null;
+  setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
+
+  // Assigns each layer its radii for `order` (outside in; any missing or
+  // unknown keys fall back to the default order) and redraws the layer
+  // boundaries. Callers re-render the rings afterwards.
+  function setLayerOrder(order) {
+    const valid = (order || []).filter(function (k, i, arr) { return LAYER_KEYS.indexOf(k) !== -1 && arr.indexOf(k) === i; });
+    const full = valid.length === LAYER_KEYS.length ? valid : LAYER_KEYS;
+    let r = LAYERS_OUTER;
+    full.forEach(function (key) {
+      const prefix = LAYER_RADIUS_PREFIX[key];
+      R[prefix + "Outer"] = r;
+      R[prefix + "Inner"] = r - LAYER_THICKNESS[key];
+      r = R[prefix + "Inner"] - LAYER_GAP;
+    });
+    if (layerFrame) {
+      clearGroup(layerFrame);
+      // The yoga-alert ring draws its own boundaries, only when shown.
+      ["switchable", "nakshatra", "tithi"].forEach(function (key) {
+        const prefix = LAYER_RADIUS_PREFIX[key];
+        [R[prefix + "Outer"], R[prefix + "Inner"]].forEach(function (radius) {
+          layerFrame.appendChild(el("circle", { cx: CX, cy: CY, r: radius, class: "ring-boundary" }));
+        });
+      });
+    }
+  }
+
   function buildScaleFrame(root) {
     const g = el("g", { class: "scale-frame" });
 
-    // Boundary circles, purely decorative framing between bands.
-    [R.outerRingOuter, R.outerRingInner, R.nakshatraRingInner, R.tithiRingInner].forEach(function (r) {
-      g.appendChild(el("circle", { cx: CX, cy: CY, r: r, class: "ring-boundary" }));
-    });
+    // Boundary circles, purely decorative framing between bands. The ring
+    // layers' own boundaries live in layerFrame (setLayerOrder), since
+    // they move when the layers are reordered.
     g.appendChild(el("circle", { cx: CX, cy: CY, r: R.ghatiMinorTickOuter, class: "ghati-scale-boundary" }));
     [R.dayNightRingOuter, R.dayNightRingInner].forEach(function (r) {
       g.appendChild(el("circle", { cx: CX, cy: CY, r: r, class: "ring-boundary" }));
@@ -322,6 +351,9 @@
     svg.appendChild(tithiRingGroup);
 
     buildScaleFrame(svg);
+    layerFrame = el("g", { class: "layer-frame" });
+    svg.appendChild(layerFrame);
+    setLayerOrder(LAYER_KEYS);
     const scaleGroup = el("g", { class: "time-scale" });
     svg.appendChild(scaleGroup);
     renderGhatiScale(scaleGroup);
@@ -634,7 +666,9 @@
 
   VedicEngine.Dial = {
     R, CX, CY,
+    LAYER_KEYS,
     clearGroup,
+    setLayerOrder,
     buildStaticStructure,
     renderOuterRing,
     renderNakshatraRing,

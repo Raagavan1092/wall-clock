@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
 <div id="stage">
@@ -56,9 +56,15 @@
   </section>
 
   <section>
-    <h3>Outer ring order</h3>
-    <p class="settings-note">Untick a ring to leave it out of Switch display. This order is for the switchable outer ring only; tithi and nakṣatra have their own rings (see Always-on rings below). A sixth ring for Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi Yoga appears on its own, outside this order, only on days one of them is actually active.</p>
-    <ul id="set-ring-order"></ul>
+    <h3>Ring layers (outside → in)</h3>
+    <p class="settings-note">The physical order of the rings on the dial. Day / Night always stays innermost, inside the ghaṭī scale.</p>
+    <ul id="set-layer-order" class="reorder-list"></ul>
+  </section>
+
+  <section>
+    <h3>Switchable ring order</h3>
+    <p class="settings-note">The order Switch display cycles through. Untick an element to leave it out. Tithi and nakṣatra have their own rings (see Always-on rings below). A sixth ring for Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi Yoga appears on its own, outside this order, only on days one of them is actually active.</p>
+    <ul id="set-ring-order" class="reorder-list"></ul>
   </section>
 
   <section>

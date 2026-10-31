@@ -243,8 +243,8 @@ html, body {
   margin-top: 6px;
 }
 #settings-panel button:disabled { opacity: 0.3; cursor: default; }
-#set-ring-order { list-style: none; padding: 0; margin: 0; }
-#set-ring-order li {
+.reorder-list { list-style: none; padding: 0; margin: 0; }
+.reorder-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -254,8 +254,8 @@ html, body {
   margin-bottom: 4px;
   font-size: 14px;
 }
-#set-ring-order li button { padding: 2px 8px; margin: 0 0 0 4px; }
-#set-ring-order li label { margin: 0; flex: 1; }
+.reorder-list li button { padding: 2px 8px; margin: 0 0 0 4px; }
+.reorder-list li label { margin: 0; flex: 1; }
 .settings-actions { display: flex; gap: 10px; }
 .settings-actions button { flex: 1; }
 #settings-save { background: var(--ring-stroke); font-weight: 600; }

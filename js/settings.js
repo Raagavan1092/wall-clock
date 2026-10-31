@@ -1,5 +1,5 @@
 // User-facing settings (location, ayanamsa, sunrise definition, ring order,
-// hidden rings and marker lines),
+// hidden rings and marker lines, ring layer order),
 // persisted to localStorage. Separate from the debug time override (?t=/
 // ?debug=1 in app.js), which is a dev tool, not a kiosk-facing setting.
 (function (global) {
@@ -20,7 +20,17 @@
       // (RingAdapter.MARKER_TITLES) the user has chosen to hide.
       hiddenRings: [],
       hiddenMarkers: [],
+      // Physical order of the ring layers, outside in (Dial.LAYER_KEYS).
+      layerOrder: VedicEngine.Dial.LAYER_KEYS.slice(),
     };
+  }
+
+  // A full permutation of Dial.LAYER_KEYS, or the default order if the
+  // saved one is missing/stale.
+  function sanitizeLayerOrder(order) {
+    const known = VedicEngine.Dial.LAYER_KEYS;
+    const cleaned = sanitizeKeys(order, known);
+    return cleaned.length === known.length ? cleaned : known.slice();
   }
 
   // Keeps only keys that exist in `known` (an object or array of keys).
@@ -57,6 +67,7 @@
       ringOrder: sanitizeRingOrder(saved.ringOrder),
       hiddenRings: sanitizeKeys(saved.hiddenRings, VedicEngine.RingAdapter.RING_ORDER.concat(Object.keys(VedicEngine.RingAdapter.FIXED_RING_TITLES))),
       hiddenMarkers: sanitizeKeys(saved.hiddenMarkers, VedicEngine.RingAdapter.MARKER_TITLES),
+      layerOrder: sanitizeLayerOrder(saved.layerOrder),
     };
   }
 
