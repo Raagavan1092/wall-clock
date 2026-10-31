@@ -61,8 +61,9 @@
   // from ring-adapter.js's startGhatiPala/endGhatiPala - dial.js itself
   // never touches VedicEngine, see file header) and the plain clock time,
   // per the project owner: "ghati pala and hour and minutes", everywhere.
+  // Two short lines - "GG:PP – GG:PP" then "HH:MM – HH:MM" - under the topic.
   function timeRangeTooltip(seg) {
-    return seg.startGhatiPala + " (" + fmtHM(seg.startTime) + ")" + " – " + seg.endGhatiPala + " (" + fmtHM(seg.endTime) + ")";
+    return seg.startGhatiPala + " – " + seg.endGhatiPala + "\n" + fmtHM(seg.startTime) + " – " + fmtHM(seg.endTime);
   }
 
   // Custom dark-mode tooltip. SVG's native <title> tooltip is OS-rendered
