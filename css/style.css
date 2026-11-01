@@ -6,9 +6,10 @@
   --ring-neutral: #1c180f;
   --ring-stroke: #5a4a2a;
   /* Every ring of plain divisions (tithi, nakshatra, muhurta, yaama, kala,
-     hora, yoga, karana, lagna) alternates these two by position. */
-  --div-base: #7e3c16; /* red-brown */
-  --div-alt: #363329; /* olive green */
+     hora, yoga, karana, lagna) alternates these two by position. Both are
+     neutral on purpose: hue is reserved for meaning (bad / good / now). */
+  --div-base: #3d362b; /* warm taupe */
+  --div-alt: #282520; /* dark olive-grey */
   --daynight-day: #ffb000;
   --daynight-night: #000000;
   --tick-major: #c9a85c;
@@ -20,12 +21,18 @@
   --centre-ghati: #ffd77a;
   --centre-clock-secondary: #a89a78;
   --contested: #e0392b;
-  /* Good Times / Bad Times rings: bad = the project owner's dark brown,
-     good = bright blue. */
-  --bad-fill: #512700;
-  --bad-label: #ffe9cc;
-  --good-fill: #2f6fb8;
-  --good-label: #f0f7ff;
+  /* Good / Bad Times ring: bad = vermilion, the most salient colour on the
+     dial (warnings should be the first thing seen); good = clear blue.
+     The two differ in hue AND lightness, so they stay apart for red-green
+     colour-blind viewers too. */
+  --bad-fill: #c0442b;
+  --bad-label: #fff3ec;
+  --good-fill: #2f86c9;
+  --good-label: #f2f8ff;
+  /* Highlight for whatever is active right now (dial.js updateTimeState). */
+  --active-outline: #ffe08a;
+  --centre-bad: #ff8d6e;
+  --centre-good: #82c4ff;
   --label: #f3e6c0;
   --tooltip-bg: #1c1812;
   --tooltip-text: #f0e6c8;
@@ -95,6 +102,18 @@ html, body {
    per-event lanes (dial.js renderEventRing). */
 .ring-segment.event-ring-bg { fill: var(--ring-neutral); stroke: none; }
 .ring-segment.event-segment { stroke-width: 1.5; }
+/* The axis down the middle of the Good / Bad Times ring: good windows grow
+   outward from it, bad ones inward. */
+.good-bad-axis { fill: none; stroke: var(--tick-major); stroke-width: 1.5; stroke-opacity: 0.6; pointer-events: none; }
+
+/* Now / past (dial.js updateTimeState): segments already over fade back,
+   the active one gets a bright outline and a lift. */
+.timed { transition: opacity 0.6s; }
+.timed.is-past { opacity: 0.3; }
+.timed.is-active .ring-segment { stroke: var(--active-outline); stroke-width: 2.5; }
+/* Event lanes can be thin, so their outline is too: the lift does the work. */
+.timed.is-active .event-segment { stroke-width: 1; filter: brightness(1.3); }
+.timed.is-active .dial-label { fill: #ffffff; font-weight: 700; }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
 
@@ -160,6 +179,9 @@ html, body {
   font-size: 26px;
   font-variant-numeric: tabular-nums;
 }
+.centre-line-bad { fill: var(--centre-bad); font-weight: 600; }
+.centre-line-good { fill: var(--centre-good); font-weight: 600; }
+.centre-line-muted { fill: var(--centre-clock-secondary); font-size: 18px; }
 .centre-line-sub {
   font-size: 22px;
   font-weight: 400;

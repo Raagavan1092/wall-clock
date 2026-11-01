@@ -92,6 +92,7 @@
   let dialHandles = null;
   let lastRenderedRingKey = null;
   let lastOuterRingDescriptor = null;
+  let lastGoodBad = null;
 
   const VARA_FALLBACK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -127,27 +128,41 @@
           { text: "Ghaṭī " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
           { text: clockText, emphasis: "clock-secondary" },
         ];
+    // Vāra and the tithi holding right now share a line ("Ravivāra ·
+    // Saptamī (kṛṣṇa)"), since together they name the day.
     const lines = timeLines.concat([
       { text: dateText },
-      { text: varaName },
+      { text: varaName + " · " + E.RingAdapter.tithiNameAt(snapshot, data, now) },
     ]);
 
-    // Now/next for the active switchable ring. Kāla has a blank (unlabelled)
-    // night band - skip the "now" line there rather than show a bare
-    // "Kāla: ", and look past blank segment(s) for "Next".
+    // Status of the Good / Bad Times ring: bad first (the one people check),
+    // then good. Each says what is active and until when, or what is next.
+    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1) {
+      [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].forEach(function (row) {
+        const st = E.RingAdapter.statusFor(row[1], now);
+        if (!st) {
+          lines.push({ text: "No more " + row[0] + " times today", emphasis: "muted" });
+        } else if (st.active) {
+          lines.push({ text: row[2] + st.text + " · till " + fmtTime(st.until), emphasis: row[0] });
+        } else {
+          lines.push({ text: "Next " + row[0] + ": " + st.text + " @ " + fmtTime(st.at), emphasis: "muted" });
+        }
+      });
+    }
+
+    // Now/next for the active switchable ring, on one line. Kāla has a
+    // blank (unlabelled) night band - name just the ring there rather than
+    // show a bare "Kāla: ", and look past blank segment(s) for "next".
     if (!ringDescriptor) return lines; // every switchable ring hidden
     const nowSeg = ringDescriptor.segments.find(function (seg) {
       return now >= seg.startTime && now < seg.endTime;
     });
-    if (nowSeg && nowSeg.text) {
-      lines.push({ text: ringDescriptor.title + ": " + nowSeg.text });
-    }
     const nextSeg = ringDescriptor.segments.find(function (seg) {
       return seg.startTime > now && seg.text;
     });
-    if (nextSeg) {
-      lines.push({ text: "Next: " + nextSeg.text + " @ " + fmtTime(nextSeg.startTime) });
-    }
+    let ringLine = ringDescriptor.title + (nowSeg && nowSeg.text ? ": " + nowSeg.text : "");
+    if (nextSeg) ringLine += " · next " + nextSeg.text + " " + fmtTime(nextSeg.startTime);
+    lines.push({ text: ringLine });
     return lines;
   }
 
@@ -160,9 +175,8 @@
       // Good/bad times and day/night only depend on the snapshot, never on
       // which switchable ring is toggled, so they're rebuilt whenever the
       // snapshot itself changes.
-      const goodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data);
-      E.Dial.renderGoodRing(dialHandles.goodRingGroup, goodBad.good);
-      E.Dial.renderBadRing(dialHandles.badRingGroup, goodBad.bad);
+      lastGoodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data);
+      E.Dial.renderGoodBadRing(dialHandles.goodBadRingGroup, lastGoodBad.good, lastGoodBad.bad);
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
       applyFixedRingVisibility();
@@ -187,6 +201,10 @@
       else E.Dial.renderGhatiScale(dialHandles.scaleGroup);
       lastRenderedTimeMode = timeMode;
     }
+
+    // Highlight what's active now, dim what's over - every tick, since it
+    // changes with the time, not just with the snapshot.
+    E.Dial.updateTimeState([dialHandles.outerRingGroup, dialHandles.goodBadRingGroup], now);
 
     const ghatiNow = E.Ghati.current(now, snapshot.anchors);
     // The day hand is the same in both modes (one turn per sunrise-to-
@@ -213,8 +231,7 @@
   // they'd occupy stays as plain background, so nothing else moves.
   function applyFixedRingVisibility() {
     const groups = {
-      goodTimes: dialHandles.goodRingGroup, badTimes: dialHandles.badRingGroup,
-      dayNight: dialHandles.dayNightRingGroup,
+      goodBad: dialHandles.goodBadRingGroup, dayNight: dialHandles.dayNightRingGroup,
     };
     Object.keys(groups).forEach(function (k) {
       groups[k].style.display = settings.hiddenRings.indexOf(k) === -1 ? "" : "none";
@@ -315,7 +332,7 @@
   }
 
   const LAYER_TITLES = {
-    switchable: "Switchable ring", goodTimes: "Good Times", badTimes: "Bad Times", dayNight: "Day / Night",
+    switchable: "Switchable ring", goodBad: "Good / Bad Times", dayNight: "Day / Night",
   };
 
   function wireSettingsPanel() {
@@ -405,18 +422,20 @@
       }, function (key) { return showCheckbox(key, workingHiddenRings); });
     }
 
-    function populateForm() {
-      latInput.value = settings.location.latitude;
-      lonInput.value = settings.location.longitude;
-      elevInput.value = settings.location.elevation;
-      ayanamsaSelect.value = settings.ayanamsa;
+    // Fills the form from `from` (the saved settings, or the defaults for
+    // Reset to defaults); nothing is committed until Save.
+    function populateForm(from) {
+      latInput.value = from.location.latitude;
+      lonInput.value = from.location.longitude;
+      elevInput.value = from.location.elevation;
+      ayanamsaSelect.value = from.ayanamsa;
       Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
-        radio.checked = radio.value === settings.sunriseEdge;
+        radio.checked = radio.value === from.sunriseEdge;
       });
-      workingRingOrder = settings.ringOrder.slice();
-      workingHiddenRings = settings.hiddenRings.slice();
-      workingHiddenMarkers = settings.hiddenMarkers.slice();
-      workingLayerOrder = settings.layerOrder.slice();
+      workingRingOrder = from.ringOrder.slice();
+      workingHiddenRings = from.hiddenRings.slice();
+      workingHiddenMarkers = from.hiddenMarkers.slice();
+      workingLayerOrder = from.layerOrder.slice();
       renderRingOrderList();
       renderReorderList(layerOrderList, workingLayerOrder, function (key) { return LAYER_TITLES[key]; },
         function (key) { return E.RingAdapter.FIXED_RING_TITLES[key] && showCheckbox(key, workingHiddenRings); },
@@ -425,7 +444,7 @@
     }
 
     function open() {
-      populateForm();
+      populateForm(settings);
       panel.classList.remove("hidden");
     }
     function close() {
@@ -436,6 +455,9 @@
       if (panel.classList.contains("hidden")) open(); else close();
     });
     cancelBtn.addEventListener("click", close);
+    document.getElementById("settings-reset").addEventListener("click", function () {
+      populateForm(E.Settings.defaults());
+    });
 
     resetLocationBtn.addEventListener("click", function () {
       const d = E.Settings.defaults().location;

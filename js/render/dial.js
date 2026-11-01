@@ -12,12 +12,13 @@
   // marker-line labels (Āvartana, Niśītha, ...), so they sit clear of every
   // ring.
   const CX = 615, CY = 615;
-  // Concentric bands, outside in: three equal ring LAYERS - by default Good
-  // Times, Bad Times, then the switchable ring (whichever of ring-adapter.js
-  // RING_ORDER is toggled), reorderable in Settings (setLayerOrder) - then
-  // the fixed ghaṭī/pala scale, then the innermost day/night ring, then the
-  // centre readout. The layers' radii (goodRing*/badRing*/outerRing*) are
-  // filled in by setLayerOrder below.
+  // Concentric bands, outside in: two ring LAYERS - by default the
+  // switchable ring (whichever of ring-adapter.js RING_ORDER is toggled,
+  // outermost so its many labels get the most room), then the Good / Bad
+  // Times ring, reorderable in Settings (setLayerOrder) - then the fixed
+  // ghaṭī/pala scale, then the innermost day/night ring, then the centre
+  // readout. The layers' radii (outerRing*/goodBadRing*) are filled in by
+  // setLayerOrder below.
   const R = {
     ghatiMajorTickOuter: 356,
     ghatiMajorTickInner: 322,
@@ -220,13 +221,14 @@
   // Static framing only - the ticks/numerals between these circles live in
   // their own group (see renderGhatiScale/renderHourScale), since "Switch
   // time" swaps that scale between 60 ghatis and 24 hours.
-  // The three reorderable ring layers, outside in by default, all the same
-  // thickness. Whatever the order, they pack inward from radius 520 with
-  // 4-unit gaps and always end at the same inner radius (368), so the ghaṭī
-  // scale and everything inside never move.
-  const LAYER_KEYS = ["goodTimes", "badTimes", "switchable"];
-  const LAYER_THICKNESS = { goodTimes: 48, badTimes: 48, switchable: 48 };
-  const LAYER_RADIUS_PREFIX = { goodTimes: "goodRing", badTimes: "badRing", switchable: "outerRing" };
+  // The two reorderable ring layers, outside in by default. The Good / Bad
+  // Times ring is the wider one, as it holds two halves (see
+  // renderGoodBadRing). Whatever the order, they pack inward from radius
+  // 520 with a 4-unit gap and always end at the same inner radius (368), so
+  // the ghaṭī scale and everything inside never move.
+  const LAYER_KEYS = ["switchable", "goodBad"];
+  const LAYER_THICKNESS = { switchable: 56, goodBad: 92 };
+  const LAYER_RADIUS_PREFIX = { switchable: "outerRing", goodBad: "goodBadRing" };
   const LAYERS_OUTER = 520, LAYER_GAP = 4;
   let layerFrame = null;
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
@@ -332,10 +334,8 @@
     svg.innerHTML = "";
     svg.setAttribute("viewBox", "0 0 " + (CX * 2) + " " + (CY * 2));
 
-    const goodRingGroup = el("g", { class: "good-ring" });
-    svg.appendChild(goodRingGroup);
-    const badRingGroup = el("g", { class: "bad-ring" });
-    svg.appendChild(badRingGroup);
+    const goodBadRingGroup = el("g", { class: "good-bad-ring" });
+    svg.appendChild(goodBadRingGroup);
     const outerRingGroup = el("g", { class: "outer-ring" });
     svg.appendChild(outerRingGroup);
 
@@ -384,7 +384,7 @@
     svg.appendChild(timeButton);
     svg.appendChild(displayButton);
 
-    return { goodRingGroup, badRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
+    return { goodBadRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
   }
 
   function centreButton(label, x, y, w, h) {
@@ -414,6 +414,37 @@
     return arcLength / (text.length * AVG_GLYPH_WIDTH);
   }
 
+  // Each segment (its path and its label) goes in its own group tagged with
+  // its start/end time, so updateTimeState can highlight the one that is
+  // active now and dim the ones already over, every tick, without
+  // redrawing the ring.
+  function timedGroup(parent, seg) {
+    const g = el("g", { class: "timed" });
+    g.dataset.start = seg.startTime.getTime();
+    g.dataset.end = seg.endTime.getTime();
+    parent.appendChild(g);
+    return g;
+  }
+
+  // Past segments dim, the active one is highlighted (and raised to the top
+  // of its ring, so its outline isn't painted over by its neighbours),
+  // upcoming ones stay as drawn. Cheap enough to run on every tick: it only
+  // touches the DOM when a segment's state actually changes.
+  function updateTimeState(groups, now) {
+    const t = now.getTime();
+    groups.forEach(function (group) {
+      group.querySelectorAll(".timed").forEach(function (g) {
+        const past = Number(g.dataset.end) <= t;
+        const active = !past && Number(g.dataset.start) <= t;
+        if (g.classList.contains("is-past") !== past) g.classList.toggle("is-past", past);
+        if (g.classList.contains("is-active") !== active) {
+          g.classList.toggle("is-active", active);
+          if (active) g.parentNode.appendChild(g);
+        }
+      });
+    });
+  }
+
   function renderRing(group, ringDescriptor, geom) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const fontSizeFn = typeof geom.fontSize === "function" ? geom.fontSize : function () { return geom.fontSize; };
@@ -427,7 +458,8 @@
         d: annularSectorPath(geom.rInner, geom.rOuter, seg.startAngle, span),
         class: "ring-segment" + alternateClass + (seg.contested ? " contested" : "") + (seg.text ? "" : " neutral"),
       });
-      group.appendChild(path);
+      const segGroup = timedGroup(group, seg);
+      segGroup.appendChild(path);
       if (seg.text) attachTooltip(path, segmentTooltip(seg));
 
       if (seg.text && span >= minSpanForLabel) {
@@ -452,18 +484,18 @@
         if (!fits) {
           // no room - tooltip only
         } else if (geom.curved && geom.labelAtStart) {
-          curvedLabelAtStart(group, seg.text, seg.startAngle, span, midRadius, labelClass, shrunkSize);
+          curvedLabelAtStart(segGroup, seg.text, seg.startAngle, span, midRadius, labelClass, shrunkSize);
         } else if (geom.curved) {
-          curvedLabel(group, seg.text, midAngle, span, midRadius, shrunkSize || fontSize, labelClass, shrunkSize);
+          curvedLabel(segGroup, seg.text, midAngle, span, midRadius, shrunkSize || fontSize, labelClass, shrunkSize);
         } else {
           // "Tvaṣṭā (Brahma Muhūrta)" is too long for one 12-deg muhūrta
           // cell, so a parenthetical goes on a second line.
-          group.appendChild(radialLabel(seg.text.replace(" (", "\n("), midAngle, midRadius, fontSize, labelClass));
+          segGroup.appendChild(radialLabel(seg.text.replace(" (", "\n("), midAngle, midRadius, fontSize, labelClass));
         }
       }
       if (seg.contested) {
         const midAngle = seg.startAngle + span / 2;
-        group.appendChild(radialLabel("⚠", midAngle, geom.rOuter - 12, 15, "contested-marker"));
+        segGroup.appendChild(radialLabel("⚠", midAngle, geom.rOuter - 12, 15, "contested-marker"));
       }
     });
   }
@@ -526,42 +558,57 @@
     });
   }
 
-  // The Good Times / Bad Times rings (ring-adapter.js buildGoodBadTimes):
-  // each event in its own thin sub-ring ("lane"), so overlapping windows sit
-  // side by side, each with its own colour and label, rather than being
-  // merged into one block. The lanes split the ring's width evenly, so a day
-  // with fewer clashes gets wider lanes and bigger labels. A label that
-  // can't fit its lane even at the smallest size is left to the tooltip.
+  // The Good / Bad Times ring (ring-adapter.js buildGoodBadTimes): one
+  // ring split down the middle by an axis circle. Good windows grow
+  // OUTWARD from the axis, bad ones INWARD (toward the hand), so a clash
+  // between a good and a bad window shows up at the same angle on both
+  // sides of the line. Within each half, every event has its own thin
+  // sub-ring ("lane"), lane 0 hugging the axis, so overlapping windows of
+  // the same kind sit side by side, each with its own colour and label.
+  // Each half sizes its own lanes (never wider than half the half, so on an
+  // ordinary day of 1-2 lanes per side both sides look alike, and a busy
+  // good side doesn't squeeze the bad side). A label that can't fit its
+  // lane even at the smallest size is left to the tooltip.
   const LANE_GAP = 2;
+  const AXIS_GAP = 2;
   const MIN_LANE_FONT = 7;
-  function renderEventRing(group, ringDescriptor, rInner, rOuter) {
+  function renderGoodBadRing(group, good, bad) {
     while (group.firstChild) group.removeChild(group.firstChild);
+    const rInner = R.goodBadRingInner, rOuter = R.goodBadRingOuter;
+    const axis = (rInner + rOuter) / 2;
+    const half = (rOuter - rInner) / 2 - AXIS_GAP;
     group.appendChild(el("path", { d: annularSectorPath(rInner, rOuter, 0, 360), class: "ring-segment neutral event-ring-bg" }));
-    const lanes = Math.max(1, ringDescriptor.laneCount || 1);
-    const laneWidth = (rOuter - rInner - LANE_GAP * (lanes - 1)) / lanes;
-    ringDescriptor.segments.forEach(function (ev) {
+    function laneWidthFor(ringDescriptor) {
+      const lanes = Math.max(2, ringDescriptor.laneCount || 1);
+      return (half - LANE_GAP * (lanes - 1)) / lanes;
+    }
+
+    function draw(ev, laneInner, laneOuter) {
+      const laneWidth = laneOuter - laneInner;
       const span = segmentSpan(ev);
       if (span <= 0.0001) return;
-      const laneOuter = rOuter - ev.lane * (laneWidth + LANE_GAP);
-      const laneInner = laneOuter - laneWidth;
+      const g = timedGroup(group, ev);
       const path = el("path", {
         d: annularSectorPath(laneInner, laneOuter, ev.startAngle, span),
         class: "ring-segment event-segment " + ev.goodBad,
       });
       attachTooltip(path, segmentTooltip(ev));
-      group.appendChild(path);
-
+      g.appendChild(path);
       const midRadius = (laneInner + laneOuter) / 2;
       const size = Math.min(CSS_LABEL_FONT, laneWidth * 0.78, fittedCurvedFont(ev.text, span, midRadius));
       if (size < MIN_LANE_FONT) return;
-      curvedLabel(group, ev.text, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
+      curvedLabel(g, ev.text, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
+    }
+    const goodLane = laneWidthFor(good), badLane = laneWidthFor(bad);
+    good.segments.forEach(function (ev) {
+      const inner = axis + AXIS_GAP + ev.lane * (goodLane + LANE_GAP);
+      draw(ev, inner, inner + goodLane);
     });
-  }
-  function renderGoodRing(group, ringDescriptor) {
-    renderEventRing(group, ringDescriptor, R.goodRingInner, R.goodRingOuter);
-  }
-  function renderBadRing(group, ringDescriptor) {
-    renderEventRing(group, ringDescriptor, R.badRingInner, R.badRingOuter);
+    bad.segments.forEach(function (ev) {
+      const outer = axis - AXIS_GAP - ev.lane * (badLane + LANE_GAP);
+      draw(ev, outer - badLane, outer);
+    });
+    group.appendChild(el("circle", { cx: CX, cy: CY, r: axis, class: "good-bad-axis" }));
   }
 
   // Innermost ring: just day/night, two segments, always the same two
@@ -641,13 +688,20 @@
   // the same line (e.g. the big "Ghati 21 · Pala 55" line gets a smaller
   // " · Vipala 12" tacked on, the way a stopwatch shows milliseconds
   // smaller than the seconds).
+  // Line heights by emphasis: the big ghaṭī line, the clock line, then
+  // everything else in a tighter rhythm.
+  const CENTRE_LINE_HEIGHT = { ghati: 48, "clock-secondary": 36 };
+  const CENTRE_LINE_HEIGHT_DEFAULT = 28;
   function setCentreText(centreGroup, lines) {
     while (centreGroup.firstChild) centreGroup.removeChild(centreGroup.firstChild);
-    const lineHeight = 34;
-    const startY = CY + R.centreTextY - ((lines.length - 1) * lineHeight) / 2;
+    const heights = lines.map(function (line) { return CENTRE_LINE_HEIGHT[line.emphasis] || CENTRE_LINE_HEIGHT_DEFAULT; });
+    const total = heights.reduce(function (a, b) { return a + b; }, 0);
+    let y = CY + R.centreTextY - total / 2;
     lines.forEach(function (line, i) {
+      const lineY = y + heights[i] / 2;
+      y += heights[i];
       const t = el("text", {
-        x: CX, y: startY + i * lineHeight,
+        x: CX, y: lineY,
         "text-anchor": "middle",
         "dominant-baseline": "middle",
         class: "centre-line" + (line.emphasis ? " centre-line-" + line.emphasis : ""),
@@ -671,8 +725,8 @@
     setLayerOrder,
     buildStaticStructure,
     renderOuterRing,
-    renderGoodRing,
-    renderBadRing,
+    renderGoodBadRing,
+    updateTimeState,
     renderDayNightRing,
     renderDayMarkers,
     renderGhatiScale,

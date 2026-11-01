@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body>
 <div id="stage">
@@ -63,7 +63,7 @@
 
   <section>
     <h3>Switchable ring order</h3>
-    <p class="settings-note">The order Switch display cycles through. Untick an element to leave it out. The good and bad times (Rāhu Kālam, Yamagaṇḍa, Gulika, Durmuhūrta, Varjyam; Abhijit, Pradoṣa, Godhūli, Amṛta Kālam; and the Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi yogas) have their own always-on Good Times and Bad Times rings (see Ring layers above).</p>
+    <p class="settings-note">The order Switch display cycles through. Untick an element to leave it out. The good and bad times (Rāhu Kālam, Yamagaṇḍa, Gulika, Durmuhūrta, Varjyam; Abhijit, Pradoṣa, Godhūli, Amṛta Kālam; and the Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi yogas) share the always-on Good / Bad Times ring (see Ring layers above): good windows on its outer half, bad ones on its inner half.</p>
     <ul id="set-ring-order" class="reorder-list"></ul>
   </section>
 
@@ -71,6 +71,12 @@
     <h3>Marker lines</h3>
     <div id="set-markers"></div>
     <p class="settings-note">Candrodaya/Candrāsta (moonrise/moonset) appear only when they fall within the day; Saṅkrānti only on the day the Sun enters a new rāśi.</p>
+  </section>
+
+  <section>
+    <h3>Defaults</h3>
+    <button id="settings-reset" type="button">Reset to defaults</button>
+    <p class="settings-note">Puts every setting above (location, ayanāṃśa, sunrise, ring layers, ring order, marker lines) back to its default. Nothing changes until you Save.</p>
   </section>
 
   <div class="settings-actions">

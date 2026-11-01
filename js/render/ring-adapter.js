@@ -46,7 +46,7 @@
   };
   // The rings that are always on (not part of the Switch display cycle);
   // each can still be hidden in Settings.
-  const FIXED_RING_TITLES = { goodTimes: "Good Times", badTimes: "Bad Times", dayNight: "Day / Night" };
+  const FIXED_RING_TITLES = { goodBad: "Good / Bad Times", dayNight: "Day / Night" };
 
   function angleOf(date, anchors) {
     return Ghati.angleForTime(date, anchors);
@@ -306,11 +306,7 @@
         title = RING_TITLES.tithi;
         segments = buildSequenceSegments(
           snapshot.tithiSequence,
-          function (t) {
-            // The 15th is "Pūrṇimā/Amāvāsyā" in the data - name the one it is.
-            const name = data.tithi.names[t.pakshaIndex - 1].split("/")[t.pakshaIndex === 15 && t.paksha === "krishna" ? 1 : 0];
-            return name + " (" + PAKSHA_LABEL[t.paksha] + ")";
-          },
+          function (t) { return tithiName(t, data); },
           function (t) { return "Māsa: " + data.amantaMasa.names[t.amantaMasaRashiIndex] + " (Amānta)"; }
         );
         break;
@@ -391,7 +387,7 @@
     return { events: events, laneCount: Math.max(1, laneEnds.length) };
   }
 
-  // The two always-on event rings, Good Times and Bad Times. Each holds the
+  // The two halves of the always-on Good / Bad Times ring. Each holds the
   // day's daily windows of its kind (dailyWindows above) plus the five
   // weekday x nakshatra/tithi combination yogas that used to have a ring of
   // their own - Maraṇa Yogam and Viṣa Yoga (bad), Amṛta Yogam, Sarvārtha
@@ -407,9 +403,39 @@
     function ring(key, goodBad) {
       const laid = layoutEvents(all.filter(function (iv) { return iv.goodBad === goodBad; }), a.governingSunrise, a.nextSunrise);
       finalizeSegments(laid.events, a);
-      return { ringKey: key, title: FIXED_RING_TITLES[key], segments: laid.events, laneCount: laid.laneCount };
+      return { ringKey: key, title: key === "goodTimes" ? "Good Times" : "Bad Times", segments: laid.events, laneCount: laid.laneCount };
     }
     return { good: ring("goodTimes", "good"), bad: ring("badTimes", "bad") };
+  }
+
+  // One line of the centre readout's status, for one half of the Good /
+  // Bad Times ring: what is active right now and until when, or, if
+  // nothing is, what comes next. When several windows are active at once
+  // the one ending soonest is named (the short, strict windows like Rāhu
+  // Kālam end before the day-long yogas), with a count of the rest.
+  // Returns { active, text, until } or { active: false, text, at } or null.
+  function statusFor(ringDescriptor, now) {
+    const events = ringDescriptor.segments;
+    const active = events.filter(function (e) { return e.startTime <= now && now < e.endTime; })
+      .sort(function (a, b) { return a.endTime - b.endTime; });
+    if (active.length) {
+      return { active: true, text: active[0].text + (active.length > 1 ? " +" + (active.length - 1) : ""), until: active[0].endTime };
+    }
+    const next = events.filter(function (e) { return e.startTime > now; })
+      .sort(function (a, b) { return a.startTime - b.startTime; })[0];
+    return next ? { active: false, text: next.text, at: next.startTime } : null;
+  }
+
+  // "Saptamī (kṛṣṇa)": the tithi holding at `now`, named the same way the
+  // tithi ring names it.
+  function tithiNameAt(snapshot, data, now) {
+    const entry = snapshot.tithiSequence.find(function (t) { return t.segStart <= now && now < t.segEnd; }) || snapshot.tithiSequence[0];
+    return tithiName(entry, data);
+  }
+  function tithiName(t, data) {
+    // The 15th is "Pūrṇimā/Amāvāsyā" in the data - name the one it is.
+    const name = data.tithi.names[t.pakshaIndex - 1].split("/")[t.pakshaIndex === 15 && t.paksha === "krishna" ? 1 : 0];
+    return name + " (" + PAKSHA_LABEL[t.paksha] + ")";
   }
 
   // Always-on innermost ring: just day (sunrise->sunset) and night
@@ -474,5 +500,5 @@
     return { hours: hours, sunriseLabel: sunriseLabel };
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
+  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);
