@@ -50,9 +50,8 @@
   // and is only re-run when "now" falls outside the cached Vedic day, settings
   // changed, or one of the astronomical fields (tithi/nakshatra/yoga/karana)
   // has expired - those don't only change at sunrise, they change mid-day on
-  // their own schedule, so the day-boundary check alone isn't enough (this bit
-  // us: with tithi/nakshatra promoted to always-visible rings, a stale cache
-  // here would mean a ring silently showing the wrong value for hours).
+  // their own schedule, so the day-boundary check alone isn't enough (a stale
+  // cache here would mean a ring silently showing the wrong value for hours).
   let cachedSnapshot = null;
 
   function isExpired(now, snapshot) {
@@ -133,12 +132,9 @@
       { text: varaName },
     ]);
 
-    // Now/next for the active switchable ring. Every segment in most rings
-    // (Muhurta/Yaama/Kala/Hora) is named, but Good/Bad Yogas has long blank
-    // stretches with no active yoga (seg.text === "") - skip the "now" line
-    // rather than show a bare "Good / Bad Yogas: ", and look past any
-    // immediately-following blank segment(s) for "Next" rather than just
-    // the next array entry.
+    // Now/next for the active switchable ring. Kāla has a blank (unlabelled)
+    // night band - skip the "now" line there rather than show a bare
+    // "Kāla: ", and look past blank segment(s) for "Next".
     if (!ringDescriptor) return lines; // every switchable ring hidden
     const nowSeg = ringDescriptor.segments.find(function (seg) {
       return now >= seg.startTime && now < seg.endTime;
@@ -152,9 +148,6 @@
     if (nextSeg) {
       lines.push({ text: "Next: " + nextSeg.text + " @ " + fmtTime(nextSeg.startTime) });
     }
-
-    // Tithi/nakshatra are no longer duplicated here - they have their own
-    // always-visible rings now (dial.js nakshatraRingGroup/tithiRingGroup).
     return lines;
   }
 
@@ -164,23 +157,20 @@
     const ringKey = activeRingOrder[currentRingIndex];
 
     if (changed) {
-      // Tithi/nakshatra/day-night/yoga-alerts only depend on the snapshot,
-      // never on which switchable ring is toggled, so they're all rebuilt
-      // whenever the snapshot itself changes. The yoga-alert ring draws
-      // itself only when at least one of its five yogas is active that day
-      // (see renderYogaAlertRing) - this call always runs, the appearing/
-      // disappearing happens inside dial.js.
-      E.Dial.renderNakshatraRing(dialHandles.nakshatraRingGroup, E.RingAdapter.build("nakshatra", snapshot, data));
-      E.Dial.renderTithiRing(dialHandles.tithiRingGroup, E.RingAdapter.build("tithi", snapshot, data));
+      // Good/bad times and day/night only depend on the snapshot, never on
+      // which switchable ring is toggled, so they're rebuilt whenever the
+      // snapshot itself changes.
+      const goodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data);
+      E.Dial.renderGoodRing(dialHandles.goodRingGroup, goodBad.good);
+      E.Dial.renderBadRing(dialHandles.badRingGroup, goodBad.bad);
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
-      E.Dial.renderYogaAlertRing(dialHandles.yogaRingGroup, E.RingAdapter.buildYogaAlerts(snapshot, data));
       E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
       applyFixedRingVisibility();
     }
     if (changed || ringKey !== lastRenderedRingKey) {
       if (ringKey) {
         lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
-        E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor);
+        E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor, E.RingAdapter.START_LABEL_RINGS);
       } else {
         lastOuterRingDescriptor = null;
         E.Dial.clearGroup(dialHandles.outerRingGroup);
@@ -223,8 +213,8 @@
   // they'd occupy stays as plain background, so nothing else moves.
   function applyFixedRingVisibility() {
     const groups = {
-      tithi: dialHandles.tithiRingGroup, nakshatra: dialHandles.nakshatraRingGroup,
-      yogaAlerts: dialHandles.yogaRingGroup, dayNight: dialHandles.dayNightRingGroup,
+      goodTimes: dialHandles.goodRingGroup, badTimes: dialHandles.badRingGroup,
+      dayNight: dialHandles.dayNightRingGroup,
     };
     Object.keys(groups).forEach(function (k) {
       groups[k].style.display = settings.hiddenRings.indexOf(k) === -1 ? "" : "none";
@@ -325,7 +315,7 @@
   }
 
   const LAYER_TITLES = {
-    switchable: "Switchable ring", yogaAlerts: "Yogas", nakshatra: "Nakṣatra", tithi: "Tithi", dayNight: "Day / Night",
+    switchable: "Switchable ring", goodTimes: "Good Times", badTimes: "Bad Times", dayNight: "Day / Night",
   };
 
   function wireSettingsPanel() {

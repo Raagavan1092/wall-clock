@@ -10,16 +10,19 @@
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const Ghati = VedicEngine.Ghati;
 
-  // Tithi and nakshatra are checked constantly, so they get their own always-
-  // visible thin rings (dial.js) instead of taking a turn in this toggle.
-  // "rahuYamaGulika" (titled Good / Bad Times: Rahu/Yama/Gulika plus
-  // Durmuhurta and Abhijit) has something to show EVERY day, unlike the five
-  // nitya-yoga rings below, so it earns a permanent spot in the cycle the
-  // same way Muhurta/Yaama/Kala/Hora do. Yoga (the 27-fold Vishkambha..
-  // Vaidhriti cycle), Karana and Lagna were added back to the cycle at the
-  // project owner's request, completing the five limbs alongside vara,
-  // tithi and nakshatra.
-  const RING_ORDER = ["muhurta", "prahara", "kala", "hora", "rahuYamaGulika", "yoga", "karana", "lagna"];
+  // The Switch display cycle: one ring at a time in the switchable layer.
+  // Tithi and nakshatra joined the cycle (they used to have their own
+  // always-on rings) when the good/bad times moved OUT of it into their own
+  // two always-on rings (buildGoodBadTimes below), per the project owner.
+  // Yoga (the 27-fold Vishkambha..Vaidhriti cycle), Karana and Lagna
+  // complete the five limbs alongside vara, tithi and nakshatra.
+  const RING_ORDER = ["tithi", "nakshatra", "muhurta", "prahara", "kala", "hora", "yoga", "karana", "lagna"];
+
+  // Rings whose divisions follow the sky rather than the day (they start
+  // and end at a different time every day): dial.js labels each of these
+  // at the START of its division, right after the boundary, rather than in
+  // the middle, so a reader sees where the new one begins.
+  const START_LABEL_RINGS = { tithi: true, nakshatra: true, yoga: true, karana: true, lagna: true };
 
   // Static display titles, for UI (e.g. the settings ring-order list) that
   // needs a label without computing a full snapshot. Kept in sync with the
@@ -27,7 +30,6 @@
   const RING_TITLES = {
     // Display names follow IAST, per the project owner.
     muhurta: "Muhūrta", prahara: "Yāma", kala: "Kāla", hora: "Horā",
-    rahuYamaGulika: "Good / Bad Times",
     yoga: "Yoga", karana: "Karaṇa", lagna: "Lagna",
     tithi: "Tithi", nakshatra: "Nakṣatra",
   };
@@ -44,7 +46,7 @@
   };
   // The rings that are always on (not part of the Switch display cycle);
   // each can still be hidden in Settings.
-  const FIXED_RING_TITLES = { tithi: "Tithi", nakshatra: "Nakṣatra", yogaAlerts: "Yogas (appears on its own)", dayNight: "Day / Night" };
+  const FIXED_RING_TITLES = { goodTimes: "Good Times", badTimes: "Bad Times", dayNight: "Day / Night" };
 
   function angleOf(date, anchors) {
     return Ghati.angleForTime(date, anchors);
@@ -62,7 +64,7 @@
   // but leave angles null until anchors are available), and ALWAYS attaches
   // startGhatiPala/endGhatiPala - every ring's tooltip reads these directly
   // rather than each recomputing them. Called once at the end of every
-  // top-level builder (build()'s switch, buildDayNight, buildYogaAlerts).
+  // top-level builder (build()'s switch, buildDayNight, buildGoodBadTimes).
   function finalizeSegments(segments, anchors) {
     segments.forEach(function (seg) {
       if (seg.startAngle == null) {
@@ -103,7 +105,7 @@
   }
 
   // One combined band for a whole span (used where a ring has no per-segment
-  // breakdown for night, e.g. kala, rahuYamaGulika).
+  // breakdown for night, e.g. kala).
   function combinedBand(list, anchors, text, contested) {
     if (!list.length) return null;
     const combined = { startTime: list[0].startTime, endTime: list[list.length - 1].endTime };
@@ -122,12 +124,11 @@
     return segments;
   }
 
-  // The daily good/bad time windows, on one ring ("Good / Bad Times"):
-  // Rāhu Kālam, Yamagaṇḍa, Gulika Kālam, Durmuhūrta and Varjyam (bad), and
-  // Abhijit, Pradoṣa, Godhūli and Amṛta Kālam (good). They can overlap (e.g. Wednesday's Rahu Kalam and midday), so
-  // they go through the same merge as the yoga ring - an overlap of a good
-  // and a bad window gets the "mixed" colour. Everything else is blank.
-  function buildRahuYamaGulika(snapshot, data) {
+  // The daily good/bad time windows: Rāhu Kālam, Yamagaṇḍa, Gulika Kālam,
+  // Durmuhūrta and Varjyam (bad), and Abhijit, Pradoṣa, Godhūli and Amṛta
+  // Kālam (good), as raw (possibly overlapping, possibly outside the day)
+  // intervals - buildGoodBadTimes below clips and lays them out.
+  function dailyWindows(snapshot, data) {
     const r = snapshot.scaledRings.rahuYamaGulika;
     const muhurta = snapshot.scaledRings.muhurta;
     const idx = data.rahuYamaGulika.weekdaySegmentIndex;
@@ -154,7 +155,7 @@
     // Varjyam / Amṛta Kālam: 4 "ghaṭīs" of each nakṣatra touching this day,
     // where a ghaṭī here is 1/60 of that nakṣatra's own full length (its
     // true start/end, not the part clipped to this day). Windows falling
-    // outside the day are dropped by the merge below.
+    // outside the day are dropped by buildGoodBadTimes.
     const va = data.varjyamAmrita;
     snapshot.nakshatraSequence.forEach(function (n) {
       const ghatiMs = (n.endTime.getTime() - n.startTime.getTime()) / 60;
@@ -165,7 +166,7 @@
       intervals.push(windowOf(nakWindow(va.varjyamStartGhati[n.index]), "Varjyam", "bad"));
       intervals.push(windowOf(nakWindow(va.amritaStartGhati[n.index]), "Amṛta Kālam", "good"));
     });
-    return mergeActiveIntervals(intervals, snapshot.anchors.governingSunrise, snapshot.anchors.nextSunrise);
+    return intervals;
   }
 
   // Shared helper for the three nakshatra-sequence-driven good/bad rings
@@ -301,10 +302,6 @@
         title = RING_TITLES.hora;
         segments = buildHora(snapshot, data);
         break;
-      case "rahuYamaGulika":
-        title = RING_TITLES.rahuYamaGulika;
-        segments = buildRahuYamaGulika(snapshot, data);
-        break;
       case "tithi": {
         title = RING_TITLES.tithi;
         segments = buildSequenceSegments(
@@ -347,89 +344,77 @@
     return { ringKey: ringKey, title: title, segments: segments };
   }
 
-  // Merges the five weekday x nakshatra/tithi combination yogas (Marana,
-  // Amrita, Sarvartha Siddhi, Ravi, Visha - NOT Rahu/Yama/Gulika, which has
-  // its own permanent ring instead; see RING_ORDER above) into one ring's
-  // worth of segments, spanning the full sunrise-to-sunrise day. Most of
-  // that span is blank (no segment text) - only stretches where at least
-  // one of the five is actually active get a label, coloured bad (red) or
-  // good (blue) per dial.js/style.css. Two different sources can be active
-  // at once (e.g. Marana Yogam's nakshatra-based span overlapping Visha
-  // Yoga's tithi-based one, or even a good one overlapping a bad one) -
-  // when that happens the segment names everything active ("X + Y") and
-  // reads good (blue) or bad (red) if every active source agrees, or
-  // "mixed" (purple, the blend of the two) when a good and a bad one
-  // overlap - per the project owner, so the overlap is visible rather than
-  // either colour masking the other.
-  // `label`, when given, overrides every active segment's own text with one
-  // fixed name (used for the nakshatra/tithi-driven yogas, which are each a
-  // single yes/no condition).
   function activeIntervalsFor(label, goodBad, segments) {
     return segments.filter(function (seg) { return seg.text; }).map(function (seg) {
-      return { startTime: seg.startTime, endTime: seg.endTime, text: label == null ? seg.text : label, goodBad: goodBad };
+      return { startTime: seg.startTime, endTime: seg.endTime, text: label, goodBad: goodBad };
     });
   }
 
-  function mergeActiveIntervals(intervals, dayStart, dayEnd) {
-    const boundaryMs = {};
-    boundaryMs[dayStart.getTime()] = true;
-    boundaryMs[dayEnd.getTime()] = true;
-    intervals.forEach(function (iv) {
-      boundaryMs[iv.startTime.getTime()] = true;
-      boundaryMs[iv.endTime.getTime()] = true;
-    });
-    const points = Object.keys(boundaryMs).map(Number)
-      .filter(function (t) { return t >= dayStart.getTime() && t <= dayEnd.getTime(); })
-      .sort(function (a, b) { return a - b; });
+  // Clips `intervals` to [dayStart, dayEnd], drops empty ones, joins
+  // back-to-back pieces of the same window (e.g. Amṛta Yogam holding over
+  // two consecutive nakṣatras) into one event, and assigns each event a
+  // LANE - a thin sub-ring of its ring - such that no two events in the
+  // same lane overlap in time. That is what lets every window keep its own
+  // colour and its own label, instead of overlaps being merged into one
+  // shared "X + Y" block: windows that clash go side by side in different
+  // lanes, windows that never meet share one. Lane 0 is the outermost.
+  function layoutEvents(intervals, dayStart, dayEnd) {
+    const lo = dayStart.getTime(), hi = dayEnd.getTime();
+    const clipped = intervals.map(function (iv) {
+      return {
+        startTime: new Date(Math.max(lo, iv.startTime.getTime())),
+        endTime: new Date(Math.min(hi, iv.endTime.getTime())),
+        text: iv.text, goodBad: iv.goodBad, contested: false,
+      };
+    }).filter(function (ev) { return ev.endTime > ev.startTime; })
+      .sort(function (a, b) { return a.startTime - b.startTime || b.endTime - a.endTime; });
 
-    const segments = [];
-    for (let i = 0; i < points.length - 1; i++) {
-      const segStartMs = points[i], segEndMs = points[i + 1];
-      if (segEndMs <= segStartMs) continue;
-      const midMs = (segStartMs + segEndMs) / 2;
-      const active = intervals.filter(function (iv) { return iv.startTime.getTime() <= midMs && iv.endTime.getTime() > midMs; });
-      const seg = { startAngle: null, endAngle: null, startTime: new Date(segStartMs), endTime: new Date(segEndMs), contested: false };
-      if (active.length) {
-        seg.text = active.map(function (a) { return a.text; }).join(" + ");
-        const anyBad = active.some(function (a) { return a.goodBad === "bad"; });
-        const anyGood = active.some(function (a) { return a.goodBad === "good"; });
-        seg.goodBad = anyBad && anyGood ? "mixed" : anyBad ? "bad" : "good";
-      } else {
-        seg.text = "";
-      }
-      segments.push(seg);
-    }
-    return segments;
+    // Consecutive nakṣatra/tithi pieces can be a second or so apart at the
+    // join (each boundary is its own root-finding search), so "back-to-back"
+    // allows a small slack.
+    const JOIN_SLACK_MS = 60 * 1000;
+    const events = [];
+    clipped.forEach(function (ev) {
+      const joinable = events.find(function (e) { return e.text === ev.text && Math.abs(ev.startTime - e.endTime) <= JOIN_SLACK_MS; });
+      if (joinable) joinable.endTime = ev.endTime;
+      else events.push(ev);
+    });
+    events.sort(function (a, b) { return a.startTime - b.startTime || b.endTime - a.endTime; });
+
+    const laneEnds = [];
+    events.forEach(function (ev) {
+      let lane = laneEnds.findIndex(function (end) { return end <= ev.startTime.getTime(); });
+      if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+      laneEnds[lane] = ev.endTime.getTime();
+      ev.lane = lane;
+    });
+    return { events: events, laneCount: Math.max(1, laneEnds.length) };
   }
 
-  // Five yoga types are accounted for here: Marana Yogam, Visha Yoga (bad),
-  // Amrita Yogam, Sarvartha Siddhi, Ravi Yoga (good). Realistically at most
-  // 2-3 of these are ever active at the same moment (they're independent
-  // conditions on independent clocks - nakshatra for four of them, tithi for
-  // Visha - so overlaps happen but aren't the common case).
-  //
-  // Unlike every other ring here, this one is NOT part of RING_ORDER - it's
-  // not something you switch to, it's meant to surface itself: dial.js only
-  // draws it (as an extra ring outside the switchable one) when at least one
-  // segment is active somewhere in the day, and draws nothing at all - no
-  // ring, no boundary, no reserved space - on a day none of the five apply.
-  // See dial.js renderYogaAlertRing.
-  function buildYogaAlerts(snapshot, data) {
-    const intervals = []
+  // The two always-on event rings, Good Times and Bad Times. Each holds the
+  // day's daily windows of its kind (dailyWindows above) plus the five
+  // weekday x nakshatra/tithi combination yogas that used to have a ring of
+  // their own - Maraṇa Yogam and Viṣa Yoga (bad), Amṛta Yogam, Sarvārtha
+  // Siddhi and Ravi Yoga (good) - each event in its own lane (layoutEvents).
+  function buildGoodBadTimes(snapshot, data) {
+    const a = snapshot.anchors;
+    const all = dailyWindows(snapshot, data)
       .concat(activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)))
       .concat(activeIntervalsFor("Viṣa Yoga", "bad", buildVishaYoga(snapshot, data)))
       .concat(activeIntervalsFor("Amṛta Yogam", "good", buildAmritaYoga(snapshot, data)))
       .concat(activeIntervalsFor("Sarvārtha Siddhi", "good", buildSarvarthaSiddhiYoga(snapshot, data)))
       .concat(activeIntervalsFor("Ravi Yoga", "good", buildRaviYoga(snapshot, data)));
-
-    const segments = mergeActiveIntervals(intervals, snapshot.anchors.governingSunrise, snapshot.anchors.nextSunrise);
-    finalizeSegments(segments, snapshot.anchors);
-    return { ringKey: "yogaAlerts", title: "Yogas", segments: segments };
+    function ring(key, goodBad) {
+      const laid = layoutEvents(all.filter(function (iv) { return iv.goodBad === goodBad; }), a.governingSunrise, a.nextSunrise);
+      finalizeSegments(laid.events, a);
+      return { ringKey: key, title: FIXED_RING_TITLES[key], segments: laid.events, laneCount: laid.laneCount };
+    }
+    return { good: ring("goodTimes", "good"), bad: ring("badTimes", "bad") };
   }
 
   // Always-on innermost ring: just day (sunrise->sunset) and night
   // (sunset->next sunrise), two segments, always. Not part of RING_ORDER -
-  // it never toggles, same as tithi/nakshatra.
+  // it never toggles, same as the good/bad time rings.
   function buildDayNight(snapshot) {
     const a = snapshot.anchors;
     const segments = [
@@ -489,5 +474,5 @@
     return { hours: hours, sunriseLabel: sunriseLabel };
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildYogaAlerts, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES, MARKER_TITLES, FIXED_RING_TITLES };
+  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);

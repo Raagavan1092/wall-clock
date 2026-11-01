@@ -39,14 +39,19 @@
     return (Array.isArray(keys) ? keys : []).filter(function (k, i, arr) { return knownKeys.indexOf(k) !== -1 && arr.indexOf(k) === i; });
   }
 
-  // Keeps only known ring keys (drops stale/corrupt entries) and appends any
-  // ring type the saved list is missing (so a future new ring type doesn't
-  // silently vanish just because it predates a user's saved order).
+  // Keeps only known ring keys (drops stale/corrupt entries, e.g. the old
+  // "rahuYamaGulika" ring, now its own Good/Bad Times rings) and inserts any
+  // ring the saved list is missing at its default position (so a newly
+  // added ring - like Tithi/Nakṣatra joining the cycle - doesn't silently
+  // vanish, or land at the very end, just because it predates a user's
+  // saved order).
   function sanitizeRingOrder(order) {
     const known = VedicEngine.RingAdapter.RING_ORDER;
     const cleaned = (Array.isArray(order) ? order : []).filter(function (k) { return known.indexOf(k) !== -1; });
     const deduped = cleaned.filter(function (k, i) { return cleaned.indexOf(k) === i; });
-    known.forEach(function (k) { if (deduped.indexOf(k) === -1) deduped.push(k); });
+    known.forEach(function (k, i) {
+      if (deduped.indexOf(k) === -1) deduped.splice(Math.min(i, deduped.length), 0, k);
+    });
     return deduped;
   }
 

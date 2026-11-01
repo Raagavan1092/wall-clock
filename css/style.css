@@ -20,15 +20,12 @@
   --centre-ghati: #ffd77a;
   --centre-clock-secondary: #a89a78;
   --contested: #e0392b;
-  /* Good/bad-time rings (Good / Bad Times, and the yoga alert ring): bad =
-     the project owner's dark brown, good = bright blue, mixed = the even
-     blend of those two fills, ((#512700 + #2f6fb8) / 2). */
+  /* Good Times / Bad Times rings: bad = the project owner's dark brown,
+     good = bright blue. */
   --bad-fill: #512700;
   --bad-label: #ffe9cc;
   --good-fill: #2f6fb8;
   --good-label: #f0f7ff;
-  --mixed-fill: #404b5c;
-  --mixed-label: #f4f1ea;
   --label: #f3e6c0;
   --tooltip-bg: #1c1812;
   --tooltip-text: #f0e6c8;
@@ -87,17 +84,19 @@ html, body {
 .ring-segment.div-base { fill: var(--div-base); }
 .ring-segment.div-alt { fill: var(--div-alt); }
 
-/* Good/bad-time rings (Rahu/Yama/Gulika/Durmuhurta/Abhijit, and Marana/
-   Visha/Amrita/Sarvartha-Siddhi/Ravi Yoga): inauspicious spans in dark
-   brown, auspicious ones in blue, overlaps of the two in their blend.
-   These come after the `:nth-of-type(odd)`/`.neutral` rules above so they
-   win the (equal-specificity) cascade regardless of position. */
+/* Good Times / Bad Times rings (Rahu/Yama/Gulika/Durmuhurta/Varjyam/
+   Marana/Visha; Abhijit/Pradosha/Godhuli/Amrita Kalam/Amrita/Sarvartha
+   Siddhi/Ravi Yoga): inauspicious windows in dark brown, auspicious ones
+   in blue. These come after the `:nth-of-type(odd)`/`.neutral` rules above
+   so they win the (equal-specificity) cascade regardless of position. */
 .ring-segment.bad { fill: var(--bad-fill); }
 .ring-segment.good { fill: var(--good-fill); }
-.ring-segment.mixed { fill: var(--mixed-fill); }
+/* Good Times / Bad Times rings: a faint full-ring background behind the
+   per-event lanes (dial.js renderEventRing). */
+.ring-segment.event-ring-bg { fill: var(--ring-neutral); stroke: none; }
+.ring-segment.event-segment { stroke-width: 1.5; }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
-.mixed-label { fill: var(--mixed-label); font-weight: 600; }
 
 .tick-major { stroke: var(--tick-major); stroke-width: 2.5; }
 .tick-minor { stroke: var(--tick-minor); stroke-width: 1; }

@@ -12,14 +12,11 @@
   // marker-line labels (Āvartana, Niśītha, ...), so they sit clear of every
   // ring.
   const CX = 615, CY = 615;
-  // Concentric bands, outside in: four ring LAYERS - by default the
-  // switchable ring (whichever of ring-adapter.js RING_ORDER is toggled),
-  // the yoga-alert ring (only actually drawn on days one of the five nitya
-  // yogas is active - see renderYogaAlertRing; its band is reserved either
-  // way, so nothing moves when it comes and goes), nakṣatra, then tithi,
-  // reorderable in Settings (setLayerOrder) - then the fixed ghaṭī/pala
-  // scale, then the innermost day/night ring, then the centre readout.
-  // The layers' radii (outerRing*/yogaRing*/nakshatraRing*/tithiRing*) are
+  // Concentric bands, outside in: three equal ring LAYERS - by default Good
+  // Times, Bad Times, then the switchable ring (whichever of ring-adapter.js
+  // RING_ORDER is toggled), reorderable in Settings (setLayerOrder) - then
+  // the fixed ghaṭī/pala scale, then the innermost day/night ring, then the
+  // centre readout. The layers' radii (goodRing*/badRing*/outerRing*) are
   // filled in by setLayerOrder below.
   const R = {
     ghatiMajorTickOuter: 356,
@@ -32,7 +29,7 @@
     hand: 270, // same length as palaHand, per the project owner
     palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
     markerLineOuter: 608, // Āvartana/Niśītha lines run out past every ring, nearly to the edge (615)...
-    markerLabel: 527, // ...with their name along the line, starting just outside the yoga ring (520)
+    markerLabel: 527, // ...with their name along the line, starting just outside the outermost ring (520)
     hub: 14,
     centrePlate: 186,
     centreTextY: -24, // centre readout sits a little above centre, leaving room for...
@@ -223,14 +220,13 @@
   // Static framing only - the ticks/numerals between these circles live in
   // their own group (see renderGhatiScale/renderHourScale), since "Switch
   // time" swaps that scale between 60 ghatis and 24 hours.
-  // The four reorderable ring layers, outside in by default, and each one's
-  // band thickness (the switchable ring is a little thicker, for its
-  // denser labels). Whatever the order, they pack inward from radius 520
-  // with 4-unit gaps and always end at the same inner radius (368), so the
-  // ghaṭī scale and everything inside never move.
-  const LAYER_KEYS = ["switchable", "yogaAlerts", "nakshatra", "tithi"];
-  const LAYER_THICKNESS = { switchable: 44, yogaAlerts: 32, nakshatra: 32, tithi: 32 };
-  const LAYER_RADIUS_PREFIX = { switchable: "outerRing", yogaAlerts: "yogaRing", nakshatra: "nakshatraRing", tithi: "tithiRing" };
+  // The three reorderable ring layers, outside in by default, all the same
+  // thickness. Whatever the order, they pack inward from radius 520 with
+  // 4-unit gaps and always end at the same inner radius (368), so the ghaṭī
+  // scale and everything inside never move.
+  const LAYER_KEYS = ["goodTimes", "badTimes", "switchable"];
+  const LAYER_THICKNESS = { goodTimes: 48, badTimes: 48, switchable: 48 };
+  const LAYER_RADIUS_PREFIX = { goodTimes: "goodRing", badTimes: "badRing", switchable: "outerRing" };
   const LAYERS_OUTER = 520, LAYER_GAP = 4;
   let layerFrame = null;
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
@@ -250,8 +246,7 @@
     });
     if (layerFrame) {
       clearGroup(layerFrame);
-      // The yoga-alert ring draws its own boundaries, only when shown.
-      ["switchable", "nakshatra", "tithi"].forEach(function (key) {
+      LAYER_KEYS.forEach(function (key) {
         const prefix = LAYER_RADIUS_PREFIX[key];
         [R[prefix + "Outer"], R[prefix + "Inner"]].forEach(function (radius) {
           layerFrame.appendChild(el("circle", { cx: CX, cy: CY, r: radius, class: "ring-boundary" }));
@@ -337,18 +332,12 @@
     svg.innerHTML = "";
     svg.setAttribute("viewBox", "0 0 " + (CX * 2) + " " + (CY * 2));
 
-    // Created up front like every other ring group, but renderYogaAlertRing
-    // leaves it empty (no boundary, no segments) on a day none of the five
-    // nitya yogas apply - see that function and the R.yogaRing* comment above.
-    const yogaRingGroup = el("g", { class: "yoga-ring" });
-    svg.appendChild(yogaRingGroup);
-
+    const goodRingGroup = el("g", { class: "good-ring" });
+    svg.appendChild(goodRingGroup);
+    const badRingGroup = el("g", { class: "bad-ring" });
+    svg.appendChild(badRingGroup);
     const outerRingGroup = el("g", { class: "outer-ring" });
     svg.appendChild(outerRingGroup);
-    const nakshatraRingGroup = el("g", { class: "nakshatra-ring" });
-    svg.appendChild(nakshatraRingGroup);
-    const tithiRingGroup = el("g", { class: "tithi-ring" });
-    svg.appendChild(tithiRingGroup);
 
     buildScaleFrame(svg);
     layerFrame = el("g", { class: "layer-frame" });
@@ -395,7 +384,7 @@
     svg.appendChild(timeButton);
     svg.appendChild(displayButton);
 
-    return { yogaRingGroup, outerRingGroup, nakshatraRingGroup, tithiRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
+    return { goodRingGroup, badRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
   }
 
   function centreButton(label, x, y, w, h) {
@@ -408,70 +397,38 @@
   }
 
   // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel?,
-  //   curved?, alternate? }. `alternate` colours named segments by position,
-  //   red then green then red... ("div-base"/"div-alt" in style.css), for
-  //   every ring of plain divisions - never for good/bad-time rings, whose
-  //   colour means something.
-  // geom.mergeRuns (good/bad-time rings): consecutive segments of the same
-  // kind (bad next to bad, good next to good, mixed next to mixed) are drawn
-  // as ONE block, with no border between them and a single label naming
-  // each window once ("Gulika Kālam · Durmuhūrta · Rāhu Kālam"). Each
-  // original piece stays underneath as an invisible hover target, so the
-  // tooltip still says exactly what is active when.
-  function groupRuns(segments) {
-    const runs = [];
-    segments.forEach(function (seg) {
-      const prev = runs[runs.length - 1];
-      if (prev && seg.goodBad && prev.goodBad === seg.goodBad) {
-        prev.parts.push(seg);
-        prev.endAngle = seg.endAngle;
-        prev.endTime = seg.endTime;
-      } else {
-        runs.push(Object.assign({}, seg, { parts: [seg] }));
-      }
-    });
-    runs.forEach(function (run) {
-      if (run.parts.length < 2) return;
-      const names = [];
-      run.parts.forEach(function (part) {
-        part.text.split(" + ").forEach(function (n) { if (names.indexOf(n) === -1) names.push(n); });
-      });
-      run.text = names.join(" · ");
-    });
-    return runs;
-  }
-
+  //   curved?, alternate?, labelAtStart? }. `alternate` colours named
+  //   segments by position, red then green then red... ("div-base"/"div-alt"
+  //   in style.css), for every ring of plain divisions. `labelAtStart`
+  //   (curved rings only) puts each label right after the segment's start
+  //   boundary instead of in its middle - see START_LABEL_RINGS in
+  //   ring-adapter.js.
   function segmentTooltip(seg) {
     return seg.text + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : "");
+  }
+
+  // The font size a curved label of `text` needs to fit an arc of `span`
+  // degrees at `radius`, with a little breathing room.
+  function fittedCurvedFont(text, span, radius) {
+    const arcLength = (Math.min(span, 170) * Math.PI / 180) * radius * 0.9;
+    return arcLength / (text.length * AVG_GLYPH_WIDTH);
   }
 
   function renderRing(group, ringDescriptor, geom) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const fontSizeFn = typeof geom.fontSize === "function" ? geom.fontSize : function () { return geom.fontSize; };
     const minSpanForLabel = geom.minSpanForLabel != null ? geom.minSpanForLabel : 6;
-    const items = geom.mergeRuns ? groupRuns(ringDescriptor.segments) : ringDescriptor.segments;
 
-    items.forEach(function (seg, i) {
+    ringDescriptor.segments.forEach(function (seg, i) {
       const span = segmentSpan(seg);
       if (span <= 0.0001) return;
-      const alternateClass = geom.alternate && seg.text && !seg.goodBad ? (i % 2 ? " div-alt" : " div-base") : "";
+      const alternateClass = geom.alternate && seg.text ? (i % 2 ? " div-alt" : " div-base") : "";
       const path = el("path", {
         d: annularSectorPath(geom.rInner, geom.rOuter, seg.startAngle, span),
-        class: "ring-segment" + alternateClass + (seg.contested ? " contested" : "") + (seg.goodBad ? " " + seg.goodBad : "") + (seg.text ? "" : " neutral"),
+        class: "ring-segment" + alternateClass + (seg.contested ? " contested" : "") + (seg.text ? "" : " neutral"),
       });
       group.appendChild(path);
-      if (seg.parts && seg.parts.length > 1) {
-        seg.parts.forEach(function (part) {
-          const hit = el("path", {
-            d: annularSectorPath(geom.rInner, geom.rOuter, part.startAngle, segmentSpan(part)),
-            class: "ring-segment-hit",
-          });
-          attachTooltip(hit, segmentTooltip(part));
-          group.appendChild(hit);
-        });
-      } else if (seg.text) {
-        attachTooltip(path, segmentTooltip(seg));
-      }
+      if (seg.text) attachTooltip(path, segmentTooltip(seg));
 
       if (seg.text && span >= minSpanForLabel) {
         const midAngle = seg.startAngle + span / 2;
@@ -480,20 +437,22 @@
         let fits = true;
         let shrunkSize = null;
         if (geom.curved) {
-          // Shrink a curved label to fit its arc (short windows like a
-          // part-overlapped Abhijit); skip it only if even small text won't
-          // fit - the tooltip still has it. Measured against the size
-          // actually shown (.dial-label's CSS font-size wins over the
-          // font-size attribute), and applied as an inline style, which in
-          // turn wins over the CSS.
-          const arcLength = (Math.min(span, 170) * Math.PI / 180) * midRadius * 0.9;
-          const fitted = arcLength / (seg.text.length * AVG_GLYPH_WIDTH);
+          // Shrink a curved label to fit its arc; skip it only if even
+          // small text won't fit - the tooltip still has it. Measured
+          // against the size actually shown (.dial-label's CSS font-size
+          // wins over the font-size attribute), and applied as an inline
+          // style, which in turn wins over the CSS. A start-anchored label
+          // gives up a little of the arc to its padding from the boundary.
+          const usable = geom.labelAtStart ? span - 2 * startPadDeg(midRadius) : span;
+          const fitted = usable > 0 ? fittedCurvedFont(seg.text, usable, midRadius) : 0;
           fits = fitted >= MIN_CURVED_FONT;
           if (fitted < CSS_LABEL_FONT) shrunkSize = fitted;
         }
-        const labelClass = [seg.contested ? "contested-label" : "", seg.goodBad ? seg.goodBad + "-label" : ""].filter(Boolean).join(" ") || undefined;
+        const labelClass = seg.contested ? "contested-label" : undefined;
         if (!fits) {
           // no room - tooltip only
+        } else if (geom.curved && geom.labelAtStart) {
+          curvedLabelAtStart(group, seg.text, seg.startAngle, span, midRadius, labelClass, shrunkSize);
         } else if (geom.curved) {
           curvedLabel(group, seg.text, midAngle, span, midRadius, shrunkSize || fontSize, labelClass, shrunkSize);
         } else {
@@ -509,59 +468,100 @@
     });
   }
 
-  // Rings with few, wide segments (Yaama: 8, Kala: 6, Rahu/Yama/Gulika: 9)
-  // get curved text, same as tithi/nakshatra - plenty of room per segment,
-  // unlike muhurta's 30 segments at 12 deg each or hora's 24, where curved
-  // text would read worse, not better (see curvedLabel's own comment).
-  const CURVED_OUTER_RINGS = { prahara: true, kala: true, rahuYamaGulika: true, yoga: true, karana: true, lagna: true };
-  // The good/bad-time ring keeps its meaning-colours; every other outer ring
-  // is plain divisions and alternates.
-  const GOOD_BAD_OUTER_RINGS = { rahuYamaGulika: true };
+  // Gap between a division's start boundary and its start-anchored label,
+  // as an angle at `radius` (a fixed ~8 units of arc).
+  function startPadDeg(radius) {
+    return (8 / radius) * 180 / Math.PI;
+  }
 
-  function renderOuterRing(group, ringDescriptor) {
+  // Like curvedLabel, but the text starts right after `startAngle` (the
+  // division's boundary) and runs clockwise from there, rather than being
+  // centred on the segment. Same readability rule: in the bottom half the
+  // path runs the other way so glyphs stay upright, and the text is then
+  // anchored at the path's END, which is the boundary side.
+  function curvedLabelAtStart(parent, text, startAngle, span, radius, extraClass, forcedSize) {
+    const pad = startPadDeg(radius);
+    const avail = Math.min(span - 2 * pad, 170);
+    if (avail <= 0) return;
+    const shownFont = forcedSize || CSS_LABEL_FONT;
+    const textDeg = Math.min(avail, (text.length * AVG_GLYPH_WIDTH * shownFont / radius) * 180 / Math.PI);
+    const from = startAngle + pad, to = from + avail;
+    const labelMid = ((from + textDeg / 2) % 360 + 360) % 360;
+    const bottomHalf = labelMid > 90 && labelMid < 270;
+    const pathRadius = radius + (bottomHalf ? shownFont * 0.35 : -shownFont * 0.35);
+    const p1 = polarToXY(bottomHalf ? to : from, pathRadius);
+    const p2 = polarToXY(bottomHalf ? from : to, pathRadius);
+    const id = "curve-label-" + (curvedLabelCounter++);
+    parent.appendChild(el("path", {
+      id: id,
+      d: `M ${p1.x} ${p1.y} A ${pathRadius} ${pathRadius} 0 0 ${bottomHalf ? 0 : 1} ${p2.x} ${p2.y}`,
+      class: "label-path",
+    }));
+    const t = el("text", { class: "dial-label curved-label" + (extraClass ? " " + extraClass : "") });
+    if (forcedSize) t.style.fontSize = forcedSize.toFixed(1) + "px";
+    const textPath = el("textPath", { startOffset: bottomHalf ? "100%" : "0%", "text-anchor": bottomHalf ? "end" : "start" });
+    textPath.setAttribute("href", "#" + id);
+    textPath.textContent = text;
+    t.appendChild(textPath);
+    parent.appendChild(t);
+  }
+
+  // Rings with few, wide segments (Tithi, Nakṣatra, Yāma, Kāla, Yoga,
+  // Karaṇa, Lagna) get curved text - plenty of room per segment, unlike
+  // muhurta's 30 segments at 12 deg each or hora's 24, where curved text
+  // would read worse, not better (see curvedLabel's own comment).
+  const CURVED_OUTER_RINGS = { tithi: true, nakshatra: true, prahara: true, kala: true, yoga: true, karana: true, lagna: true };
+
+  // `startLabelRings` is ring-adapter.js's START_LABEL_RINGS (passed in by
+  // app.js, since dial.js never reads the adapter directly).
+  function renderOuterRing(group, ringDescriptor, startLabelRings) {
     const curved = !!CURVED_OUTER_RINGS[ringDescriptor.ringKey];
     renderRing(group, ringDescriptor, {
       rInner: R.outerRingInner, rOuter: R.outerRingOuter,
       fontSize: curved ? 14 : function (span) { return span >= 15 ? 15 : 11; },
-      minSpanForLabel: curved ? 2 : 6, // curved labels shrink to fit instead (see renderRing)
+      minSpanForLabel: curved ? 0 : 6, // curved labels shrink to fit instead (see renderRing)
       curved: curved,
-      alternate: !GOOD_BAD_OUTER_RINGS[ringDescriptor.ringKey],
-      mergeRuns: !!GOOD_BAD_OUTER_RINGS[ringDescriptor.ringKey],
+      alternate: true,
+      labelAtStart: curved && !!(startLabelRings && startLabelRings[ringDescriptor.ringKey]),
     });
-  }
-  function renderNakshatraRing(group, ringDescriptor) {
-    renderRing(group, ringDescriptor, { rInner: R.nakshatraRingInner, rOuter: R.nakshatraRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true, alternate: true });
-  }
-  function renderTithiRing(group, ringDescriptor) {
-    renderRing(group, ringDescriptor, { rInner: R.tithiRingInner, rOuter: R.tithiRingOuter, fontSize: 24, minSpanForLabel: 0, curved: true, alternate: true });
   }
 
-  // The one ring that appears and disappears on its own: ring-adapter.js's
-  // buildYogaAlerts always returns a full day's worth of segments (mostly
-  // blank), but this function only actually DRAWS anything - boundary
-  // circles included - when at least one of them is active. On a day none
-  // of the five nitya yogas apply, the group is just left empty, so that
-  // band of the dial reads as plain background, not as an empty ring; see
-  // the R comment above for why its band is reserved either way (so the
-  // rest of the dial never resizes/jumps).
-  // Same crowding guard as the old merged ring: a higher minSpanForLabel
-  // than the other curved rings, since two or three of the five sources can
-  // still change within an hour of each other and label-collide otherwise.
-  function renderYogaAlertRing(group, ringDescriptor) {
-    const hasActive = ringDescriptor.segments.some(function (seg) { return seg.text; });
-    if (!hasActive) {
-      while (group.firstChild) group.removeChild(group.firstChild);
-      return;
-    }
-    renderRing(group, ringDescriptor, {
-      rInner: R.yogaRingInner, rOuter: R.yogaRingOuter,
-      fontSize: 13,
-      minSpanForLabel: 11,
-      curved: true,
-      mergeRuns: true,
+  // The Good Times / Bad Times rings (ring-adapter.js buildGoodBadTimes):
+  // each event in its own thin sub-ring ("lane"), so overlapping windows sit
+  // side by side, each with its own colour and label, rather than being
+  // merged into one block. The lanes split the ring's width evenly, so a day
+  // with fewer clashes gets wider lanes and bigger labels. A label that
+  // can't fit its lane even at the smallest size is left to the tooltip.
+  const LANE_GAP = 2;
+  const MIN_LANE_FONT = 7;
+  function renderEventRing(group, ringDescriptor, rInner, rOuter) {
+    while (group.firstChild) group.removeChild(group.firstChild);
+    group.appendChild(el("path", { d: annularSectorPath(rInner, rOuter, 0, 360), class: "ring-segment neutral event-ring-bg" }));
+    const lanes = Math.max(1, ringDescriptor.laneCount || 1);
+    const laneWidth = (rOuter - rInner - LANE_GAP * (lanes - 1)) / lanes;
+    ringDescriptor.segments.forEach(function (ev) {
+      const span = segmentSpan(ev);
+      if (span <= 0.0001) return;
+      const laneOuter = rOuter - ev.lane * (laneWidth + LANE_GAP);
+      const laneInner = laneOuter - laneWidth;
+      const path = el("path", {
+        d: annularSectorPath(laneInner, laneOuter, ev.startAngle, span),
+        class: "ring-segment event-segment " + ev.goodBad,
+      });
+      attachTooltip(path, segmentTooltip(ev));
+      group.appendChild(path);
+
+      const midRadius = (laneInner + laneOuter) / 2;
+      const size = Math.min(CSS_LABEL_FONT, laneWidth * 0.78, fittedCurvedFont(ev.text, span, midRadius));
+      if (size < MIN_LANE_FONT) return;
+      curvedLabel(group, ev.text, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
     });
-    group.appendChild(el("circle", { cx: CX, cy: CY, r: R.yogaRingOuter, class: "ring-boundary" }));
-    group.appendChild(el("circle", { cx: CX, cy: CY, r: R.yogaRingInner, class: "ring-boundary" }));
+  }
+  function renderGoodRing(group, ringDescriptor) {
+    renderEventRing(group, ringDescriptor, R.goodRingInner, R.goodRingOuter);
+  }
+  function renderBadRing(group, ringDescriptor) {
+    renderEventRing(group, ringDescriptor, R.badRingInner, R.badRingOuter);
   }
 
   // Innermost ring: just day/night, two segments, always the same two
@@ -671,9 +671,8 @@
     setLayerOrder,
     buildStaticStructure,
     renderOuterRing,
-    renderNakshatraRing,
-    renderTithiRing,
-    renderYogaAlertRing,
+    renderGoodRing,
+    renderBadRing,
     renderDayNightRing,
     renderDayMarkers,
     renderGhatiScale,
