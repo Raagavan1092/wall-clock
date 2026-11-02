@@ -845,33 +845,24 @@ html, body {
 /* The alarm sound: bell or the person's own track. */
 .al-sound-panel { margin-top: 10px; padding: 11px 12px; border: 1px solid #3a3022; border-radius: 13px; background: rgba(0, 0, 0, 0.18); }
 .al-sound-panel[hidden] { display: none; }
-.al-sound-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.al-sound-head .al-seg { flex: 1; }
-.al-track { margin-top: 10px; }
-.al-track[hidden] { display: none; }
+.al-sound-list { max-height: 218px; overflow-y: auto; margin: 0 -4px 0 0; padding-right: 4px; scrollbar-width: thin; scrollbar-color: #5a4a2a transparent; }
+.al-sound-list .al-section { margin: 10px 0 6px; }
+.al-sound-row { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; border: 1px solid #3a3022; border-radius: 12px; background: #1b160f; transition: border-color 0.12s, background 0.12s; }
+.al-sound-row:hover { border-color: #7a6636; }
+.al-sound-row.on { border-color: var(--gold); background: rgba(201, 168, 92, 0.13); }
+.al-sound-pick { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 8px 4px 8px 11px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.al-radio { flex: none; width: 16px; height: 16px; margin-top: 2px; border: 1.5px solid #5a4a2a; border-radius: 50%; position: relative; }
+.al-sound-row.on .al-radio { border-color: var(--gold); }
+.al-sound-row.on .al-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--gold-hi); }
+.al-play { flex: none; width: 34px; height: 34px; margin-right: 5px; display: grid; place-items: center; padding: 0; border: 1px solid #3a3022; border-radius: 50%; background: #221c14; color: var(--gold); cursor: pointer; }
+.al-play:hover:not(:disabled) { color: var(--gold-hi); border-color: var(--gold); }
+.al-play.on { background: var(--gold); border-color: var(--gold); color: #1a1208; }
+.al-play:disabled { opacity: 0.35; cursor: default; }
+.al-play .ai { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.al-track { margin: -2px 0 8px; padding: 9px 11px; border: 1px dashed #5a4a2a; border-radius: 12px; }
 .al-track-file { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 13px; min-width: 0; }
 .al-track-file .ai { color: var(--gold); }
 .al-track-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .al-track-actions { display: flex; gap: 16px; margin: 7px 0 0 27px; }
 .al-track-msg { margin: 6px 0 0 27px; font-size: 12px; color: var(--centre-bad); }
 
-.al-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 28px;
-  z-index: 300;
-  max-width: min(440px, calc(100vw - 32px));
-  padding: 12px 18px;
-  transform: translate(-50%, 16px);
-  opacity: 0;
-  background: #261f14;
-  color: var(--ink);
-  border: 1px solid rgba(201, 168, 92, 0.5);
-  border-radius: 14px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
-  font: 13.5px/1.4 "Segoe UI", system-ui, sans-serif;
-  text-align: center;
-  transition: opacity 0.25s, transform 0.25s;
-  pointer-events: none;
-}
-.al-toast.show { opacity: 1; transform: translate(-50%, 0); }

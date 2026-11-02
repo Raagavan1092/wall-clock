@@ -35,6 +35,7 @@
 <script src="../js/render/ring-adapter.js"></script>
 <script src="../js/render/dial.js"></script>
 <script src="../js/settings.js"></script>
+<script src="../js/tunes.js"></script>
 <script src="../js/alarms.js"></script>
 <script>
 (async function () {
@@ -175,20 +176,14 @@
     A.eventsText(catalog.find(g => g.id === "yoga").items.map(i => i.id)) === "All Yoga");
   check("trigger wording differs for instants", A.triggerText({ events: ["sun:set"], mode: "start" }) === "At the moment" && A.triggerText({ events: ["win:rahu"], mode: "start" }) === "At the start");
 
-  // --- sound choice + phone calendar export -----------------------------------------
+  // --- sound choice -----------------------------------------
   const sk1 = A.add({ events: ["win:rahu"], mode: "before", offsetValue: 20, offsetUnit: "min", repeat: "always", label: "Rāhu, careful; a very long label so that the line has to be folded across several lines for sure", soundKind: "track" });
   check("sound choice is kept ('track'), anything else is the bell", sk1.soundKind === "track" && A.add({ events: ["win:rahu"], soundKind: "x" }).soundKind === "bell");
-  const cal = await A.buildCalendar(sk1.id);
-  const rawLines = cal.text.split("\r\n");
-  check("calendar: CRLF lines, VCALENDAR wrapper", cal.text.startsWith("BEGIN:VCALENDAR\r\n") && cal.text.endsWith("END:VCALENDAR\r\n") && !/[^\r]\n/.test(cal.text));
-  check("calendar: up to 40 rings, one VEVENT + VALARM each", cal.count > 20 && cal.count <= 40 && (cal.text.match(/BEGIN:VEVENT/g) || []).length === cal.count && (cal.text.match(/BEGIN:VALARM/g) || []).length === cal.count, cal.count + " rings");
-  check("calendar: no line over 75 octets", rawLines.every(l => new TextEncoder().encode(l).length <= 75));
-  const unfolded = cal.text.replace(/\r\n /g, "");
-  const starts = [...unfolded.matchAll(/DTSTART:(\d{8}T\d{6}Z)/g)].map(m => m[1]);
-  check("calendar: UTC times, in order, in the future", starts.length === cal.count && starts.every((t, i) => i === 0 || starts[i - 1] < t) && Date.parse(starts[0].replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)Z/, "$1-$2-$3T$4:$5:$6Z")) > Date.now());
-  check("calendar: alarm sounds at the event start, text escaped", /TRIGGER:PT0S/.test(unfolded) && /Rāhu\\, careful\\; a very long label/.test(unfolded) && /Rāhu Kālam begins in 20 min/.test(unfolded));
-  const calOnce = await A.buildCalendar(a2.id);
-  check("calendar: a 'once' alarm exports its single next ring", calOnce.count === 1 && /^vedic-alarm-/.test(calOnce.filename) && /\.ics$/.test(calOnce.filename), calOnce.filename);
+  check("a built-in tune is kept by id; an unknown tune falls back to the bell",
+    A.add({ events: ["win:rahu"], soundKind: "tune:morning-canon" }).soundKind === "tune:morning-canon" && A.add({ events: ["win:rahu"], soundKind: "tune:nope" }).soundKind === "bell");
+  check("there are 20 tunes, each with a name, and every one parses", E.Tunes.list.length === 20 && E.Tunes.list.every(t => t.name && t.sub && E.Tunes.get(t.id).voices.every(v => v.notes.trim().split(/\s+/).every(tok => /^(r|-?\d+(\+-?\d+)*):\d*\.?\d+$/.test(tok)))));
+  check("every voice fits its loop (notes add up to the tune's length)", E.Tunes.list.every(t => E.Tunes.get(t.id).voices.every(v => Math.abs(v.notes.trim().split(/\s+/).reduce((n, tok) => n + parseFloat(tok.split(":")[1]), 0) - E.Tunes.get(t.id).beats) < 1e-9)));
+  check("scale degrees map to the right pitch (D major: 0 = D4, 9 = F#5)", Math.abs(E.Tunes.frequency(E.Tunes.get("morning-canon"), 0, 0) - 293.66) < 0.1 && Math.abs(E.Tunes.frequency(E.Tunes.get("morning-canon"), 9, 0) - 739.99) < 0.1);
 
   // --- date shown for times after midnight, before sunrise ------------------------------
   const sunrises = await A.preview({ events: ["sun:rise"], mode: "start" }, 2);

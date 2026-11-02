@@ -194,6 +194,13 @@
     return "al" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
+  function validSoundKind(kind) {
+    if (kind === "track") return "track";
+    const Tunes = VedicEngine.Tunes;
+    if (typeof kind === "string" && kind.indexOf("tune:") === 0 && Tunes && Tunes.has(kind.slice(5))) return kind;
+    return "bell";
+  }
+
   // A clean alarm from a draft or from storage; null if it names no event.
   function normalize(d) {
     const known = getCatalog().byId;
@@ -218,7 +225,7 @@
       repeat: d.repeat === "once" ? "once" : "always",
       label: typeof d.label === "string" ? d.label.trim().slice(0, 60) : "",
       sound: d.sound !== false,
-      soundKind: d.soundKind === "track" ? "track" : "bell", // the built-in bell, or the person's own track
+      soundKind: validSoundKind(d.soundKind), // "bell", "track" (their own file) or "tune:<id>"
       notify: !!d.notify,
       enabled: d.enabled !== false,
       armedAfter: isFinite(d.armedAfter) ? d.armedAfter : Date.now(),
@@ -388,70 +395,6 @@
   function onChange(fn) { changeListeners.push(fn); }
   function onRing(fn) { ringHandler = fn; }
 
-  // ---- phone calendar export ------------------------------------------------
-  // A web page cannot ring once it is closed, but a phone's calendar can: this
-  // writes an alarm's next rings as an .ics file (one event per ring, with a
-  // reminder at the moment it should sound). Import it once and the phone
-  // alerts on its own, with the browser closed.
-  const ICS_MAX_RINGS = 40;
-
-  function icsDate(ms) {
-    return new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
-  }
-  function icsText(t) {
-    return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
-  }
-  // Lines are limited to 75 octets; a longer one continues on a line starting with a space.
-  function icsFold(line) {
-    const out = [];
-    let cur = "", bytes = 0;
-    Array.from(line).forEach(function (ch) {
-      const n = new TextEncoder().encode(ch).length;
-      if (bytes + n > 74) { out.push(cur); cur = " "; bytes = 1; }
-      cur += ch;
-      bytes += n;
-    });
-    out.push(cur);
-    return out.join("\r\n");
-  }
-  function istHM(ms) {
-    return new Date(ms + 5.5 * 3600 * 1000).toISOString().slice(11, 16) + dateNote(ms);
-  }
-
-  // Resolves { text, count, filename } for the alarm's next rings (up to 40,
-  // within the search limit).
-  async function buildCalendar(id) {
-    const a = find(id);
-    if (!a) throw new Error("No such alarm.");
-    const known = getCatalog().byId;
-    const count = a.repeat === "once" ? 1 : ICS_MAX_RINGS;
-    const fires = (await findFires(specOf(a), Date.now(), count)).slice(0, count);
-    const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Vedic Wall Clock//Alarms//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Vedic Wall Clock alarms"];
-    const stamp = icsDate(Date.now());
-    fires.forEach(function (f) {
-      const item = known.get(f.id);
-      const name = f.detail || item.label;
-      const verb = a.mode === "end" ? "ends" : item.instant ? "happens" : "begins";
-      const lead = a.mode === "before" ? " in " + offsetText(a) : "";
-      const summary = "\u{1F514} " + (a.label ? a.label + " - " : "") + name + " " + verb + lead;
-      const when = item.instant ? istHM(f.start) + " IST" : istHM(f.start) + " - " + istHM(f.end) + " IST";
-      lines.push(
-        "BEGIN:VEVENT",
-        "UID:" + a.id + "-" + f.fire + "@vedic-wall-clock",
-        "DTSTAMP:" + stamp,
-        "DTSTART:" + icsDate(f.fire),
-        "DTEND:" + icsDate(f.fire + 5 * MIN_MS),
-        "SUMMARY:" + icsText(summary),
-        "DESCRIPTION:" + icsText(name + " (" + item.groupTitle + "): " + when + ". " + triggerText(a) + "."),
-        "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + icsText(summary), "TRIGGER:PT0S", "END:VALARM",
-        "END:VEVENT");
-    });
-    lines.push("END:VCALENDAR");
-    const slug = (title(a) || "alarm").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "alarm";
-    return { text: lines.map(icsFold).join("\r\n") + "\r\n", count: fires.length, filename: "vedic-alarm-" + slug + ".ics" };
-  }
-
   // ---- wording ------------------------------------------------------------
 
   // " (Nov 3)" for a time after midnight and before that morning's sunrise
@@ -517,7 +460,7 @@
   }
 
   VedicEngine.Alarms = {
-    init, tick, add, update, remove, setEnabled, preview, list, onChange, onRing, buildCalendar,
+    init, tick, add, update, remove, setEnabled, preview, list, onChange, onRing,
     catalog: function () { return getCatalog().groups; },
     catalogItem: function (id) { return getCatalog().byId.get(id); },
     get: function (id) { const a = find(id); return a ? serialize(a) : null; },

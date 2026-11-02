@@ -37,7 +37,8 @@
     edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="m14 7 3 3"/>',
     trash: '<path d="M5 7h14M10 4h4M7 7l.8 12h8.4L17 7M10 11v5M14 11v5"/>',
     x: '<path d="m6 6 12 12M18 6 6 18"/>',
-    calendar: '<rect x="4" y="5.5" width="16" height="14" rx="2.2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M12 12.8v3.6M10.2 14.6h3.6"/>',
+    play: '<path d="M8.5 5.8v12.4l10-6.2z"/>',
+    stop: '<rect x="7" y="7" width="10" height="10" rx="1.8"/>',
     music: '<path d="M9 17.5V6.5l9-2v11"/><circle cx="6.8" cy="17.6" r="2.2"/><circle cx="15.8" cy="15.6" r="2.2"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   };
@@ -142,6 +143,8 @@
     const DB = "vedicWallClock.sounds", STORE = "files", KEY = "alarmTrack";
     const MAX_BYTES = 25 * 1024 * 1024;
     let audio = null, objectUrl = null, stopper = null;
+    const listeners = [];
+    function notify() { listeners.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } }); }
 
     function open() {
       return new Promise(function (resolve, reject) {
@@ -167,8 +170,10 @@
     function stop() {
       clearTimeout(stopper);
       stopper = null;
+      const was = !!audio;
       if (audio) { audio.pause(); audio = null; }
       if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+      if (was) notify();
     }
 
     return {
@@ -197,46 +202,46 @@
           audio.loop = !!loop;
           stopper = setTimeout(stop, maxMs);
           audio.addEventListener("ended", stop);
-          return audio.play().then(function () { return true; });
+          return audio.play().then(function () { notify(); return true; });
         }).catch(function () { stop(); return false; });
       },
       stop: stop,
+      onChange: function (fn) { listeners.push(fn); return function () { const i = listeners.indexOf(fn); if (i !== -1) listeners.splice(i, 1); }; },
       playing: function () { return !!audio; },
       looping: function () { return !!audio && audio.loop; },
     };
   })();
 
-  // What an alarm plays: its own track if it chose one (and there is one),
-  // else the bell. Resolves true if sound actually started - false when the
-  // browser is still waiting for a tap before it allows any.
+  // What an alarm plays: the bell, one of the built-in tunes, or the person's
+  // own track. Whatever it is, if it cannot start (no track stored any more,
+  // an unknown tune) the bell rings instead of silence. Resolves true if sound
+  // actually started - false when the browser is still waiting for a tap
+  // before it allows any.
   const Sound = {
     start: function (alarm) {
-      if (alarm.soundKind === "track") {
-        return Track.play(true, 5 * 60 * 1000).then(function (ok) {
-          if (ok) return true;
-          Bell.start();
-          return Bell.running();
-        });
+      const kind = alarm.soundKind || "bell";
+      function bell() {
+        Bell.start();
+        return Promise.resolve(Bell.running());
       }
-      Bell.start();
-      return Promise.resolve(Bell.running());
+      if (kind.indexOf("tune:") === 0 && VedicEngine.Tunes.has(kind.slice(5))) {
+        VedicEngine.Tunes.start(kind.slice(5), { maxMs: 5 * 60 * 1000 });
+        return Promise.resolve(VedicEngine.Tunes.running());
+      }
+      if (kind === "track") {
+        return Track.play(true, 5 * 60 * 1000).then(function (ok) { return ok ? true : bell(); });
+      }
+      return bell();
     },
-    stop: function () { Bell.stop(); Track.stop(); },
+    stop: function () { Bell.stop(); Track.stop(); VedicEngine.Tunes.stop(); },
   };
-
-  // A short message at the bottom of the screen.
-  function toast(text) {
-    const node = h("div", { class: "al-toast", role: "status", text: text });
-    document.body.appendChild(node);
-    requestAnimationFrame(function () { node.classList.add("show"); });
-    setTimeout(function () { node.classList.remove("show"); setTimeout(function () { node.remove(); }, 300); }, 4200);
-  }
 
   // Browsers only let a page make sound after the person has touched it
   // once; do that on the first touch so later alarms can ring.
   ["pointerdown", "keydown", "touchend"].forEach(function (type) {
     global.addEventListener(type, function once() {
       Bell.unlock();
+      VedicEngine.Tunes.unlock();
       global.removeEventListener(type, once, true);
     }, true);
   });
@@ -351,24 +356,9 @@
           h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : "every time") }),
           h("span", { class: "alarm-row-next", text: nextText })),
         h("div", { class: "alarm-row-actions" },
-        h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Add " + a.title + " to your phone's calendar", title: "Add its next rings to your phone's calendar (rings even with the browser closed)", onclick: function () { exportCalendar(a); } }, icon("calendar")),
         h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Edit " + a.title, title: "Edit", onclick: function (e) { openDialog(a.id, e.currentTarget); } }, icon("edit")),
         h("button", { type: "button", class: "alarm-icon-btn danger", "aria-label": "Delete " + a.title, title: "Delete", onclick: function () { Alarms.remove(a.id); } }, icon("trash")))));
     });
-  }
-
-  // Downloads the alarm's next rings as an .ics file for the phone's calendar.
-  function exportCalendar(a) {
-    Alarms.buildCalendar(a.id).then(function (cal) {
-      if (!cal.count) { toast("Nothing is due in the next 2 months, so there is nothing to export."); return; }
-      const url = URL.createObjectURL(new Blob([cal.text], { type: "text/calendar;charset=utf-8" }));
-      const link = h("a", { href: url, download: cal.filename });
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-      toast(cal.count + (cal.count === 1 ? " ring" : " rings") + " saved as " + cal.filename + ". Open it on your phone to add them to its calendar.");
-    }).catch(function (err) { console.error(err); toast("Could not make the calendar file."); });
   }
 
   function renderChip() {
@@ -434,10 +424,11 @@
     const soundBox = h("input", { type: "checkbox", id: "al-sound" });
     const notifyBox = h("input", { type: "checkbox", id: "al-notify" });
     const notifyNote = h("span", { class: "al-sub" });
-    const soundKindEl = h("div", { class: "al-seg small", role: "radiogroup", "aria-label": "Alarm sound" });
     const soundPanel = h("div", { class: "al-sound-panel" });
-    const trackRow = h("div", { class: "al-track" });
+    const soundList = h("div", { class: "al-sound-list", role: "radiogroup", "aria-label": "Alarm sound" });
     const fileInput = h("input", { type: "file", accept: "audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac", hidden: true, "aria-hidden": "true", tabindex: "-1" });
+    const Tunes = VedicEngine.Tunes;
+    const stopWatching = []; // unsubscribe functions, run when the dialog closes
     let trackInfo = null; // { name } of the stored track, once known
     let trackMessage = ""; // the last problem choosing a file
     const unitEl = h("div", { class: "al-seg small", role: "radiogroup", "aria-label": "Unit" });
@@ -602,22 +593,48 @@
       saveBtn.disabled = !state.selected.size || !amountValid() || (state.sound && state.soundKind === "track" && !trackInfo);
     }
 
-    // Bell or the person's own track, with the file chooser for the latter.
+    // The sound list: the bell, the person's own track (with its file
+    // controls when chosen) and the built-in tunes, each with a preview.
+    function trackControls() {
+      return h("div", { class: "al-track" },
+        h("div", { class: "al-track-file" }, icon("music"), h("span", { class: "al-track-name", text: trackInfo ? trackInfo.name : "No track chosen yet" })),
+        h("div", { class: "al-track-actions" },
+          h("button", { type: "button", class: "al-link", "data-fk": "track-choose", text: trackInfo ? "Replace…" : "Choose audio file…", onclick: function () { fileInput.click(); } }),
+          trackInfo ? h("button", { type: "button", class: "al-link", "data-fk": "track-remove", text: "Remove", onclick: function () {
+            Track.clear().then(function () { trackInfo = null; trackMessage = ""; renderSound(); renderFoot(); });
+          } }) : null),
+        trackMessage ? h("p", { class: "al-track-msg", text: trackMessage })
+          : trackInfo ? null : h("p", { class: "al-sub", text: "MP3, M4A, WAV or OGG, up to 25 MB. It is kept on this device and shared by every alarm that uses it." }));
+    }
+    function soundRow(kind, name, sub) {
+      const on = state.soundKind === kind;
+      const isTune = kind.indexOf("tune:") === 0;
+      const playing = isTune ? Tunes.playing() === kind.slice(5) : kind === "track" ? Track.playing() : false;
+      const canPlay = kind !== "track" || !!trackInfo;
+      return h("div", { class: "al-sound-row" + (on ? " on" : "") },
+        h("button", { type: "button", role: "radio", "aria-checked": String(on), class: "al-sound-pick", "data-fk": "snd:" + kind,
+          onclick: function () { state.soundKind = kind; renderSound(); renderFoot(); } },
+          h("span", { class: "al-radio" }),
+          h("span", { class: "al-chip-text" }, h("span", { class: "al-chip-label", text: name }), sub ? h("span", { class: "al-sub", text: sub }) : null)),
+        h("button", { type: "button", class: "al-play" + (playing ? " on" : ""), "data-fk": "play:" + kind, disabled: !canPlay,
+          "aria-label": (playing ? "Stop " : "Preview ") + name, title: playing ? "Stop" : "Preview",
+          onclick: function () { previewSound(kind); } }, icon(playing ? "stop" : "play")));
+    }
     const renderSound = focusKept(function () {
       soundPanel.hidden = !state.sound;
-      segmented(soundKindEl, [["bell", "Bell"], ["track", "My track"]], state.soundKind, function (k) { state.soundKind = k; renderSound(); renderFoot(); });
-      trackRow.hidden = state.soundKind !== "track";
-      trackRow.innerHTML = "";
-      trackRow.appendChild(h("div", { class: "al-track-file" }, icon("music"),
-        h("span", { class: "al-track-name", text: trackInfo ? trackInfo.name : "No track chosen yet" })));
-      trackRow.appendChild(h("div", { class: "al-track-actions" },
-        h("button", { type: "button", class: "al-link", "data-fk": "track-choose", text: trackInfo ? "Replace…" : "Choose audio file…", onclick: function () { fileInput.click(); } }),
-        trackInfo ? h("button", { type: "button", class: "al-link", "data-fk": "track-remove", text: "Remove", onclick: function () {
-          Track.clear().then(function () { trackInfo = null; trackMessage = ""; renderSound(); renderFoot(); });
-        } }) : null));
-      if (trackMessage) trackRow.appendChild(h("p", { class: "al-track-msg", text: trackMessage }));
-      else if (!trackInfo) trackRow.appendChild(h("p", { class: "al-sub", text: "MP3, M4A, WAV or OGG, up to 25 MB. It is kept on this device and shared by every alarm that uses it." }));
+      const scroll = soundList.scrollTop;
+      soundList.innerHTML = "";
+      soundList.appendChild(soundRow("bell", "Temple bell", "A struck bell, repeating"));
+      soundList.appendChild(soundRow("track", "My track", trackInfo ? trackInfo.name : "Your own audio file"));
+      if (state.soundKind === "track") soundList.appendChild(trackControls());
+      soundList.appendChild(h("h4", { class: "al-section", text: "Tunes" }));
+      Tunes.list.forEach(function (t) { soundList.appendChild(soundRow("tune:" + t.id, t.name, t.sub)); });
+      soundList.scrollTop = scroll;
     });
+    function showSelectedSound() {
+      const on = soundList.querySelector(".al-sound-row.on");
+      if (on) soundList.scrollTop = Math.max(0, on.offsetTop - soundList.offsetTop - 40);
+    }
 
     function renderAll() { renderPicker(); renderSelected(); renderWhen(); renderSound(); renderFoot(); schedulePreview(); }
 
@@ -690,11 +707,26 @@
         trackMessage = err.message || "Could not use that file.";
       }).then(function () { renderSound(); renderFoot(); });
     });
-    function previewSound() {
+    // Plays (or, if already playing, stops) a short preview of one sound.
+    function previewSound(kind) {
       Bell.unlock();
-      if (Track.playing()) { Track.stop(); return; }
-      if (state.soundKind === "track") Track.play(false, 10000).then(function (ok) { if (!ok) { trackMessage = "That file would not play - try another."; renderSound(); } });
-      else Bell.preview();
+      Tunes.unlock();
+      if (kind.indexOf("tune:") === 0) {
+        const id = kind.slice(5);
+        if (Tunes.playing() === id) { Tunes.stop(); return; }
+        Track.stop();
+        Tunes.start(id, { maxMs: 20000 });
+      } else if (kind === "track") {
+        if (Track.playing()) { Track.stop(); return; }
+        Tunes.stop();
+        Track.play(false, 20000).then(function (ok) {
+          if (!ok) { trackMessage = "That file would not play - try another."; renderSound(); }
+        });
+      } else {
+        Tunes.stop();
+        Track.stop();
+        Bell.preview();
+      }
     }
     notifyBox.addEventListener("change", function () { state.notify = notifyBox.checked; });
 
@@ -721,7 +753,9 @@
 
     function close() {
       document.removeEventListener("keydown", onKey);
+      stopWatching.forEach(function (fn) { fn(); });
       Track.stop();
+      Tunes.stop();
       clearTimeout(previewTimer);
       previewToken++;
       modal.classList.add("closing");
@@ -779,9 +813,7 @@
             saveBtn)),
         h("p", { class: "al-fineprint", text: "Alarms follow real time and ring while the clock is open on this device." })));
 
-    soundPanel.appendChild(h("div", { class: "al-sound-head" }, soundKindEl,
-      h("button", { type: "button", class: "al-link", text: "▶ Preview", onclick: previewSound })));
-    soundPanel.appendChild(trackRow);
+    soundPanel.appendChild(soundList);
     soundPanel.appendChild(fileInput);
 
     // The "before" amount row, built once and shown only for "Before".
@@ -795,10 +827,13 @@
     beforeEl.appendChild(presetsEl);
 
     document.addEventListener("keydown", onKey);
+    stopWatching.push(Tunes.onChange(function () { if (modal.isConnected) renderSound(); }));
+    stopWatching.push(Track.onChange(function () { if (modal.isConnected) renderSound(); }));
     document.body.appendChild(modal);
     renderAlerts();
     renderAll();
     Track.info().then(function (info) { trackInfo = info; renderSound(); renderFoot(); });
+    showSelectedSound();
     requestAnimationFrame(function () { modal.classList.add("open"); });
     (editing ? saveBtn : searchInput).focus();
     // Keep the modal's own scroll areas from scrolling the page behind.
