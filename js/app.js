@@ -78,6 +78,7 @@
   function invalidateCache() {
     cachedSnapshot = null;
     lastRenderedRingKey = null;
+    realDay = null;
   }
 
   // "Switch time": "ghati" (Vedic readout leads, 60-ghati scale, pala hand)
@@ -213,7 +214,9 @@
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
     E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow));
+    if (changed || !controlsSynced) { controlsSynced = true; syncDayControls(); }
   }
+  let controlsSynced = false;
 
   const IST_OFFSET_MS = 5.5 * 3600 * 1000;
   function minuteAngle(now) {
@@ -261,6 +264,14 @@
     wireButton(dialHandles.displayButton, function () { cycleRing(1); });
 
     window.addEventListener("keydown", function (e) {
+      // Not while typing in / scrubbing a field or working in a dialog (the
+      // time slider and the alarm dialog use these same keys), and Space on a
+      // focused button is that button's click, not a ring switch.
+      const target = e.target;
+      if (target && target.closest) {
+        if (target.closest("input, select, textarea, [role=dialog], [role=alertdialog]")) return;
+        if (e.key === " " && target.closest("button")) return;
+      }
       if (e.key === "ArrowRight" || e.key === " ") cycleRing(1);
       else if (e.key === "ArrowLeft") cycleRing(-1);
     });
@@ -279,6 +290,16 @@
   // section) but applies immediately on change, unlike the other settings
   // which wait for Save - scrubbing time is a live control, not a persisted
   // preference, so there's nothing to persist and no reason to make it wait.
+  // Moves the clock to `date`, whatever state it is in: a paused clock stays
+  // paused there; a running one keeps ticking forward from it. Shared by the
+  // Time field, the day buttons and the time slider.
+  function setViewedTime(date) {
+    if (pausedAt) pausedAt = date;
+    else timeOffsetMs = date.getTime() - Date.now();
+    syncTimeUi();
+    render();
+  }
+
   function wireTimeControl() {
     const input = document.getElementById("set-time");
     const nowBtn = document.getElementById("set-time-now");
@@ -292,24 +313,17 @@
       liveIndicator.textContent = pausedAt ? "Paused" : timeOffsetMs === 0 ? "Live (following real time)" : "Overridden - not following real time";
       pauseBtn.textContent = pausedAt ? "Resume" : "Pause";
     }
+    syncTimeInput = syncInput;
     syncInput();
 
     input.addEventListener("change", function () {
       const parsed = new Date(input.value);
-      if (!isNaN(parsed.getTime())) {
-        if (pausedAt) {
-          pausedAt = parsed; // stay paused, but at the newly-set instant
-        } else {
-          timeOffsetMs = parsed.getTime() - Date.now();
-        }
-        syncInput();
-        render();
-      }
+      if (!isNaN(parsed.getTime())) setViewedTime(parsed);
     });
     nowBtn.addEventListener("click", function () {
       timeOffsetMs = 0;
       pausedAt = null;
-      syncInput();
+      syncTimeUi();
       render();
     });
     pauseBtn.addEventListener("click", function () {
@@ -320,7 +334,7 @@
       } else {
         pausedAt = getNow();
       }
-      syncInput();
+      syncTimeUi();
       render();
     });
 
@@ -328,7 +342,117 @@
     // forward if left open (and so reopening settings later shows "now").
     setInterval(function () {
       if (document.activeElement !== input) syncInput();
+      syncDayControls();
     }, 1000);
+  }
+
+  // ---- Yesterday / Today / Tomorrow and the time slider --------------------
+  // Both sit beside the settings gear. The day buttons are relative to the
+  // REAL current Vedic day (sunrise to sunrise, like the dial), and keep the
+  // same place in the day - the same ghaṭī - so flipping between them
+  // compares like with like. The slider scrubs through the Vedic day on show:
+  // sunrise at the left, the next sunrise at the right, its track coloured
+  // like the Day / Night ring.
+
+  let syncTimeInput = function () { /* set by wireTimeControl */ };
+  function syncTimeUi() {
+    syncTimeInput();
+    syncDayControls();
+  }
+
+  // Sunrise-to-sunrise bounds (ms) of the real current Vedic day.
+  let realDay = null;
+  function getRealDay() {
+    const real = Date.now();
+    if (!realDay || real < realDay.sunrise || real >= realDay.next) {
+      const sunrise = E.Sunrise.sunriseAtOrBefore(settings.location, new Date(real), settings.sunriseEdge);
+      const next = E.Sunrise.sunriseAfter(settings.location, sunrise, settings.sunriseEdge);
+      realDay = { sunrise: sunrise.getTime(), next: next.getTime() };
+    }
+    return realDay;
+  }
+
+  // The instant `days` Vedic days from the real one, at the same place in the day.
+  function instantForDay(days) {
+    const real = getRealDay();
+    const intoDay = Date.now() - real.sunrise;
+    let sunrise = real.sunrise, next = real.next;
+    for (let k = days; k > 0; k--) {
+      sunrise = next;
+      next = E.Sunrise.sunriseAfter(settings.location, new Date(sunrise), settings.sunriseEdge).getTime();
+    }
+    for (let k = days; k < 0; k++) {
+      next = sunrise;
+      sunrise = E.Sunrise.sunriseAtOrBefore(settings.location, new Date(next - 60000), settings.sunriseEdge).getTime();
+    }
+    return new Date(Math.min(sunrise + intoDay, next - 1000));
+  }
+
+  let scrubbing = false;
+  let syncDayControls = function () { /* set by wireDayControls */ };
+
+  function wireDayControls() {
+    const buttons = Array.from(document.querySelectorAll("#day-buttons button"));
+    const slider = document.getElementById("time-slider");
+    const scrub = document.getElementById("time-scrub");
+    const readout = document.getElementById("scrub-readout");
+    const sunriseLabel = document.getElementById("scrub-sunrise");
+    const nextLabel = document.getElementById("scrub-next");
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const days = Number(btn.dataset.day);
+        if (days === 0) {
+          timeOffsetMs = 0;
+          pausedAt = null;
+          syncTimeUi();
+          render();
+        } else {
+          setViewedTime(instantForDay(days));
+        }
+      });
+    });
+
+    syncDayControls = function () {
+      if (!cachedSnapshot) return;
+      const a = cachedSnapshot.anchors;
+      const now = getNow();
+      const sunrise = a.governingSunrise.getTime();
+
+      // Which button is lit: the viewed day against the real one.
+      const delta = Math.round((sunrise - getRealDay().sunrise) / 86400000);
+      buttons.forEach(function (btn) {
+        const on = Number(btn.dataset.day) === delta;
+        btn.classList.toggle("on", on);
+        btn.setAttribute("aria-pressed", String(on));
+      });
+
+      // Slider: one step per minute across this Vedic day (the last step
+      // stays just short of the next sunrise, which would be the next day).
+      const max = Math.max(1, Math.floor((a.nextSunrise.getTime() - sunrise) / 60000) - 1);
+      if (slider.max !== String(max)) slider.max = String(max);
+      const dayFrac = (a.sunsetToday.getTime() - sunrise) / (a.nextSunrise.getTime() - sunrise);
+      scrub.style.setProperty("--day-frac", (dayFrac * 100).toFixed(2) + "%");
+      sunriseLabel.textContent = "\u2600 " + fmtTime(a.governingSunrise);
+      nextLabel.textContent = fmtTime(a.nextSunrise) + " \u2600";
+      const g = E.Ghati.current(now, a);
+      readout.textContent = fmtTime(now) + " \u00b7 Gha\u1e6d\u012b " + g.ghati;
+      if (!scrubbing) {
+        slider.value = String(Math.max(0, Math.min(max, Math.floor((now.getTime() - sunrise) / 60000))));
+      }
+      slider.setAttribute("aria-valuetext", readout.textContent);
+    };
+
+    slider.addEventListener("input", function () {
+      if (!cachedSnapshot) return;
+      setViewedTime(new Date(cachedSnapshot.anchors.governingSunrise.getTime() + Number(slider.value) * 60000));
+    });
+    ["pointerdown", "touchstart"].forEach(function (type) {
+      slider.addEventListener(type, function () { scrubbing = true; }, { passive: true });
+    });
+    ["pointerup", "pointercancel", "touchend", "touchcancel", "blur", "change"].forEach(function (type) {
+      slider.addEventListener(type, function () { scrubbing = false; });
+    });
   }
 
   const LAYER_TITLES = {
@@ -512,7 +636,22 @@
 
     wireInput(svg);
     wireTimeControl();
+    wireDayControls();
     wireSettingsPanel();
+    // Alarms are an add-on: if they fail to start, the clock itself carries on.
+    try {
+      E.AlarmUI.init({
+        getSettings: function () { return settings; },
+        getData: function () { return data; },
+        // The next-alarm chip beside the gear opens Settings, where alarms live.
+        onChipClick: function () {
+          const panel = document.getElementById("settings-panel");
+          if (panel.classList.contains("hidden")) document.getElementById("settings-toggle").click();
+        },
+      });
+    } catch (err) {
+      console.error("Alarms failed to start:", err);
+    }
 
     render();
     // 100ms (not 1000ms): the ghati/pala/vipala readout should tick visibly

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vedic Wall Clock — Alarm engine tests</title>
+<style>
+  body { font-family: ui-monospace, Consolas, monospace; margin: 2rem; background: #111; color: #ddd; }
+  h1 { font-size: 1.1rem; }
+  .pass { color: #7fd17f; } .fail { color: #e06060; font-weight: bold; }
+  #summary { margin: 1rem 0; padding: 1rem; background: #1a1a1a; border: 1px solid #444; }
+  li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<h1>Vedic Wall Clock — alarm engine tests</h1>
+<div id="summary">Running…</div>
+<ul id="results"></ul>
+
+<script src="../js/vendor/astronomy.browser.js"></script>
+<script src="../js/engine/util.js"></script>
+<script src="../js/engine/ayanamsa.js"></script>
+<script src="../js/engine/sunrise.js"></script>
+<script src="../js/engine/sidereal.js"></script>
+<script src="../js/engine/elongation.js"></script>
+<script src="../js/engine/tithi.js"></script>
+<script src="../js/engine/nakshatra.js"></script>
+<script src="../js/engine/yoga.js"></script>
+<script src="../js/engine/karana.js"></script>
+<script src="../js/engine/lagna.js"></script>
+<script src="../js/engine/day-events.js"></script>
+<script src="../js/engine/masa.js"></script>
+<script src="../js/engine/scaled-intervals.js"></script>
+<script src="../js/engine/ghati.js"></script>
+<script src="../js/engine/panchanga.js"></script>
+<script src="../js/render/ring-adapter.js"></script>
+<script src="../js/render/dial.js"></script>
+<script src="../js/settings.js"></script>
+<script src="../js/alarms.js"></script>
+<script>
+(async function () {
+  const E = window.VedicEngine, A = E.Alarms;
+  const data = await fetch("../js/data/panchanga-data.json").then(r => r.json());
+  const settings = E.Settings.defaults();
+  const results = document.getElementById("results");
+  let failed = 0, total = 0;
+  function check(name, ok, detail) {
+    total++;
+    if (!ok) failed++;
+    const li = document.createElement("li");
+    li.className = ok ? "pass" : "fail";
+    li.textContent = (ok ? "PASS " : "FAIL ") + name + (detail !== undefined ? "  — " + detail : "");
+    results.appendChild(li);
+  }
+  const MIN = 60000;
+  const until = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < (ms || 8000)) { const v = fn(); if (v) return v; await new Promise(r => setTimeout(r, 20)); } return null; };
+
+  // An isolated store, with ticks driven by hand.
+  const KEY = "vedicWallClock.alarms.test";
+  localStorage.removeItem(KEY);
+  const rings = [];
+  A.init({ getSettings: () => settings, getData: () => data, storageKey: KEY, autoTick: false });
+  A.onRing(ev => rings.push(ev));
+
+  // --- catalog and the per-day event builder agree -------------------------
+  const catalog = E.RingAdapter.buildAlarmCatalog(data);
+  const ids = new Set();
+  catalog.forEach(g => g.items.forEach(i => ids.add(i.id)));
+  check("catalog has unique ids", ids.size === catalog.reduce((n, g) => n + g.items.length, 0), ids.size + " events");
+  const seen = new Set(), unknown = new Set();
+  let day = new Date(), prevNext = null, maxGap = 0;
+  for (let i = 0; i < 40; i++) {
+    const snap = E.Panchanga.compute(day, settings);
+    if (prevNext != null) maxGap = Math.max(maxGap, Math.abs(snap.anchors.governingSunrise - prevNext));
+    prevNext = snap.anchors.nextSunrise.getTime();
+    E.RingAdapter.buildAlarmEvents(snap, data).forEach(e => { (ids.has(e.id) ? seen : unknown).add(e.id); });
+    day = new Date(snap.anchors.nextSunrise.getTime() + MIN);
+  }
+  check("every event built is in the catalog", unknown.size === 0, [...unknown].join(","));
+  check("every catalog event occurs within 40 days", seen.size === ids.size, "missing: " + [...ids].filter(i => !seen.has(i)).join(","));
+  check("consecutive Vedic days join up (< 1s)", maxGap < 1000, maxGap + " ms");
+
+  // --- searching forward: true boundaries -----------------------------------
+  const tithi = await A.preview({ events: ["tithi:11"], mode: "start" }, 2);
+  check("tithi: found two Ekādaśī (śukla)", tithi.length === 2);
+  check("tithi: start and end are true boundaries", tithi.every(x =>
+    E.Tithi.current(new Date(x.start + 90000)).number === 11 && E.Tithi.current(new Date(x.start - 90000)).number === 10 &&
+    E.Tithi.current(new Date(x.end - 90000)).number === 11 && E.Tithi.current(new Date(x.end + 90000)).number === 12));
+  const nak = await A.preview({ events: ["nak:3"], mode: "end" }, 2);
+  check("nakṣatra: 'end' alarms fire at the true end", nak.every(x => x.fire === x.end &&
+    E.Nakshatra.current(new Date(x.end - 90000), "lahiri").index === 3 && E.Nakshatra.current(new Date(x.end + 90000), "lahiri").index === 4));
+  const lagna = await A.preview({ events: ["lagna:0"], mode: "start" }, 5);
+  check("lagna: one occurrence per day, no duplicates from the day joins", lagna.length === 5 && lagna.every((x, i) => i === 0 || Math.abs(x.start - lagna[i - 1].start - 86164000) < 15 * MIN));
+
+  // --- offsets ----------------------------------------------------------------
+  const start = await A.preview({ events: ["win:rahu"], mode: "start" }, 3);
+  const end = await A.preview({ events: ["win:rahu"], mode: "end" }, 3);
+  check("start: rings at the start", start.every(x => x.fire === x.start));
+  check("end: rings at the end", end.every(x => x.fire === x.end && x.end > x.start));
+  for (const [value, unit, want] of [[30, "min", 30], [2, "ghati", 48], [1.5, "hr", 90], [72, "hr", 4320]]) {
+    const r = await A.preview({ events: ["win:rahu"], mode: "before", offsetValue: value, offsetUnit: unit }, 2);
+    check("before " + value + " " + unit + " = " + want + " min ahead", r.length === 2 && r.every(x => (x.start - x.fire) / MIN === want && x.fire > Date.now()));
+  }
+  check("'before 0' is just the start", (await A.preview({ events: ["win:rahu"], mode: "before", offsetValue: 0 }, 1))[0].fire === start[0].start);
+
+  // --- several events, instants, rare events, bad input ------------------------------
+  const multi = await A.preview({ events: ["sun:rise", "sun:set", "marker:avartana"], mode: "start" }, 6);
+  check("several events come out in time order", multi.length === 6 && multi.every((x, i) => i === 0 || multi[i - 1].fire <= x.fire));
+  const sk = await A.preview({ events: ["marker:sankranti"], mode: "start" }, 2);
+  check("saṅkrānti (about monthly) is found, with its rāśi", sk.length === 2 && /Saṅkrānti/.test(sk[0].detail), sk.map(x => x.detail).join(", "));
+  check("no events / unknown id -> nothing", (await A.preview({ events: [] }, 1)).length === 0 && (await A.preview({ events: ["nope"] }, 1)).length === 0);
+  const dur = await A.preview({ events: ["win:durmuhurta"], mode: "start" }, 14);
+  check("adjacent windows of one kind merge (Saturday's two Durmuhūrta)", dur.some(x => x.end - x.start > 80 * MIN) && dur.every(x => x.end - x.start < 100 * MIN));
+
+  // --- stored alarms: firing, once, grace, persistence --------------------------------
+  const a1 = A.add({ events: ["win:rahu"], mode: "before", offsetValue: 10, offsetUnit: "min", repeat: "always", label: "  prep  " });
+  const a2 = A.add({ events: ["win:gulika"], mode: "start", repeat: "once" });
+  check("add normalises (label trimmed, ids assigned)", a1 && a1.label === "prep" && a1.id && a2.id !== a1.id);
+  check("alarm without events is refused", A.add({ events: ["nope"] }) === null);
+  const listed = () => A.list();
+  await until(() => listed().every(a => a.next));
+  const n1 = listed().find(a => a.id === a1.id).next, n2 = listed().find(a => a.id === a2.id).next;
+  check("each alarm worked out its next ring", n1 && n2, new Date(n1.fireAt).toISOString() + " / " + new Date(n2.fireAt).toISOString());
+
+  A.tick(n1.fireAt - 5000);
+  check("does not ring early", rings.length === 0);
+  A.tick(n1.fireAt + 1000);
+  check("rings on time, with the event named", rings.length >= 1 && rings.some(r => r.alarm.id === a1.id && r.items[0].label === "Rāhu Kālam"));
+  const ringsAfter = rings.length;
+  A.tick(n1.fireAt + 2000);
+  check("rings once, not every tick", rings.length === ringsAfter);
+  const next1 = await until(() => { const a = listed().find(x => x.id === a1.id); return a.next && a.next.fireAt > n1.fireAt && a.next; });
+  check("recurring alarm re-arms for the next occurrence", !!next1 && next1.fireAt - n1.fireAt > 12 * 3600 * 1000, next1 && new Date(next1.fireAt).toISOString());
+
+  // An alarm that is long overdue (the page was asleep) is skipped, not shouted.
+  // a2's first ring was already far in the past at the tick above.
+  check("overdue beyond the grace period is skipped silently", !rings.some(r => r.alarm.id === a2.id));
+  const a2Next = await until(() => { const a = listed().find(x => x.id === a2.id); return a.next && a.next.fireAt > n2.fireAt && a.next; });
+  check("a skipped 'once' alarm stays armed for its next occurrence", listed().find(a => a.id === a2.id).enabled && !!a2Next && a2Next.fireAt > n2.fireAt);
+  const a5 = A.add({ events: ["win:yamaganda"], mode: "start", repeat: "always" });
+  await until(() => listed().find(a => a.id === a5.id).next);
+  const n5 = listed().find(a => a.id === a5.id).next;
+  const ringsBefore5 = rings.length;
+  A.tick(n5.fireAt + A.GRACE_MS + MIN);
+  check("6 minutes late is not rung", rings.length === ringsBefore5 && !rings.some(r => r.alarm.id === a5.id));
+  const n5b = await until(() => { const a = listed().find(x => x.id === a5.id); return a.next && a.next.fireAt > n5.fireAt && a.next; });
+  check("...and the alarm moves on to the next occurrence", !!n5b);
+  A.remove(a5.id);
+
+  // once: rings, then switches itself off
+  const a3 = A.add({ events: ["win:yamaganda"], mode: "start", repeat: "once" });
+  await until(() => listed().find(a => a.id === a3.id).next);
+  const n3 = listed().find(a => a.id === a3.id).next;
+  A.tick(n3.fireAt + 500);
+  check("'once' rings", rings.some(r => r.alarm.id === a3.id));
+  check("'once' then turns itself off", listed().find(a => a.id === a3.id).enabled === false);
+
+  // grace: within the grace period still rings
+  const a4 = A.add({ events: ["win:gulika"], mode: "end", repeat: "always" });
+  await until(() => listed().find(a => a.id === a4.id).next);
+  const n4 = listed().find(a => a.id === a4.id).next;
+  A.tick(n4.fireAt + 2 * MIN);
+  check("2 minutes late still rings (within grace)", rings.some(r => r.alarm.id === a4.id));
+
+  // persistence + toggles
+  const stored = JSON.parse(localStorage.getItem(KEY));
+  check("saved to storage", stored.alarms.length === 4 && stored.alarms.every(a => !Object.keys(a).some(k => k.startsWith("_"))));
+  A.setEnabled(a1.id, false);
+  check("can be switched off", listed().find(a => a.id === a1.id).enabled === false && listed().find(a => a.id === a1.id).next === undefined);
+  A.update(a1.id, { events: ["tithi:11", "tithi:26"], mode: "end", repeat: "always" });
+  const updated = A.get(a1.id);
+  check("edit replaces the alarm and re-enables it", updated.enabled && updated.mode === "end" && updated.events.length === 2);
+  A.remove(a1.id);
+  check("remove", !A.get(a1.id));
+  check("titles summarise events", A.eventsText(["tithi:11", "tithi:26"]) === "Ekādaśī (śukla) · Ekādaśī (kṛṣṇa)" &&
+    A.eventsText(catalog.find(g => g.id === "yoga").items.map(i => i.id)) === "All Yoga");
+  check("trigger wording differs for instants", A.triggerText({ events: ["sun:set"], mode: "start" }) === "At the moment" && A.triggerText({ events: ["win:rahu"], mode: "start" }) === "At the start");
+
+  localStorage.removeItem(KEY);
+  const s = document.getElementById("summary");
+  s.textContent = failed ? failed + " of " + total + " FAILED" : "All " + total + " checks passed";
+  s.className = failed ? "fail" : "pass";
+  document.title = (failed ? "FAIL" : "PASS") + " — alarm tests";
+})().catch(function (e) { document.getElementById("summary").textContent = "ERROR: " + e.message; document.title = "ERROR"; console.error(e); });
+</script>
+</body>
+</html>

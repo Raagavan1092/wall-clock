@@ -500,5 +500,165 @@
     return { hours: hours, sunriseLabel: sunriseLabel };
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
+  // ---------------------------------------------------------------------
+  // Alarm events: everything the clock can show, as nameable events.
+  //
+  // buildAlarmCatalog lists them for the alarm picker (stable ids + labels);
+  // buildAlarmEvents turns one Panchanga snapshot into the concrete
+  // occurrences of those ids (id, start, end) so alarms.js can find the next
+  // time one happens. Unlike the dial's own builders, which clip everything
+  // to the Vedic day for drawing, this keeps each occurrence's TRUE bounds
+  // wherever they are known (a tithi that began the evening before sunrise
+  // starts then, not at sunrise) - an alarm "at the start" must not fire at
+  // sunrise for something that began hours earlier.
+  // ---------------------------------------------------------------------
+
+  // The good/bad windows, by stable id. `text` is what dailyWindows() and
+  // activeIntervalsFor() label them with above.
+  const WINDOW_DEFS = [
+    { id: "win:rahu", text: "Rāhu Kālam", goodBad: "bad", note: "Inauspicious eighth of the day" },
+    { id: "win:yamaganda", text: "Yamagaṇḍa", goodBad: "bad", note: "Inauspicious eighth of the day" },
+    { id: "win:gulika", text: "Gulika Kālam", goodBad: "bad", note: "Inauspicious eighth of the day" },
+    { id: "win:durmuhurta", text: "Durmuhūrta", goodBad: "bad", note: "Inauspicious muhūrta(s) of the day" },
+    { id: "win:varjyam", text: "Varjyam", goodBad: "bad", note: "Inauspicious window inside each nakṣatra" },
+    { id: "combo:marana", text: "Maraṇa Yogam", goodBad: "bad", note: "Weekday + nakṣatra, inauspicious" },
+    { id: "combo:visha", text: "Viṣa Yoga", goodBad: "bad", note: "Weekday + tithi, inauspicious" },
+    { id: "win:abhijit", text: "Abhijit", goodBad: "good", note: "The midday muhūrta" },
+    { id: "win:pradosha", text: "Pradoṣa", goodBad: "good", note: "Dusk, after sunset" },
+    { id: "win:godhuli", text: "Godhūli", goodBad: "good", note: "Twilight around sunset" },
+    { id: "win:amrita-kalam", text: "Amṛta Kālam", goodBad: "good", note: "Auspicious window inside each nakṣatra" },
+    { id: "combo:amrita", text: "Amṛta Yogam", goodBad: "good", note: "Weekday + nakṣatra, most auspicious" },
+    { id: "combo:sarvartha", text: "Sarvārtha Siddhi", goodBad: "good", note: "Weekday + nakṣatra, auspicious" },
+    { id: "combo:ravi", text: "Ravi Yoga", goodBad: "good", note: "Moon's nakṣatra counted from the Sun's" },
+  ];
+  const WINDOW_ID_BY_TEXT = {};
+  WINDOW_DEFS.forEach(function (w) { WINDOW_ID_BY_TEXT[w.text] = w.id; });
+
+  // Single instants on the clock: the marker lines plus sunrise and sunset.
+  const MOMENT_DEFS = [
+    { id: "sun:rise", label: "Sūryodaya", note: "Sunrise" },
+    { id: "sun:set", label: "Sūryāsta", note: "Sunset" },
+    { id: "marker:avartana", label: MARKER_TITLES.avartana, note: "Midday, halfway between sunrise and sunset" },
+    { id: "marker:nishitha", label: MARKER_TITLES.nishitha, note: "Midnight, halfway between sunset and sunrise" },
+    { id: "marker:arunodaya", label: MARKER_TITLES.arunodaya, note: "Four ghaṭī before sunrise" },
+    { id: "marker:moonrise", label: MARKER_TITLES.moonrise, note: "Moonrise" },
+    { id: "marker:moonset", label: MARKER_TITLES.moonset, note: "Moonset" },
+    { id: "marker:sankranti", label: MARKER_TITLES.sankranti, note: "The Sun enters a new rāśi" },
+  ];
+
+  const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th", "13th", "14th", "15th"];
+  const SHUKLA_SECTION = "Śukla pakṣa · waxing";
+  const KRISHNA_SECTION = "Kṛṣṇa pakṣa · waning";
+
+  // [{ id, title, hint, tone?, items: [{ id, label, sub?, section?, instant? }] }]
+  function buildAlarmCatalog(data) {
+    function item(id, label, extra) { return Object.assign({ id: id, label: label }, extra); }
+    function windows(goodBad) {
+      return WINDOW_DEFS.filter(function (w) { return w.goodBad === goodBad; })
+        .map(function (w) { return item(w.id, w.text, { sub: w.note }); });
+    }
+
+    const tithis = [];
+    for (let n = 1; n <= 30; n++) {
+      const paksha = n <= 15 ? "shukla" : "krishna";
+      const label = tithiName({ paksha: paksha, pakshaIndex: n <= 15 ? n : n - 15 }, data);
+      // `short`: the picker already groups tithis under a pakṣa heading.
+      tithis.push(item("tithi:" + n, label, { short: label.replace(/ \(.*\)$/, ""), section: n <= 15 ? SHUKLA_SECTION : KRISHNA_SECTION }));
+    }
+
+    const karanas = data.karana.movable.map(function (name, i) {
+      return item("karana:movable:" + i, name, { section: "Movable · repeats through the month" });
+    }).concat(Object.keys(data.karana.fixed).map(function (key) {
+      return item("karana:" + key, data.karana.fixed[key], { section: "Fixed · once a month" });
+    }));
+
+    function halves(kind, def, subOf) {
+      const out = [];
+      [["day", "Day · sunrise to sunset"], ["night", "Night · sunset to sunrise"]].forEach(function (half) {
+        def[half[0]].names.forEach(function (name, i) {
+          out.push(item(kind + ":" + half[0] + ":" + i, name, { section: half[1], sub: subOf ? subOf(i) : undefined }));
+        });
+      });
+      return out;
+    }
+
+    return [
+      { id: "bad", title: "Bad Times", hint: "Inauspicious windows to avoid", tone: "bad", items: windows("bad") },
+      { id: "good", title: "Good Times", hint: "Auspicious windows to use", tone: "good", items: windows("good") },
+      { id: "tithi", title: "Tithi", hint: "The lunar day", items: tithis },
+      { id: "nakshatra", title: "Nakṣatra", hint: "The Moon's lunar mansion",
+        items: data.nakshatra.names.map(function (name, i) { return item("nak:" + i, name); }) },
+      { id: "yoga", title: "Yoga", hint: "Sun + Moon combination",
+        items: data.yoga.names.map(function (name, i) { return item("yoga:" + i, name); }) },
+      { id: "karana", title: "Karaṇa", hint: "Half a tithi", items: karanas },
+      { id: "muhurta", title: "Muhūrta", hint: "Thirtieths of the day and night",
+        items: halves("muhurta", data.muhurta, function (i) { return ORDINALS[i] + " of 15"; }) },
+      { id: "prahara", title: "Yāma", hint: "Quarters of the day and night", items: halves("prahara", data.prahara) },
+      { id: "kala", title: "Kāla", hint: "The five parts of the day",
+        items: data.kala.day.names.map(function (name, i) { return item("kala:" + i, name); }) },
+      { id: "hora", title: "Horā", hint: "The planetary hours",
+        items: data.hora.weekdayStartPlanet.map(function (planet) {
+          return item("hora:" + planet, data.hora.names[planet] + " Horā", { sub: "Every hour ruled by this planet" });
+        }) },
+      { id: "lagna", title: "Lagna", hint: "The rising sign",
+        items: data.rashi.names.map(function (name, i) { return item("lagna:" + i, name); }) },
+      { id: "moments", title: "Moments", hint: "Single instants of the day",
+        items: MOMENT_DEFS.map(function (m) { return item(m.id, m.label, { sub: m.note, instant: true }); }) },
+    ];
+  }
+
+  // The concrete occurrences of every catalog event around one Vedic day:
+  // [{ id, start: Date, end: Date, detail? }] (end === start for instants).
+  // Events that straddle sunrise come out of two consecutive snapshots as
+  // overlapping/adjacent pieces; alarms.js merges those.
+  function buildAlarmEvents(snapshot, data) {
+    const out = [];
+    const a = snapshot.anchors;
+    function push(id, start, end, detail) {
+      if (start && end && end >= start) out.push({ id: id, start: start, end: end, detail: detail });
+    }
+    // True bounds when the engine reports them (tithi, nakṣatra, yoga, karaṇa, lagna).
+    function sequence(sequenceList, idOf) {
+      sequenceList.forEach(function (e) { push(idOf(e), e.startTime || e.segStart, e.endTime || e.segEnd); });
+    }
+    sequence(snapshot.tithiSequence, function (t) { return "tithi:" + t.number; });
+    sequence(snapshot.nakshatraSequence, function (n) { return "nak:" + n.index; });
+    sequence(snapshot.yogaSequence, function (y) { return "yoga:" + y.index; });
+    sequence(snapshot.karanaSequence, function (k) { return "karana:" + k.key; });
+    sequence(snapshot.lagnaSequence, function (l) { return "lagna:" + l.index; });
+
+    // Rings that divide the day and night: real clock intervals.
+    const rings = snapshot.scaledRings;
+    ["muhurta", "prahara"].forEach(function (kind) {
+      ["day", "night"].forEach(function (half) {
+        rings[kind][half].forEach(function (iv, i) { push(kind + ":" + half + ":" + i, iv.startTime, iv.endTime); });
+      });
+    });
+    rings.kala.day.forEach(function (iv, i) { push("kala:" + i, iv.startTime, iv.endTime); });
+    const order = data.hora.chaldeanOrder;
+    const startIdx = order.indexOf(data.hora.weekdayStartPlanet[snapshot.varaIndex]);
+    rings.hora.day.concat(rings.hora.night).forEach(function (iv, i) {
+      push("hora:" + order[(startIdx + i) % order.length], iv.startTime, iv.endTime);
+    });
+
+    // The good/bad windows: whole windows (not clipped to the day), and the
+    // weekday-conditioned combination yogas (clipped to the day they hold on).
+    dailyWindows(snapshot, data).forEach(function (w) { push(WINDOW_ID_BY_TEXT[w.text], w.startTime, w.endTime); });
+    [
+      activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)),
+      activeIntervalsFor("Viṣa Yoga", "bad", buildVishaYoga(snapshot, data)),
+      activeIntervalsFor("Amṛta Yogam", "good", buildAmritaYoga(snapshot, data)),
+      activeIntervalsFor("Sarvārtha Siddhi", "good", buildSarvarthaSiddhiYoga(snapshot, data)),
+      activeIntervalsFor("Ravi Yoga", "good", buildRaviYoga(snapshot, data)),
+    ].forEach(function (list) {
+      list.forEach(function (w) { push(WINDOW_ID_BY_TEXT[w.text], w.startTime, w.endTime); });
+    });
+
+    push("sun:rise", a.governingSunrise, a.governingSunrise);
+    push("sun:set", a.sunsetToday, a.sunsetToday);
+    buildDayMarkers(snapshot, data, []).forEach(function (m) { push("marker:" + m.key, m.time, m.time, m.tooltipTitle); });
+    return out;
+  }
+
+  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, buildAlarmCatalog, buildAlarmEvents, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);
