@@ -190,6 +190,19 @@
   const calOnce = await A.buildCalendar(a2.id);
   check("calendar: a 'once' alarm exports its single next ring", calOnce.count === 1 && /^vedic-alarm-/.test(calOnce.filename) && /\.ics$/.test(calOnce.filename), calOnce.filename);
 
+  // --- date shown for times after midnight, before sunrise ------------------------------
+  const sunrises = await A.preview({ events: ["sun:rise"], mode: "start" }, 2);
+  const sunsets = await A.preview({ events: ["sun:set"], mode: "start" }, 1);
+  const sr0 = sunrises[0].start;
+  check("dateNote: sunrise itself and daytime/evening have none", A.dateNote(sr0) === "" && A.dateNote(sr0 + 3 * 3600000) === "" && A.dateNote(sunsets[0].start) === "");
+  check("dateNote: 2 s before sunrise has the date, e.g. (Nov 3)", /^ \([A-Z][a-z]{2} \d{1,2}\)$/.test(A.dateNote(sr0 - 2000)), A.dateNote(sr0 - 2000));
+  check("dateNote: just after midnight IST has the date", A.dateNote(Math.floor((sr0 + 19800000) / 86400000) * 86400000 - 19800000 + 30000) !== "");
+  const snapNow = E.Panchanga.compute(new Date(sr0 - 3600000), settings);
+  const sameAsDial = [].concat(...["muhurta", "hora"].map(k => E.RingAdapter.build(k, snapNow, data).segments.map(g => [g.startTime, g.endTime])))
+    .flat().filter(t => Math.abs(t - snapNow.anchors.nextSunrise) > 5000)
+    .every(t => E.RingAdapter.dateNote(t, snapNow.anchors) === A.dateNote(t.getTime()));
+  check("dateNote: agrees with the dial's tooltip rule on every segment time", sameAsDial);
+
   localStorage.removeItem(KEY);
   const s = document.getElementById("summary");
   s.textContent = failed ? failed + " of " + total + " FAILED" : "All " + total + " checks passed";

@@ -415,7 +415,7 @@
     return out.join("\r\n");
   }
   function istHM(ms) {
-    return new Date(ms + 5.5 * 3600 * 1000).toISOString().slice(11, 16);
+    return new Date(ms + 5.5 * 3600 * 1000).toISOString().slice(11, 16) + dateNote(ms);
   }
 
   // Resolves { text, count, filename } for the alarm's next rings (up to 40,
@@ -453,6 +453,19 @@
   }
 
   // ---- wording ------------------------------------------------------------
+
+  // " (Nov 3)" for a time after midnight and before that morning's sunrise
+  // (IST) - still part of the previous Vedic day, so a bare "02:10" would read
+  // as the wrong date. "" for every other time. Same rule as the dial's
+  // tooltips and centre readout (RingAdapter.dateNote).
+  function dateNote(ms) {
+    const IST_MS = 5.5 * 3600 * 1000;
+    const dayOf = function (t) { return Math.floor((t + IST_MS) / DAY_MS); };
+    const s = ctx.getSettings();
+    const sunrise = VedicEngine.Sunrise.sunriseAtOrBefore(s.location, new Date(ms), s.sunriseEdge);
+    if (!sunrise || dayOf(sunrise.getTime()) === dayOf(ms)) return "";
+    return " (" + new Date(ms).toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" }) + ")";
+  }
 
   function allInstants(ids) {
     const known = getCatalog().byId;
@@ -508,7 +521,7 @@
     catalog: function () { return getCatalog().groups; },
     catalogItem: function (id) { return getCatalog().byId.get(id); },
     get: function (id) { const a = find(id); return a ? serialize(a) : null; },
-    eventsText, triggerText, allInstants,
+    eventsText, triggerText, allInstants, dateNote,
     UNIT_LABEL, UNIT_MS, GRACE_MS, STORAGE_KEY,
   };
 })(typeof window !== "undefined" ? window : globalThis);

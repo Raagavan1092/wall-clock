@@ -249,7 +249,7 @@
   let savedTitle = null;
 
   function itemLine(item, alarm, at) {
-    const start = fmtHM(item.start), end = fmtHM(item.end);
+    const start = fmtHM(item.start) + Alarms.dateNote(item.start), end = fmtHM(item.end) + Alarms.dateNote(item.end);
     if (item.instant) return alarm.mode === "before" ? "In " + span(item.start - at) + " · at " + start : "Now · " + start;
     if (alarm.mode === "end") return "Ends now · " + end + " (began " + start + ")";
     if (alarm.mode === "before") return "Begins in " + span(item.start - at) + " · at " + start + " – " + end;
@@ -654,7 +654,7 @@
             icon("bell"),
             h("div", {},
               h("strong", { text: "Rings " + fmtWhen(first.fire, now) + " IST" }),
-              h("span", { text: "in " + span(first.fire - now) + " · " + (first.detail || item.label) + " " + what + " at " + fmtHM(eventTime) }))));
+              h("span", { text: "in " + span(first.fire - now) + " · " + (first.detail || item.label) + " " + what + " at " + fmtHM(eventTime) + Alarms.dateNote(eventTime) }))));
           if (found.length > 1) {
             previewEl.appendChild(h("p", { class: "al-preview-then" }, "Then " + found.slice(1).map(function (f) { return fmtWhen(f.fire, now); }).join("  ·  ")));
           }
