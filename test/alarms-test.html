@@ -180,10 +180,21 @@
   const sk1 = A.add({ events: ["win:rahu"], mode: "before", offsetValue: 20, offsetUnit: "min", repeat: "always", label: "Rāhu, careful; a very long label so that the line has to be folded across several lines for sure", soundKind: "track" });
   check("sound choice is kept ('track'), anything else is the bell", sk1.soundKind === "track" && A.add({ events: ["win:rahu"], soundKind: "x" }).soundKind === "bell");
   check("a built-in tune is kept by id; an unknown tune falls back to the bell",
-    A.add({ events: ["win:rahu"], soundKind: "tune:morning-canon" }).soundKind === "tune:morning-canon" && A.add({ events: ["win:rahu"], soundKind: "tune:nope" }).soundKind === "bell");
+    A.add({ events: ["win:rahu"], soundKind: "tune:funk-alarm" }).soundKind === "tune:funk-alarm" && A.add({ events: ["win:rahu"], soundKind: "tune:nope" }).soundKind === "bell");
   check("there are 20 tunes, each with a name, and every one parses", E.Tunes.list.length === 20 && E.Tunes.list.every(t => t.name && t.sub && E.Tunes.get(t.id).voices.every(v => v.notes.trim().split(/\s+/).every(tok => /^(r|-?\d+(\+-?\d+)*):\d*\.?\d+$/.test(tok)))));
   check("every voice fits its loop (notes add up to the tune's length)", E.Tunes.list.every(t => E.Tunes.get(t.id).voices.every(v => Math.abs(v.notes.trim().split(/\s+/).reduce((n, tok) => n + parseFloat(tok.split(":")[1]), 0) - E.Tunes.get(t.id).beats) < 1e-9)));
-  check("scale degrees map to the right pitch (D major: 0 = D4, 9 = F#5)", Math.abs(E.Tunes.frequency(E.Tunes.get("morning-canon"), 0, 0) - 293.66) < 0.1 && Math.abs(E.Tunes.frequency(E.Tunes.get("morning-canon"), 9, 0) - 739.99) < 0.1);
+  check("scale degrees map to the right pitch (C major: 0 = C4, 9 = E5, -7 = C3)", Math.abs(E.Tunes.frequency(E.Tunes.get("reveille-rush"), 0, 0) - 261.63) < 0.1 && Math.abs(E.Tunes.frequency(E.Tunes.get("reveille-rush"), 9, 0) - 659.26) < 0.1 && Math.abs(E.Tunes.frequency(E.Tunes.get("reveille-rush"), -7, 0) - 130.81) < 0.1);
+  check("every tune's instruments exist and a pass can be scheduled (offline render, no clipping)", await (async () => {
+    for (const info of E.Tunes.list) {
+      const tune = E.Tunes.get(info.id), sr = 22050, oc = new OfflineAudioContext(1, Math.ceil((tune.beats * 60 / tune.bpm + 3) * sr), sr);
+      const master = oc.createGain(); master.gain.value = 0.9; master.connect(oc.destination); // as the player's master gain
+      E.Tunes.schedulePass(oc, master, tune, 0);
+      const d = (await oc.startRendering()).getChannelData(0); let peak = 0;
+      for (let i = 0; i < d.length; i++) { if (d[i] !== d[i]) return false; peak = Math.max(peak, Math.abs(d[i])); }
+      if (peak < 0.05 || peak > 1) return false;
+    }
+    return true;
+  })());
 
   // --- date shown for times after midnight, before sunrise ------------------------------
   const sunrises = await A.preview({ events: ["sun:rise"], mode: "start" }, 2);

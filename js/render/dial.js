@@ -311,10 +311,10 @@
   // `scale` is ring-adapter.js's buildHourScale output.
   function renderHourScale(g, scale) {
     while (g.firstChild) g.removeChild(g.firstChild);
-    const QUARTERS = 4; // minor ticks every 15 minutes
+    const DIVISIONS = 6; // 5 minor ticks between hours, one every 10 minutes
     scale.hours.forEach(function (h) {
-      for (let q = 1; q < QUARTERS; q++) {
-        tick(g, h.angle + q * (15 / QUARTERS), R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
+      for (let q = 1; q < DIVISIONS; q++) {
+        tick(g, h.angle + q * (15 / DIVISIONS), R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
       }
       tick(g, h.angle, R.ghatiMajorTickInner, R.ghatiMajorTickOuter, "tick-major");
       const distFromTop = Math.min(h.angle, 360 - h.angle);
@@ -323,9 +323,9 @@
       g.appendChild(radialLabel(String(h.hour), h.angle, R.ghatiNumeral, isLandmark ? 20 : 17, isLandmark ? "ghati-numeral" : "hour-numeral"));
     });
     // The first whole hour after sunrise is less than 15 deg clockwise of the
-    // top, so the quarter ticks before it still need drawing.
+    // top, so the minor ticks before it still need drawing.
     const first = scale.hours[0];
-    for (let a = first.angle - 15 / QUARTERS; a > 0.5; a -= 15 / QUARTERS) {
+    for (let a = first.angle - 15 / DIVISIONS; a > 0.5; a -= 15 / DIVISIONS) {
       tick(g, a, R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
     }
     tick(g, 0, R.ghatiMajorTickInner - 6, R.ghatiMajorTickOuter, "tick-sunrise");

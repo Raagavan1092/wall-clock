@@ -1,9 +1,11 @@
-// Twenty built-in alarm tunes, made in the browser (Web Audio) - no sound
-// files to ship, load or cache.
+// Twenty built-in wake-up tunes, made in the browser (Web Audio) - no sound
+// files to ship, load or cache. They are meant to jolt you awake, not to
+// soothe: drums, bass, sirens, brass, chip leads, in twenty different styles
+// (marching band, funk, techno, drum & bass, ska, dubstep, trap, polka ...).
 //
 // A tune is data: a scale, a tonic, a tempo and a few voices, each voice an
 // instrument plus a string of notes. Notes are scale DEGREES, not pitches, so
-// everything is in key by construction:
+// pitched parts are in key by construction:
 //
 //   "0:1 2:.5 r:.5 4+6:2"   degree 0 for one beat, degree 2 for half a beat,
 //                           half a beat's rest, then a chord of degrees 4 and 6
@@ -12,12 +14,11 @@
 // Degree 0 is the tonic; degrees past the end of the scale climb an octave
 // (in a 7-note scale 7 is the tonic an octave up), negative ones descend. A
 // voice's `octave` shifts it whole octaves and `delay` starts it that many
-// beats late (that is how the canon enters). One pass of the tune is `beats`
-// long; passes repeat until stopped. Voices that run past the end of a pass
-// overlap the start of the next, so the canon's entries stay continuous.
+// beats late. Drum voices (kick, snare, hat ...) ignore pitch: any degree just
+// means "hit". One pass of the tune is `beats` long; passes repeat until
+// stopped, and every voice's notes add up to exactly `beats`.
 //
-// Apart from the Pachelbel canon (17th century) and Beethoven's Ode to Joy,
-// the tunes are original compositions, in ragas where the name says so.
+// All twenty are original.
 (function (global) {
   "use strict";
 
@@ -25,197 +26,248 @@
 
   // ---- scales (semitones above the tonic) -------------------------------------
   const MAJOR = [0, 2, 4, 5, 7, 9, 11];
-  const BHOOPALI = [0, 2, 4, 7, 9];             // also Mohanam
-  const AHIR_BHAIRAV = [0, 1, 4, 5, 7, 9, 10];
-  const YAMAN = [0, 2, 4, 6, 7, 9, 11];         // Lydian
-  const HAMSADHWANI = [0, 2, 4, 7, 11];
-  const MADHUVANTI = [0, 2, 3, 6, 7, 9, 11];
-  const BHAIRAV = [0, 1, 4, 5, 7, 8, 11];
+  const MINOR = [0, 2, 3, 5, 7, 8, 10];
   const MINOR_PENTATONIC = [0, 3, 5, 7, 10];
+  const MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10];
+  const TRITONE = [0, 6];                      // a root and the devil's interval: an alarm's two notes
+  const TWO_BELLS = [0, 1];                    // two bells a semitone apart, for the clock trill
 
   function rep(text, times) { return new Array(times + 1).join(text + " "); }
+  // A 16th-note bass figure on `root`, jumping up `up` degrees: one bar.
+  function pump(root, up) {
+    const half = root + ":.25 " + root + ":.25 " + (root + up) + ":.25 " + root + ":.25 " + root + ":.25 " + (root + up) + ":.25 " + root + ":.25 " + (root + up) + ":.25 ";
+    return half + half;
+  }
+  // A galloping 8th + two 16ths, on `what` (a degree or chord), for `bars` bars.
+  function gallop(what, bars) { return rep(what + ":.5 " + what + ":.25 " + what + ":.25", 4 * bars); }
 
-  // MIDI numbers for tonics: 55 G3, 57 A3, 60 C4, 62 D4, 65 F4, 67 G4, 69 A4, 72 C5.
+  // Common drum bars (4 beats each).
+  const FLOOR = "0:1 0:1 0:1 0:1 ";                        // kick on every beat
+  const BACKBEAT = "r:1 0:1 r:1 0:1 ";                     // on beats 2 and 4
+  const EIGHTHS = rep("0:.5", 8) + " ";                    // eight 8ths
+  const OFFBEATS = rep("r:.5 0:.5", 4) + " ";              // the "and" of every beat
+  const SIXTEENTHS = rep("0:.25", 16) + " ";
+
+  // MIDI numbers for tonics: 45 A2, 52 E3, 57 A3, 60 C4, 62 D4, 64 E4, 67 G4, 69 A4.
   const TUNES = [
     {
-      id: "morning-canon", name: "Morning Canon", sub: "The Pachelbel canon theme, three voices entering in turn",
-      scale: MAJOR, tonic: 62, bpm: 72, beats: 32, vol: 0.92,
+      id: "reveille-rush", name: "Reveille Rush", sub: "A brass bugle fanfare over snare rolls - up, soldier",
+      scale: MAJOR, tonic: 60, bpm: 140, beats: 16, vol: 1.034,
       voices: [
-        // the ground: D A B F# G D G A, twice
-        { inst: "harp", vol: 0.9, octave: -2, notes: rep("0:2 4:2 5:2 2:2 3:2 0:2 3:2 4:2", 2) },
-        { inst: "pad", vol: 0.5, octave: -1, notes: rep("0+2+4:2 4+6+8:2 5+7+9:2 2+4+6:2 3+5+7:2 0+2+4:2 3+5+7:2 4+6+8:2", 2) },
-        // the theme, then its variation; the canon enters two bars later each time
-        { inst: "musicbox", vol: 0.8, octave: 0, notes: "9:2 8:2 7:2 6:2 5:2 4:2 5:2 6:2 7:2 6:2 5:2 4:2 3:2 2:2 3:2 1:2" },
-        { inst: "flute", vol: 0.75, octave: -1, delay: 8, notes: "9:2 8:2 7:2 6:2 5:2 4:2 5:2 6:2 7:2 6:2 5:2 4:2 3:2 2:2 3:2 1:2" },
-        { inst: "harp", vol: 0.55, octave: 0, delay: 16, notes: "9:2 8:2 7:2 6:2 5:2 4:2 5:2 6:2 7:2 6:2 5:2 4:2 3:2 2:2 3:2 1:2" },
+        { inst: "brass", vol: 1, notes: "0:.5 0:.5 2:.5 4:1.5 2:.5 4:.5 7:1 7:.5 4:.5 2:1 4:1 0:.5 0:.5 2:.5 4:1.5 2:.5 4:.5 7:.5 9:.5 11:1 9:1 7:1" },
+        { inst: "snare", vol: 1, notes: BACKBEAT + rep("0:.25", 16) + BACKBEAT + rep("0:.25", 16) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "hat", vol: 0.8, notes: rep("0:.5", 32) },
       ],
     },
     {
-      id: "joyful-morning", name: "Joyful Morning", sub: "Ode to Joy on marimba, with a harp underneath",
-      scale: MAJOR, tonic: 60, bpm: 100, beats: 32, vol: 1.62,
+      id: "chiptune-charge", name: "Chiptune Charge", sub: "8-bit square-wave arpeggios, full speed",
+      scale: MINOR, tonic: 69, bpm: 150, beats: 16, vol: 0.569,
       voices: [
-        { inst: "marimba", vol: 1, notes: "2:1 2:1 3:1 4:1 4:1 3:1 2:1 1:1 0:1 0:1 1:1 2:1 2:1.5 1:.5 1:2 2:1 2:1 3:1 4:1 4:1 3:1 2:1 1:1 0:1 0:1 1:1 2:1 1:1.5 0:.5 0:2" },
-        { inst: "harp", vol: 0.6, octave: -1, notes: rep("0:1 2:1 4:1 2:1 4:1 6:1 8:1 6:1", 3) + "0:4 0:4" },
-        { inst: "pad", vol: 0.35, octave: -1, notes: "0+2+4:8 4+6+8:8 0+2+4:8 4+6+8:4 0+2+4:4" },
+        { inst: "square", vol: 0.8, notes: rep("0:.25 2:.25 4:.25 7:.25", 4) + rep("5:.25 7:.25 9:.25 12:.25", 4) + rep("2:.25 4:.25 6:.25 9:.25", 4) + rep("6:.25 8:.25 10:.25 13:.25", 4) },
+        { inst: "square", vol: 1, octave: 1, notes: "9:1 11:.5 9:.5 7:1 9:1 12:1 11:.5 9:.5 7:1 5:1 9:.5 11:.5 13:1 11:1 9:1 13:1 12:.5 11:.5 10:2" },
+        { inst: "tri", vol: 1, octave: -2, notes: rep("0:.5", 8) + rep("5:.5", 8) + rep("2:.5", 8) + rep("6:.5", 8) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "snare", vol: 0.8, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.7, notes: rep(EIGHTHS, 4) },
       ],
     },
     {
-      id: "bhoopali-dawn", name: "Bhoopali Dawn", sub: "Raga Bhoopali · flute over a tanpura drone",
-      scale: BHOOPALI, tonic: 62, bpm: 58, beats: 32, vol: 0.68,
+      id: "funk-alarm", name: "Funk Alarm", sub: "A slapping, syncopated bass line with tight chord stabs",
+      scale: MINOR_PENTATONIC, tonic: 64, bpm: 108, beats: 16, vol: 0.766,
       voices: [
-        { inst: "pad", vol: 0.45, notes: "-5+-2:16 -5+-2:16" },
-        { inst: "flute", vol: 1, notes: "0:2 1:1 2:1 3:2 2:1 1:1 2:2 3:1 4:1 5:2 4:1 3:1 4:1 3:1 2:1 1:1 2:2 0:2 r:1 0:1 1:1 2:1 1:2 0:2" },
-        { inst: "harp", vol: 0.5, notes: rep("-5:1 -3:1 -2:1 0:1 -2:1 -3:1 -5:2", 4) },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: rep("0:.5 r:.25 0:.25 3:.5 r:.5 2:.5 0:.25 r:.25 4:.5 r:.5", 3) + "0:.5 r:.25 0:.25 3:.5 r:.5 4:.5 3:.25 r:.25 2:.5 r:.5" },
+        { inst: "stab", vol: 1, notes: rep("r:.5 0+3+4:.25 r:.75 0+3+4:.25 r:.5 0+3+4:.25 r:1.5", 4) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:.5 0:.5 r:1 0:.5 r:.5", 4) },
+        { inst: "snare", vol: 0.9, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.8, notes: rep(SIXTEENTHS, 4) },
       ],
     },
     {
-      id: "ahir-bhairav-sunrise", name: "Ahir Bhairav Sunrise", sub: "Raga Ahir Bhairav · plucked strings and a long flute",
-      scale: AHIR_BHAIRAV, tonic: 60, bpm: 66, beats: 32, vol: 1.14,
+      id: "siren-sprint", name: "Siren Sprint", sub: "An emergency-vehicle wail over a pounding kick",
+      scale: MINOR, tonic: 69, bpm: 128, beats: 16, vol: 0.302,
       voices: [
-        { inst: "pad", vol: 0.4, notes: "-7+-3:16 -7+-3:16" },
-        { inst: "sitar", vol: 1, notes: "0:1 1:1 2:2 1:1 0:1 -1:2 0:1 2:1 3:1 4:1 3:2 2:2 4:1 5:1 6:1 7:1 6:1 5:1 4:2 3:1 2:1 1:1 0:1 -1:1 0:1 0:2" },
-        { inst: "flute", vol: 0.55, notes: "0:4 2:4 4:4 2:4 3:4 2:4 1:4 0:4" },
+        { inst: "siren", vol: 1, notes: rep("7:1 3:1", 8) },
+        { inst: "bassSub", vol: 1, octave: -2, notes: rep("0:.5", 32) },
+        { inst: "kick", vol: 1, notes: rep(FLOOR, 4) },
+        { inst: "snare", vol: 0.9, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.8, notes: rep(OFFBEATS, 4) },
       ],
     },
     {
-      id: "yaman-glow", name: "Yaman Glow", sub: "Raga Yaman · rising harp over warm chords",
-      scale: YAMAN, tonic: 60, bpm: 60, beats: 32, vol: 1.78,
+      id: "ska-shake", name: "Ska Shake", sub: "Off-beat chops, a walking bass and a cheeky brass line",
+      scale: MAJOR, tonic: 60, bpm: 165, beats: 16, vol: 0.945,
       voices: [
-        { inst: "harp", vol: 1, notes: "0:1 2:1 4:1 6:2 4:1 2:1 0:1 2:1 4:1 6:1 8:2 6:1 4:1 2:1 4:1 6:1 8:1 9:2 8:1 6:1 4:1 6:1 4:1 2:1 0:2 -1:1 0:2" },
-        { inst: "pad", vol: 0.5, octave: -1, notes: "0+2+4:8 2+4+6:8 4+6+8:8 0+2+4:8" },
+        { inst: "stab", vol: 1, notes: rep("r:.5 0+2+4:.5", 4) + rep("r:.5 3+5+7:.5", 4) + rep("r:.5 0+2+4:.5", 4) + rep("r:.5 4+6+8:.5", 4) },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: "0:1 2:1 4:1 2:1 3:1 5:1 7:1 5:1 0:1 2:1 4:1 2:1 4:1 6:1 8:1 6:1" },
+        { inst: "brass", vol: 0.9, notes: "7:.5 9:.5 11:1 9:.5 7:.5 9:1 10:.5 9:.5 7:1 5:.5 7:.5 9:1 7:.5 9:.5 11:1 9:.5 7:.5 4:1 6:.5 8:.5 9:1 8:.5 6:.5 4:1" },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "snare", vol: 0.8, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.7, notes: rep(EIGHTHS, 4) },
       ],
     },
     {
-      id: "hamsadhwani-chimes", name: "Hamsadhwani Chimes", sub: "Raga Hamsadhwani · bright temple bells",
-      scale: HAMSADHWANI, tonic: 67, bpm: 72, beats: 32, vol: 1.51,
+      id: "techno-pulse", name: "Techno Pulse", sub: "Four-on-the-floor with a squelching acid bass",
+      scale: MINOR, tonic: 57, bpm: 135, beats: 16, vol: 1.003,
       voices: [
-        { inst: "bell", vol: 1, notes: "0:2 2:1 3:1 4:2 3:1 2:1 3:2 4:1 5:1 7:2 5:1 4:1 5:1 4:1 3:1 2:1 3:2 2:2 2:1 0:1 -1:2 0:4" },
-        { inst: "harp", vol: 0.6, octave: -1, notes: rep("0:1 3:1 5:1 3:1", 8) },
+        { inst: "kick", vol: 1, notes: rep(FLOOR, 4) },
+        { inst: "hat", vol: 0.9, notes: rep(OFFBEATS, 4) },
+        { inst: "clap", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "acid", vol: 1, octave: -1, notes: rep("0:.25 0:.25 r:.25 0:.25 3:.25 r:.25 0:.25 0:.25 7:.25 r:.25 0:.25 3:.25 0:.25 r:.25 5:.25 0:.25", 4) },
+        { inst: "stab", vol: 0.8, notes: rep("r:1.5 0+2+4:.5 r:2", 4) },
       ],
     },
     {
-      id: "madhuvanti-breeze", name: "Madhuvanti Breeze", sub: "Raga Madhuvanti · a soft afternoon flute",
-      scale: MADHUVANTI, tonic: 62, bpm: 70, beats: 32, vol: 0.71,
+      id: "drum-rampage", name: "Drum Rampage", sub: "Drum and bass at 174 - breakbeats and a rolling sub",
+      scale: MINOR_PENTATONIC, tonic: 64, bpm: 174, beats: 16, vol: 0.347,
       voices: [
-        { inst: "flute", vol: 1, notes: "4:1 3:1 2:1 1:1 0:2 1:1 2:1 3:2 4:1 5:1 6:2 5:1 4:1 7:1 6:1 5:1 4:1 3:1 2:1 1:1 0:1 2:1 1:1 0:2 r:2 0:2" },
-        { inst: "harp", vol: 0.65, octave: -1, notes: rep("0:1 3:1 4:1 3:1", 8) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1.5 0:.5 r:1", 4) },
+        { inst: "snare", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.8, notes: rep(SIXTEENTHS, 4) },
+        { inst: "bassSub", vol: 1, octave: -2, notes: "0:2 3:1 0:1 0:2 5:1 3:1 0:2 3:1 0:1 3:2 2:1 0:1" },
+        { inst: "stab", vol: 0.9, notes: rep("r:.75 0+3+4:.25 r:1.75 0+3+4:.25 r:1", 4) },
       ],
     },
     {
-      id: "mohanam-garland", name: "Mohanam Garland", sub: "Raga Mohanam · a playful marimba dance",
-      scale: BHOOPALI, tonic: 65, bpm: 84, beats: 32, vol: 1.96,
+      id: "rock-riff-wake", name: "Rock Riff Wake", sub: "Chugging power chords, a scream of a lead, a stomping beat",
+      scale: MINOR_PENTATONIC, tonic: 52, bpm: 132, beats: 16, vol: 1.123,
       voices: [
-        { inst: "marimba", vol: 1, notes: "0:.5 1:.5 2:1 3:1 4:1 3:.5 2:.5 1:1 0:2 2:.5 3:.5 4:1 5:1 6:1 5:.5 4:.5 3:1 2:2 4:.5 5:.5 6:1 7:1 8:1 7:.5 6:.5 5:1 4:2 5:1 4:1 3:1 2:1 1:1 2:1 0:2" },
-        { inst: "harp", vol: 0.6, octave: -1, notes: rep("0:2 2:2 3:2 2:2", 4) },
+        { inst: "stab", vol: 1, notes: rep("0+3:.5 0+3:.5 r:.5 0+3:.5 r:.5 0+3:.5 2+5:.5 r:.5", 3) + "0+3:.5 0+3:.5 r:.5 0+3:.5 r:.5 0+3:.5 4+7:.5 r:.5" },
+        { inst: "saw", vol: 0.9, octave: 1, notes: "r:4 7:.5 6:.5 5:1 3:1 5:1 r:4 8:.5 7:.5 6:1 5:1 3:1" },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: rep("0:.5", 32) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:.5 0:.5 0:1 r:1", 4) },
+        { inst: "snare", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.8, notes: rep(EIGHTHS, 4) },
       ],
     },
     {
-      id: "bhairav-prayer", name: "Bhairav Prayer", sub: "Raga Bhairav · slow, with a deep drone and bell",
-      scale: BHAIRAV, tonic: 62, bpm: 52, beats: 32, vol: 0.68,
+      id: "marching-band", name: "Marching Band", sub: "A snare cadence, thumping bass drum and a jaunty brass tune",
+      scale: MAJOR, tonic: 60, bpm: 120, beats: 16, vol: 0.86,
       voices: [
-        { inst: "pad", vol: 0.45, notes: "-7+-3:32" },
-        { inst: "flute", vol: 1, notes: "0:3 1:1 2:2 1:1 0:1 4:3 3:1 2:2 1:1 0:1 5:2 4:2 3:2 2:2 1:2 -1:2 0:4" },
-        { inst: "bell", vol: 0.55, notes: rep("0:8", 4) },
+        { inst: "snare", vol: 1, notes: rep("0:.5 0:.25 0:.25 0:.5 0:.5 0:.5 0:.25 0:.25 0:.5 0:.5", 4) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "brass", vol: 1, notes: "4:1 4:.5 4:.5 7:1 4:1 9:1 7:.5 5:.5 4:2 5:1 5:.5 5:.5 9:1 7:1 7:1 4:.5 2:.5 0:2" },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: "0:1 4:1 0:1 4:1 0:1 4:1 0:1 4:1 3:1 7:1 3:1 7:1 4:1 7:1 0:2" },
+        { inst: "hat", vol: 0.7, notes: rep(OFFBEATS, 4) },
       ],
     },
     {
-      id: "bilaval-morning", name: "Bilaval Morning", sub: "Bright and cheerful · marimba and harp",
-      scale: MAJOR, tonic: 60, bpm: 108, beats: 32, vol: 1.49,
+      id: "disco-sunrise", name: "Disco Sunrise", sub: "Octave-jumping bass, open hats and a punchy horn riff",
+      scale: MINOR, tonic: 57, bpm: 120, beats: 16, vol: 0.851,
       voices: [
-        { inst: "marimba", vol: 1, notes: "4:1 2:1 4:1 7:1 6:1 4:1 6:1 8:1 7:1 5:1 7:1 9:1 8:1 7:1 5:1 3:1 4:1 2:1 4:1 7:1 6:1 8:1 9:1 8:1 7:1 5:1 3:1 5:1 4:1 2:1 0:2" },
-        { inst: "harp", vol: 0.7, octave: -1, notes: "0:1 2:1 4:1 2:1 4:1 6:1 8:1 6:1 5:1 7:1 9:1 7:1 3:1 5:1 7:1 5:1 0:1 2:1 4:1 2:1 4:1 6:1 8:1 6:1 3:1 5:1 7:1 5:1 0:1 2:1 4:1 2:1" },
+        { inst: "kick", vol: 1, notes: rep(FLOOR, 4) },
+        { inst: "openhat", vol: 1, notes: rep(OFFBEATS, 4) },
+        { inst: "clap", vol: 0.9, notes: rep(BACKBEAT, 4) },
+        { inst: "bassPluck", vol: 1, octave: -1, notes: rep("0:.5 7:.5", 8) + rep("5:.5 12:.5", 4) + rep("6:.5 13:.5", 4) },
+        { inst: "stab", vol: 0.8, notes: rep("r:.5 0+2+4:.5", 8) + rep("r:.5 5+7+9:.5", 4) + rep("r:.5 6+8+10:.5", 4) },
+        { inst: "brass", vol: 0.9, notes: "7:.5 9:.5 11:.5 9:.5 7:1 r:1 7:.5 9:.5 11:.5 12:.5 11:1 r:1 12:.5 11:.5 9:.5 7:.5 9:1 r:1 10:.5 9:.5 8:.5 6:.5 7:1 r:1" },
       ],
     },
     {
-      id: "temple-bell-rounds", name: "Temple Bell Rounds", sub: "Bells chasing each other, round after round",
-      scale: BHOOPALI, tonic: 60, bpm: 60, beats: 24, vol: 1.5,
+      id: "dubstep-drop", name: "Dubstep Drop", sub: "A growling, wobbling bass over half-time drums",
+      scale: MINOR, tonic: 57, bpm: 140, beats: 16, vol: 0.716,
       voices: [
-        { inst: "bell", vol: 1, notes: "0:2 2:2 4:2 3:2 2:2 0:2 -2:2 0:2 2:2 4:2 2:2 3:2" },
-        { inst: "bell", vol: 0.7, octave: 1, delay: 6, notes: "0:2 2:2 4:2 3:2 2:2 0:2 -2:2 0:2 2:2 4:2 2:2 3:2" },
-        { inst: "pad", vol: 0.35, notes: "-5+-2:24" },
+        { inst: "wobble", vol: 1, octave: -2, notes: "0:4 0:2 3:2 5:3 3:1 0:4" },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1.5 0:.5 r:1", 4) },
+        { inst: "snare", vol: 1, notes: rep("r:2 0:1 r:1", 4) },
+        { inst: "hat", vol: 0.8, notes: rep(EIGHTHS, 4) },
+        { inst: "saw", vol: 0.7, octave: 1, notes: rep("7:.5 r:3.5", 4) },
       ],
     },
     {
-      id: "sunrise-arpeggios", name: "Sunrise Arpeggios", sub: "Harp arpeggios rising with the light",
-      scale: MAJOR, tonic: 60, bpm: 80, beats: 32, vol: 1.16,
+      id: "trap-alarm", name: "Trap Alarm", sub: "Booming 808s, stuttering hi-hats and a pinging bell",
+      scale: MINOR, tonic: 57, bpm: 140, beats: 16, vol: 0.393,
       voices: [
-        { inst: "harp", vol: 1, notes:
-          "0:.5 2:.5 4:.5 7:.5 9:.5 7:.5 4:.5 2:.5 " + "3:.5 5:.5 7:.5 10:.5 12:.5 10:.5 7:.5 5:.5 " +
-          "5:.5 7:.5 9:.5 12:.5 14:.5 12:.5 9:.5 7:.5 " + "4:.5 6:.5 8:.5 11:.5 13:.5 11:.5 8:.5 6:.5 " +
-          "0:.5 2:.5 4:.5 7:.5 9:.5 7:.5 4:.5 2:.5 " + "3:.5 5:.5 7:.5 10:.5 12:.5 10:.5 7:.5 5:.5 " +
-          "4:.5 6:.5 8:.5 11:.5 13:.5 11:.5 8:.5 6:.5 " + "0:.5 2:.5 4:.5 7:.5 9:.5 7:.5 4:.5 2:.5" },
-        { inst: "pad", vol: 0.45, octave: -1, notes: "0+2+4:4 3+5+7:4 5+7+9:4 4+6+8:4 0+2+4:4 3+5+7:4 4+6+8:4 0+2+4:4" },
-        { inst: "bell", vol: 0.5, octave: 1, notes: "0:16 4:16" },
+        { inst: "bassSub", vol: 1, octave: -2, notes: rep("0:1.5 r:.5 0:.5 r:.5 3:1 0:1.5 r:.5 5:1 3:1", 2) },
+        { inst: "clap", vol: 1, notes: rep("r:2 0:1 r:1", 4) },
+        { inst: "hat", vol: 0.9, notes: rep("0:.5 0:.5 0:.5 0:.25 0:.25 0:.5 0:.25 0:.25 0:.25 0:.25 0:.5", 4) },
+        { inst: "clockbell", vol: 0.8, octave: 1, notes: rep("7:.5 r:.5 10:.5 r:.5 7:.5 r:.5 8:1", 4) },
       ],
     },
     {
-      id: "lotus-lullaby", name: "Lotus Lullaby", sub: "A gentle waltz on a music box",
-      scale: BHOOPALI, tonic: 65, bpm: 66, beats: 24, vol: 1.81,
+      id: "synthwave-sprint", name: "Synthwave Sprint", sub: "A racing 80s arpeggio bass and a neon lead",
+      scale: MINOR, tonic: 57, bpm: 120, beats: 16, vol: 1.188,
       voices: [
-        { inst: "musicbox", vol: 1, notes: "2:1 3:1 4:1 3:2 2:1 1:1 2:1 3:1 2:3 4:1 5:1 6:1 5:2 4:1 3:1 2:1 1:1 0:3" },
-        { inst: "harp", vol: 0.6, octave: -1, notes: rep("0:1 2+3:1 2+3:1", 8) },
+        { inst: "saw", vol: 0.8, octave: -1, notes: pump(0, 7) + pump(5, 7) + pump(2, 7) + pump(6, 7) },
+        { inst: "pad", vol: 0.8, notes: "0+2+4:4 5+7+9:4 2+4+6:4 6+8+10:4" },
+        { inst: "saw", vol: 1, octave: 1, notes: "0:1 2:.5 4:.5 5:2 5:1 4:1 2:1 0:1 2:1 4:1 6:2 6:.5 5:.5 4:1 3:2" },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "snare", vol: 1, notes: rep(BACKBEAT, 4) },
       ],
     },
     {
-      id: "river-flute", name: "River Flute", sub: "A slow pentatonic flute over a low drone",
-      scale: MINOR_PENTATONIC, tonic: 62, bpm: 56, beats: 32, vol: 0.68,
+      id: "polka-pounce", name: "Polka Pounce", sub: "An oom-pah-pah stomp with a cheerful brass tune",
+      scale: MAJOR, tonic: 60, bpm: 152, beats: 16, vol: 0.907,
       voices: [
-        { inst: "pad", vol: 0.4, notes: "-5+-2:32" },
-        { inst: "flute", vol: 1, notes: "0:3 2:1 3:2 2:1 1:1 0:2 1:2 2:2 1:2 3:3 4:1 5:2 4:1 3:1 2:2 3:1 2:1 1:2 0:2" },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: "0:1 r:1 0:1 r:1 4:1 r:1 4:1 r:1 0:1 r:1 3:1 r:1 4:1 r:1 0:1 r:1" },
+        { inst: "stab", vol: 1, notes: "r:1 0+2+4:1 r:1 0+2+4:1 r:1 4+6+8:1 r:1 4+6+8:1 r:1 0+2+4:1 r:1 3+5+7:1 r:1 4+6+8:1 r:1 0+2+4:1" },
+        { inst: "brass", vol: 1, notes: "7:.5 7:.5 9:.5 7:.5 4:1 7:1 6:.5 6:.5 8:.5 6:.5 4:1 6:1 7:.5 9:.5 11:.5 9:.5 10:.5 9:.5 7:1 8:.5 6:.5 4:1 7:2" },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "snare", vol: 0.9, notes: rep("r:1 0:1", 8) },
       ],
     },
     {
-      id: "marimba-morning", name: "Marimba Morning", sub: "A bouncing, upbeat marimba line",
-      scale: MAJOR, tonic: 62, bpm: 120, beats: 32, vol: 1.54,
+      id: "cowbell-gallop", name: "Cowbell Gallop", sub: "A galloping guitar riff and unrelenting cowbell",
+      scale: MINOR_PENTATONIC, tonic: 52, bpm: 135, beats: 16, vol: 0.742,
       voices: [
-        { inst: "marimba", vol: 1, notes:
-          "0:.5 2:.5 4:1 2:.5 4:.5 7:1 " + "6:.5 4:.5 2:1 4:.5 6:.5 8:1 " + "7:.5 5:.5 3:1 5:.5 7:.5 9:1 " + "8:1 7:1 4:1 2:1 " +
-          "0:.5 2:.5 4:1 2:.5 4:.5 7:1 " + "6:.5 8:.5 9:1 8:.5 6:.5 4:1 " + "5:.5 4:.5 3:1 2:.5 3:.5 5:1 " + "4:1 2:1 0:2" },
-        { inst: "harp", vol: 0.6, octave: -1, notes: rep("0:2 4:2", 8) },
+        { inst: "stab", vol: 1, notes: gallop("0+3", 2) + gallop("1+4", 1) + gallop("2+5", 1) },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: gallop("0", 2) + gallop("1", 1) + gallop("2", 1) },
+        { inst: "cowbell", vol: 1, notes: rep("0:1", 16) },
+        { inst: "kick", vol: 1, notes: rep("0:.5 0:.25 0:.25", 16) },
+        { inst: "snare", vol: 1, notes: rep(BACKBEAT, 4) },
       ],
     },
     {
-      id: "dawn-chimes", name: "Dawn Chimes", sub: "High chimes cascading over a pad",
-      scale: YAMAN, tonic: 72, bpm: 60, beats: 32, vol: 1.75,
+      id: "samba-shock", name: "Samba Shock", sub: "Surdo, shakers, cowbell and a piercing whistle",
+      scale: MIXOLYDIAN, tonic: 62, bpm: 104, beats: 16, vol: 0.798,
       voices: [
-        { inst: "bell", vol: 0.9, notes: "0:1 2:1 4:1 6:1 7:2 4:1 2:1 2:1 4:1 6:1 7:1 9:2 6:1 4:1 4:1 6:1 7:1 9:1 11:2 9:1 7:1 6:1 4:1 2:1 0:1 -1:2 0:2" },
-        { inst: "pad", vol: 0.5, octave: -2, notes: "0+4:16 2+6:16" },
+        { inst: "kick", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "cowbell", vol: 0.9, notes: rep("0:.75 0:.75 0:.5 0:.75 0:.75 0:.5", 4) },
+        { inst: "hat", vol: 0.8, notes: rep(SIXTEENTHS, 4) },
+        { inst: "bassPluck", vol: 1, octave: -2, notes: rep("0:1.5 r:.5 4:1 r:.5 0:.5", 4) },
+        { inst: "whistle", vol: 1, octave: 2, notes: rep("r:3 0:.25 0:.25 0:.5", 4) },
+        { inst: "tom", vol: 0.9, notes: rep("r:2 0:.5 2:.5 4:.5 3:.5", 4) },
       ],
     },
     {
-      id: "crystal-music-box", name: "Crystal Music Box", sub: "A sparkling nursery-style melody",
-      scale: MAJOR, tonic: 69, bpm: 96, beats: 32, vol: 1.81,
+      id: "boing-boing", name: "Boing Boing", sub: "Springy cartoon bounces - impossible to stay lying down",
+      scale: MAJOR, tonic: 67, bpm: 140, beats: 16, vol: 0.781,
       voices: [
-        { inst: "musicbox", vol: 1, notes: "4:1 4:1 5:1 4:1 3:2 2:2 2:1 3:1 2:1 1:1 0:4 4:1 4:1 5:1 7:1 6:2 5:2 4:1 3:1 2:1 1:1 0:4" },
-        { inst: "harp", vol: 0.6, octave: -1, notes: "0:1 2:1 4:1 2:1 0:1 2:1 4:1 2:1 4:1 6:1 8:1 6:1 0:1 2:1 4:1 2:1 0:1 2:1 4:1 2:1 0:1 2:1 4:1 2:1 4:1 6:1 8:1 6:1 0:1 2:1 4:1 2:1" },
+        { inst: "boing", vol: 1, notes: "0:.5 4:.5 7:.5 4:.5 9:.5 7:.5 4:.5 2:.5 0:.5 5:.5 9:.5 5:.5 7:.5 4:.5 2:.5 0:.5 2:.5 5:.5 9:.5 5:.5 11:.5 9:.5 7:.5 4:.5 0:.5 4:.5 7:.5 11:.5 14:1 r:1" },
+        { inst: "bassPluck", vol: 1, octave: -1, notes: rep("0:1 r:.5 0:.5 4:1 r:1", 4) },
+        { inst: "kick", vol: 1, notes: rep("0:1 r:1", 8) },
+        { inst: "clap", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.7, notes: rep(OFFBEATS, 4) },
       ],
     },
     {
-      id: "golden-hour-waltz", name: "Golden Hour Waltz", sub: "A warm waltz, flute over plucked chords",
-      scale: MAJOR, tonic: 62, bpm: 110, beats: 24, vol: 0.64,
+      id: "klaxon-beat", name: "Klaxon Beat", sub: "A harsh industrial horn over a relentless machine beat",
+      scale: TRITONE, tonic: 45, bpm: 120, beats: 16, vol: 0.335,
       voices: [
-        { inst: "flute", vol: 1, notes: "4:2 5:1 7:2 6:1 5:1 6:1 7:1 9:3 8:2 7:1 6:2 5:1 4:1 5:1 3:1 0:3" },
-        { inst: "harp", vol: 0.75, notes:
-          "-7:1 -5+-3:1 -5+-3:1 " + "-4:1 -2+0:1 -2+0:1 " + "-3:1 -1+1:1 -1+1:1 " + "-7:1 -5+-3:1 -5+-3:1 " +
-          "-4:1 -2+0:1 -2+0:1 " + "-3:1 -1+1:1 -1+1:1 " + "-4:1 -2+0:1 -2+0:1 " + "-7:1 -5+-3:1 -5+-3:1" },
+        { inst: "klaxon", vol: 1, octave: 1, notes: rep("0:.75 1:.75 0:.75 1:.75 r:1", 4) },
+        { inst: "bassSub", vol: 1, octave: -1, notes: rep("0:.5", 32) },
+        { inst: "kick", vol: 1, notes: rep(FLOOR, 4) },
+        { inst: "snare", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.8, notes: rep(SIXTEENTHS, 4) },
       ],
     },
     {
-      id: "mountain-pad", name: "Mountain Pad", sub: "Slow, spacious chords with a distant bell",
-      scale: BHOOPALI, tonic: 57, bpm: 50, beats: 32, vol: 1.86,
+      id: "old-alarm-clock", name: "Old Alarm Clock", sub: "The classic twin-bell hammer: rrrring... rrrring...",
+      scale: TWO_BELLS, tonic: 93, bpm: 120, beats: 16, vol: 1.513,
       voices: [
-        { inst: "pad", vol: 0.8, notes: "0+2+3:8 -1+0+2:8 1+3+5:8 0+2+3:8" },
-        { inst: "bell", vol: 0.5, octave: 1, notes: "2:4 r:4 4:4 r:4 3:4 r:4 2:4 r:4" },
+        { inst: "clockbell", vol: 1, notes: rep(rep("0:.125 1:.125", 12) + "r:1", 4) },
       ],
     },
     {
-      id: "rise-and-shine", name: "Rise and Shine", sub: "A quick, bright fanfare - the hardest to sleep through",
-      scale: MAJOR, tonic: 72, bpm: 132, beats: 16, vol: 1.11,
+      id: "wake-up-jump", name: "Wake-Up Jump", sub: "Pumping eurodance chords, a bright hook and claps",
+      scale: MINOR, tonic: 62, bpm: 140, beats: 16, vol: 0.338,
       voices: [
-        { inst: "marimba", vol: 1, notes:
-          "0:.5 2:.5 4:.5 7:1.5 4:.5 2:.5 " + "4:.5 7:.5 9:.5 11:1.5 9:.5 7:.5 " + "9:.5 7:.5 5:.5 4:1.5 2:.5 4:.5 " + "5:.5 4:.5 2:.5 0:1.5 r:1" },
-        { inst: "bell", vol: 0.7, notes: "7:4 4:4 5:4 7:4" },
-        { inst: "harp", vol: 0.7, octave: -1, notes: rep("0:1 4:1", 8) },
+        { inst: "kick", vol: 1, notes: rep(FLOOR, 4) },
+        { inst: "clap", vol: 1, notes: rep(BACKBEAT, 4) },
+        { inst: "hat", vol: 0.8, notes: rep(OFFBEATS, 4) },
+        { inst: "stab", vol: 1, notes: rep("r:.5 0+2+4:.5", 4) + rep("r:.5 5+7+9:.5", 4) + rep("r:.5 2+4+6:.5", 4) + rep("r:.5 6+8+10:.5", 4) },
+        { inst: "bassSub", vol: 1, octave: -2, notes: rep("0:.5", 8) + rep("5:.5", 8) + rep("2:.5", 8) + rep("6:.5", 8) },
+        { inst: "saw", vol: 0.9, octave: 1, notes: "7:.5 7:.5 9:.5 11:.5 12:1 11:1 12:.5 12:.5 11:.5 9:.5 7:2 9:.5 9:.5 11:.5 13:.5 14:1 13:1 14:.5 13:.5 12:.5 11:.5 9:1 7:1" },
       ],
     },
   ];
@@ -256,96 +308,240 @@
   }
 
   // ---- instruments ----------------------------------------------------------------
-  // Each takes (ctx, out, freq, when, seconds, volume) and plays one note.
+  // Each takes (ctx, out, freq, when, seconds, volume, env) and plays one note
+  // (`env.bpm` is the tune's tempo, for tempo-synced effects). Drums ignore freq.
 
-  function partials(ctx, out, f, t, list, volume, type) {
+  const noises = new WeakMap();
+  function noiseBuffer(ctx) {
+    let buf = noises.get(ctx);
+    if (!buf) {
+      buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      // A fixed pseudo-random sequence, so every render of a tune is identical.
+      let seed = 12345;
+      for (let i = 0; i < data.length; i++) { seed = (seed * 1664525 + 1013904223) >>> 0; data[i] = seed / 2147483648 - 1; }
+      noises.set(ctx, buf);
+    }
+    return buf;
+  }
+  // A filtered burst of noise: the body of hats, snares and claps.
+  function burst(ctx, out, t, seconds, type, freq, q, peak) {
+    const src = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    src.buffer = noiseBuffer(ctx);
+    filter.type = type;
+    filter.frequency.value = freq;
+    filter.Q.value = q;
+    gain.gain.setValueAtTime(peak, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+    src.connect(filter).connect(gain).connect(out);
+    src.start(t);
+    src.stop(t + seconds + 0.02);
+  }
+  // An oscillator with an attack, a hold and a release.
+  function tone(ctx, out, type, f, t, hold, peak, attack, release, filterFreq) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = f;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.linearRampToValueAtTime(peak, t + attack);
+    gain.gain.setValueAtTime(peak, t + Math.max(attack, hold));
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(attack, hold) + release);
+    let node = osc;
+    if (filterFreq) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = filterFreq;
+      osc.connect(filter);
+      node = filter;
+    }
+    node.connect(gain).connect(out);
+    osc.start(t);
+    osc.stop(t + Math.max(attack, hold) + release + 0.02);
+    return osc;
+  }
+  function partials(ctx, out, f, t, list, volume) {
     list.forEach(function (p) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = type || "sine";
       osc.frequency.value = f * p[0];
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(volume * p[1], t + 0.004);
+      gain.gain.linearRampToValueAtTime(volume * p[1], t + 0.002);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + p[2]);
       osc.connect(gain).connect(out);
       osc.start(t);
-      osc.stop(t + p[2] + 0.05);
+      osc.stop(t + p[2] + 0.03);
     });
   }
 
   const INSTRUMENTS = {
-    bell: function (ctx, out, f, t, d, v) {
-      partials(ctx, out, f, t, [[0.5, 0.35, 3.5], [1, 1, 3], [1.19, 0.35, 2.2], [1.5, 0.3, 1.8], [2, 0.28, 1.5], [2.74, 0.15, 0.9], [3.76, 0.08, 0.5]], v * 0.2);
+    // ---- drums
+    kick: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.setValueAtTime(165, t);
+      osc.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+      gain.gain.setValueAtTime(v * 0.65, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      osc.connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + 0.32);
     },
-    harp: function (ctx, out, f, t, d, v) {
-      partials(ctx, out, f, t, [[1, 1, 1.9], [2, 0.32, 1.1], [3, 0.14, 0.65], [4, 0.06, 0.4]], v * 0.24);
+    snare: function (ctx, out, f, t, d, v) {
+      burst(ctx, out, t, 0.17, "bandpass", 2000, 0.7, v * 0.4);
+      tone(ctx, out, "triangle", 185, t, 0.02, v * 0.25, 0.002, 0.08);
     },
-    musicbox: function (ctx, out, f, t, d, v) {
-      partials(ctx, out, f, t, [[1, 1, 1.5], [3.01, 0.22, 0.55], [6.2, 0.07, 0.25]], v * 0.2);
+    hat: function (ctx, out, f, t, d, v) { burst(ctx, out, t, 0.045, "highpass", 7500, 0.5, v * 0.16); },
+    openhat: function (ctx, out, f, t, d, v) { burst(ctx, out, t, 0.24, "highpass", 6500, 0.5, v * 0.14); },
+    clap: function (ctx, out, f, t, d, v) {
+      [0, 0.011, 0.022].forEach(function (dt) { burst(ctx, out, t + dt, 0.03, "bandpass", 1400, 1, v * 0.3); });
+      burst(ctx, out, t + 0.03, 0.16, "bandpass", 1400, 1, v * 0.18);
     },
-    marimba: function (ctx, out, f, t, d, v) {
-      partials(ctx, out, f, t, [[1, 1, 0.6], [4, 0.22, 0.14], [10, 0.06, 0.05]], v * 0.3);
+    tom: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.setValueAtTime(f * 1.5, t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + 0.08);
+      gain.gain.setValueAtTime(v * 0.6, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+      osc.connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + 0.3);
     },
-    // A plucked string with a bright start that mellows: sawtooth through a falling low-pass.
-    sitar: function (ctx, out, f, t, d, v) {
-      [0, 7].forEach(function (cents) {
+    cowbell: function (ctx, out, f, t, d, v) {
+      [560, 845].forEach(function (hz) {
         const osc = ctx.createOscillator();
         const filter = ctx.createBiquadFilter();
         const gain = ctx.createGain();
-        osc.type = "sawtooth";
-        osc.frequency.value = f;
-        osc.detune.value = cents;
-        filter.type = "lowpass";
-        filter.Q.value = 2;
-        filter.frequency.setValueAtTime(Math.min(f * 8, 9000), t);
-        filter.frequency.exponentialRampToValueAtTime(Math.max(f * 1.5, 300), t + 0.5);
-        gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.linearRampToValueAtTime(v * 0.12, t + 0.005);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+        osc.type = "square";
+        osc.frequency.value = hz;
+        filter.type = "bandpass";
+        filter.frequency.value = 800;
+        filter.Q.value = 3;
+        gain.gain.setValueAtTime(v * 0.16, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
         osc.connect(filter).connect(gain).connect(out);
         osc.start(t);
-        osc.stop(t + 1.6);
+        osc.stop(t + 0.25);
       });
     },
-    // A breathy sustained tone with a little vibrato that arrives after the attack.
-    flute: function (ctx, out, f, t, d, v) {
-      const end = t + Math.max(d, 0.25);
+
+    // ---- bass
+    bassPluck: function (ctx, out, f, t, d, v) {
       const osc = ctx.createOscillator();
-      const second = ctx.createOscillator();
-      const vibrato = ctx.createOscillator();
-      const vibratoDepth = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
-      const secondGain = ctx.createGain();
+      const len = Math.min(d * 0.95, 0.6);
+      osc.type = "sawtooth";
       osc.frequency.value = f;
-      second.frequency.value = f * 2;
-      secondGain.gain.value = 0.12;
-      vibrato.frequency.value = 5;
-      vibratoDepth.gain.setValueAtTime(0, t);
-      vibratoDepth.gain.linearRampToValueAtTime(f * 0.006, t + 0.4);
-      vibrato.connect(vibratoDepth);
-      vibratoDepth.connect(osc.frequency);
-      vibratoDepth.connect(second.frequency);
+      filter.type = "lowpass";
+      filter.Q.value = 4;
+      filter.frequency.setValueAtTime(1800, t);
+      filter.frequency.exponentialRampToValueAtTime(250, t + 0.12);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(v * 0.26, t + 0.09);
-      gain.gain.setValueAtTime(v * 0.26, Math.max(t + 0.1, end - 0.12));
-      gain.gain.linearRampToValueAtTime(0.0001, end + 0.12);
-      osc.connect(gain);
-      second.connect(secondGain).connect(gain);
-      gain.connect(out);
-      [osc, second, vibrato].forEach(function (o) { o.start(t); o.stop(end + 0.2); });
+      gain.gain.linearRampToValueAtTime(v * 0.45, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.08);
+      osc.connect(filter).connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + len + 0.1);
     },
-    // Two slightly detuned saws, softened, swelling in and out.
+    bassSub: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f * 1.4, t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + 0.04);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(v * 0.6, t + 0.004);
+      gain.gain.setValueAtTime(v * 0.6, t + d * 0.85);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.85 + 0.07);
+      osc.connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + d * 0.85 + 0.09);
+      tone(ctx, out, "sawtooth", f, t, d * 0.8, v * 0.06, 0.004, 0.05, 400);
+    },
+    acid: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.value = f;
+      filter.type = "lowpass";
+      filter.Q.value = 14;
+      filter.frequency.setValueAtTime(Math.min(f * 12, 6000), t);
+      filter.frequency.exponentialRampToValueAtTime(f * 2, t + d * 0.9);
+      gain.gain.setValueAtTime(v * 0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.95);
+      osc.connect(filter).connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + d);
+    },
+    // A saw bass whose filter is swept by a tempo-synced LFO: the dubstep "wub".
+    wobble: function (ctx, out, f, t, d, v, env) {
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      const lfo = ctx.createOscillator();
+      const depth = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.value = f;
+      filter.type = "lowpass";
+      filter.Q.value = 9;
+      filter.frequency.value = 1100;
+      lfo.frequency.value = env.bpm / 60 * 2; // eighth-note wobble
+      depth.gain.value = 950;
+      lfo.connect(depth).connect(filter.frequency);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(v * 0.34, t + 0.01);
+      gain.gain.setValueAtTime(v * 0.34, t + d * 0.95);
+      gain.gain.linearRampToValueAtTime(0.0001, t + d);
+      osc.connect(filter).connect(gain).connect(out);
+      osc.start(t);
+      lfo.start(t);
+      osc.stop(t + d + 0.02);
+      lfo.stop(t + d + 0.02);
+    },
+    tri: function (ctx, out, f, t, d, v) { tone(ctx, out, "triangle", f, t, d * 0.9, v * 0.4, 0.003, 0.04); },
+
+    // ---- leads and chords
+    square: function (ctx, out, f, t, d, v) { tone(ctx, out, "square", f, t, d * 0.7, v * 0.1, 0.002, 0.04); },
+    saw: function (ctx, out, f, t, d, v) { tone(ctx, out, "sawtooth", f, t, d * 0.85, v * 0.13, 0.004, 0.06, Math.min(f * 6, 6000)); },
+    stab: function (ctx, out, f, t, d, v) {
+      [-8, 8].forEach(function (cents) {
+        const osc = tone(ctx, out, "sawtooth", f, t, Math.min(d * 0.7, 0.2), v * 0.07, 0.003, 0.07, 2600);
+        osc.detune.value = cents;
+      });
+    },
+    brass: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(f * 0.96, t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + 0.05);
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(500, t);
+      filter.frequency.exponentialRampToValueAtTime(2600, t + 0.06);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(v * 0.17, t + 0.025);
+      gain.gain.setValueAtTime(v * 0.17, t + d * 0.9);
+      gain.gain.linearRampToValueAtTime(0.0001, t + d * 0.9 + 0.05);
+      osc.connect(filter).connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + d * 0.9 + 0.07);
+    },
     pad: function (ctx, out, f, t, d, v) {
       const end = t + Math.max(d, 0.5);
-      const attack = Math.min(0.6, d * 0.3);
       const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
       filter.type = "lowpass";
       filter.frequency.value = Math.min(f * 3, 1400);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(v * 0.07, t + attack);
-      gain.gain.setValueAtTime(v * 0.07, Math.max(t + attack, end - 0.5));
-      gain.gain.linearRampToValueAtTime(0.0001, end + 0.4);
+      gain.gain.linearRampToValueAtTime(v * 0.07, t + Math.min(0.4, d * 0.3));
+      gain.gain.setValueAtTime(v * 0.07, Math.max(t + 0.4, end - 0.4));
+      gain.gain.linearRampToValueAtTime(0.0001, end + 0.3);
       [-6, 6].forEach(function (cents) {
         const osc = ctx.createOscillator();
         osc.type = "sawtooth";
@@ -353,9 +549,59 @@
         osc.detune.value = cents;
         osc.connect(filter);
         osc.start(t);
-        osc.stop(end + 0.5);
+        osc.stop(end + 0.4);
       });
       filter.connect(gain).connect(out);
+    },
+
+    // ---- effects and characters
+    // A wail that rises through each note, like a siren sweeping up.
+    siren: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(f, t);
+      osc.frequency.linearRampToValueAtTime(f * 1.18, t + d * 0.9);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(v * 0.32, t + 0.01);
+      gain.gain.setValueAtTime(v * 0.32, t + d * 0.92);
+      gain.gain.linearRampToValueAtTime(0.0001, t + d);
+      osc.connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + d + 0.02);
+    },
+    klaxon: function (ctx, out, f, t, d, v) {
+      [-12, 12].forEach(function (cents) {
+        const osc = tone(ctx, out, "square", f, t, d * 0.93, v * 0.1, 0.006, 0.03, 1800);
+        osc.detune.value = cents;
+      });
+    },
+    // A hard, bright bell: the clapper of an old alarm clock.
+    clockbell: function (ctx, out, f, t, d, v) {
+      partials(ctx, out, f, t, [[1, 1, 0.22], [2.76, 0.6, 0.16], [5.4, 0.35, 0.1]], v * 0.28);
+    },
+    whistle: function (ctx, out, f, t, d, v) {
+      const vibrato = ctx.createOscillator();
+      const depth = ctx.createGain();
+      const osc = tone(ctx, out, "sine", f, t, d, v * 0.18, 0.01, 0.03);
+      vibrato.frequency.value = 28;
+      depth.gain.value = f * 0.01;
+      vibrato.connect(depth).connect(osc.frequency);
+      vibrato.start(t);
+      vibrato.stop(t + d + 0.1);
+    },
+    boing: function (ctx, out, f, t, d, v) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f * 0.55, t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + 0.045);
+      osc.frequency.linearRampToValueAtTime(f * 0.97, t + 0.22);
+      gain.gain.setValueAtTime(v * 0.45, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      osc.connect(gain).connect(out);
+      osc.start(t);
+      osc.stop(t + 0.37);
     },
   };
 
@@ -363,11 +609,13 @@
   // Works on any BaseAudioContext, so tests can render it offline.
   function schedulePass(ctx, out, tune, t0) {
     const beat = 60 / tune.bpm;
+    const env = { bpm: tune.bpm };
     tune.voices.forEach(function (voice) {
       const play = INSTRUMENTS[voice.inst];
+      if (!play) throw new Error("Unknown instrument: " + voice.inst);
       parseVoice(voice).forEach(function (ev) {
         ev.degrees.forEach(function (degree) {
-          play(ctx, out, frequency(tune, degree, voice.octave), t0 + ev.start * beat, ev.beats * beat, (voice.vol == null ? 1 : voice.vol) * tune.vol);
+          play(ctx, out, frequency(tune, degree, voice.octave), t0 + ev.start * beat, ev.beats * beat, (voice.vol == null ? 1 : voice.vol) * tune.vol, env);
         });
       });
     });
