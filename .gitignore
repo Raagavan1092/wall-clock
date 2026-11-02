@@ -3,3 +3,4 @@ Thumbs.db
 WhatsApp Image*.jpeg
 .claude/scheduled_tasks.lock
 .claude/*.lock
+node_modules/
