@@ -657,6 +657,7 @@
     wireDayControls();
     wireSettingsPanel();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.
+    let alarmsOk = false;
     try {
       E.AlarmUI.init({
         getSettings: function () { return settings; },
@@ -667,8 +668,14 @@
           if (panel.classList.contains("hidden")) document.getElementById("settings-toggle").click();
         },
       });
+      alarmsOk = true;
     } catch (err) {
       console.error("Alarms failed to start:", err);
+    }
+    // In the Android app: tell it this page started properly. If it never does (e.g. a broken
+    // update fetched from the site), the app falls back to the copy bundled in the APK.
+    if (alarmsOk && window.AndroidAlarms && E.AndroidBridge) {
+      try { window.AndroidAlarms.booted(); } catch (err) { /* an older app without booted() */ }
     }
 
     render();

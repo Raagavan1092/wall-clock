@@ -3,6 +3,20 @@
 The web app (this repo's `index.html`, `js/`, `css/` ...) wrapped in a WebView, plus **native alarms
 that ring on a locked phone**. It does not use the stock Clock app: the app schedules and rings its own.
 
+## How updates reach the phone
+
+* **Web changes (clock, alarm engine, UI)**: a push to `master` publishes the site (GitHub Pages). The app
+  fetches the web files from there on every start, so these reach the phone **without a new APK**. It still
+  runs at its own `appassets` address, so saved alarms persist and the alarm bridge is never exposed to the site.
+* **Offline**: if the site can't be reached, the app uses the last complete copy it saved from the site
+  (only if saved by the installed app version), else the copy bundled in the APK. It works with no network.
+* **Safety net**: if a page fetched from the site doesn't start within 20 s (the page calls
+  `AndroidAlarms.booted()` once it has), the app reloads the bundled copy instead. Alarms already handed
+  to Android keep ringing regardless, because native code holds the schedule.
+* **Native changes** (anything under `android/`) need a new APK: Releases > newest `VedicWallClock-N.apk`, install over the old one.
+* The Settings screen has a switch to turn the web updates off (the APK's bundled copy is then always used).
+* Rule for web code: it may run with an *older* app, so check a bridge method exists before calling a new one.
+
 ## Get the APK (no Android Studio needed)
 
 GitHub builds it on every push to `master` (`.github/workflows/android.yml`):

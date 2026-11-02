@@ -13,6 +13,10 @@ class AlarmBridge(private val ctx: Context) {
     @JavascriptInterface
     fun version(): Int = 1
 
+    /** The page has started properly (see MainActivity's boot check). */
+    @JavascriptInterface
+    fun booted() { MainActivity.booted = true }
+
     /** The page's full schedule: the next rings of every enabled alarm, as concrete times. */
     @JavascriptInterface
     fun sync(json: String) {

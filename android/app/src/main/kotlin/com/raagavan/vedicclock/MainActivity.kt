@@ -6,6 +6,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -27,6 +29,16 @@ import androidx.webkit.WebViewAssetLoader
 class MainActivity : Activity() {
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private lateinit var source: WebSource
+    private val handler = Handler(Looper.getMainLooper())
+
+    // If the page served from the site does not start (a broken push), run the copy in the APK instead.
+    private val bootCheck = Runnable {
+        if (!booted && source.mode == WebSource.Mode.REMOTE) {
+            source.forceBundled()
+            web.loadUrl("https://${WebViewAssetLoader.DEFAULT_DOMAIN}/index.html")
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +46,9 @@ class MainActivity : Activity() {
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
+        // Files come from the site when it answers, else the last saved copy, else the APK (see WebSource).
+        source = WebSource(this, loader, Store.prefs(this).getBoolean(WebSource.PREF_WEB_UPDATES, true))
+        booted = false
 
         web = WebView(this).apply {
             setBackgroundColor(0xFF0B0A08.toInt())
@@ -48,7 +63,7 @@ class MainActivity : Activity() {
             addJavascriptInterface(AlarmBridge(applicationContext), "AndroidAlarms")
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-                    loader.shouldInterceptRequest(request.url)
+                    source.intercept(request.url)
 
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     if (request.url.host == WebViewAssetLoader.DEFAULT_DOMAIN) return false
@@ -79,6 +94,7 @@ class MainActivity : Activity() {
         }
         setContentView(web)
         if (savedInstanceState != null) web.restoreState(savedInstanceState) else web.loadUrl("https://${WebViewAssetLoader.DEFAULT_DOMAIN}/index.html")
+        handler.postDelayed(bootCheck, BOOT_CHECK_MS)
 
         // First run: the checklist that makes alarms ring when the phone is locked.
         val prefs = Store.prefs(this)
@@ -136,6 +152,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(bootCheck)
         fileCallback?.onReceiveValue(null)
         fileCallback = null
         web.destroy()
@@ -144,6 +161,10 @@ class MainActivity : Activity() {
 
     companion object {
         private const val REQ_FILE = 42
+        private const val BOOT_CHECK_MS = 20_000L
+
+        /** Set by the page (AndroidAlarms.booted()) once it has started properly. */
+        @Volatile var booted = false
         const val PREF_SETUP_SEEN = "setup_seen"
         const val PREF_KEEP_ON = "keep_screen_on"
     }

@@ -78,6 +78,13 @@ class SetupActivity : Activity() {
             setOnCheckedChangeListener { _, on -> Store.prefs(this@SetupActivity).edit().putBoolean(MainActivity.PREF_KEEP_ON, on).apply() }
         })
 
+        col.addView(CheckBox(this).apply {
+            text = "Update the clock from the web when online (restart the app to apply)"
+            setTextColor(CENTRE)
+            isChecked = Store.prefs(this@SetupActivity).getBoolean(WebSource.PREF_WEB_UPDATES, true)
+            setOnCheckedChangeListener { _, on -> Store.prefs(this@SetupActivity).edit().putBoolean(WebSource.PREF_WEB_UPDATES, on).apply() }
+        })
+
         col.addView(label("Also check", 18f, GOLD, bold = true, top = 24))
         col.addView(label("• Turn the alarm volume up (Settings > Sound & vibration > Alarm). Alarms use the alarm volume, not the ringer or media volume.\n• Do Not Disturb: alarms still ring unless you switched alarms off in its exceptions.\n• Alarms ring from the moment the phone starts, even before you unlock it after a restart (your own audio file needs one unlock first; the bell plays instead).", 13f, MUTED, top = 4))
 
