@@ -319,7 +319,7 @@ html, body {
   top: 3%;
   right: 3%;
   z-index: 5;
-  width: min(318px, calc(100vw - 24px));
+  width: min(360px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -352,7 +352,44 @@ html, body {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-#day-buttons button:hover { color: var(--ink); background: rgba(201, 168, 92, 0.14); }
+#day-buttons button:hover:not(:disabled) { color: var(--ink); background: rgba(201, 168, 92, 0.14); }
+#day-buttons button:disabled { opacity: 0.35; cursor: default; }
+#day-buttons button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
+#day-prev, #day-next { flex: 1.7; }
+#day-buttons button { white-space: nowrap; font-size: 12.5px; padding: 0 4px; }
+
+/* Seven days either side of today: one dot each, the day on show lit. */
+#day-strip {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  margin-top: -2px;
+}
+.day-dot {
+  position: relative;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.day-dot::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #6b5a35;
+  transition: all 0.15s;
+}
+.day-dot:hover::before { background: var(--gold); }
+.day-dot.is-today::before { width: 7px; height: 7px; background: transparent; border: 1.5px solid var(--gold); }
+.day-dot.on::before { width: 9px; height: 9px; background: var(--gold-hi); border: 0; box-shadow: 0 0 8px rgba(255, 215, 122, 0.7); }
+.day-dot:focus-visible { outline: 2px solid var(--gold-hi); border-radius: 6px; }
 #day-buttons button.on {
   background: var(--gold-fill);
   color: #1a1208;
@@ -475,6 +512,7 @@ html, body {
 @media (max-height: 520px) {
   #top-controls { gap: 5px; width: min(270px, calc(100vw - 24px)); }
   #day-buttons button { height: 30px; font-size: 12px; }
+  #day-strip { display: none; }
   #time-scrub { padding: 5px 12px 6px; }
   .scrub-ends { display: none; }
 }
@@ -518,10 +556,10 @@ html, body {
 .alarm-empty { font-size: 12.5px; color: var(--muted); padding: 10px 12px; border: 1px dashed #3a3022; border-radius: 12px; }
 .alarm-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 4px 10px;
-  padding: 10px 8px 10px 12px;
+  gap: 6px 12px;
+  padding: 10px 10px 8px 12px;
   background: #221c14;
   border: 1px solid #3a3022;
   border-radius: 14px;
@@ -801,3 +839,39 @@ html, body {
   .ring-bell, .ring-glow, .al-preview.busy { animation: none; }
   .al-card, .alarm-modal { transition: none; }
 }
+
+.alarm-row-actions { grid-column: 2; display: flex; justify-content: flex-end; gap: 2px; margin-top: -2px; }
+
+/* The alarm sound: bell or the person's own track. */
+.al-sound-panel { margin-top: 10px; padding: 11px 12px; border: 1px solid #3a3022; border-radius: 13px; background: rgba(0, 0, 0, 0.18); }
+.al-sound-panel[hidden] { display: none; }
+.al-sound-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.al-sound-head .al-seg { flex: 1; }
+.al-track { margin-top: 10px; }
+.al-track[hidden] { display: none; }
+.al-track-file { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 13px; min-width: 0; }
+.al-track-file .ai { color: var(--gold); }
+.al-track-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.al-track-actions { display: flex; gap: 16px; margin: 7px 0 0 27px; }
+.al-track-msg { margin: 6px 0 0 27px; font-size: 12px; color: var(--centre-bad); }
+
+.al-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 300;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 12px 18px;
+  transform: translate(-50%, 16px);
+  opacity: 0;
+  background: #261f14;
+  color: var(--ink);
+  border: 1px solid rgba(201, 168, 92, 0.5);
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+  font: 13.5px/1.4 "Segoe UI", system-ui, sans-serif;
+  text-align: center;
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+.al-toast.show { opacity: 1; transform: translate(-50%, 0); }

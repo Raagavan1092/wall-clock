@@ -1,0 +1,96 @@
+<!-- The clock's markup. Loaded into index.html by its boot script (see app-files.json). -->
+<div id="stage">
+  <svg id="dial"></svg>
+  <div id="top-controls">
+    <div class="tc-row">
+      <div id="day-buttons" role="group" aria-label="Day shown on the clock">
+        <button type="button" id="day-prev" aria-label="Previous day">&#8249; Previous day</button>
+        <button type="button" id="day-today">Today</button>
+        <button type="button" id="day-next" aria-label="Next day">Next day &#8250;</button>
+      </div>
+      <button id="settings-toggle" aria-label="Settings">&#9881;</button>
+    </div>
+    <div id="day-strip" role="group" aria-label="Seven days before and after today"></div>
+    <div id="time-scrub">
+      <div class="scrub-top">
+        <output id="scrub-readout" for="time-slider">--</output>
+        <button type="button" id="scrub-now" title="Back to live time"><span class="live-dot"></span>Now</button>
+      </div>
+      <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
+      <div class="scrub-ends">
+        <span id="scrub-sunrise" title="Sunrise">&#9728; --:--</span>
+        <span id="scrub-ghati">Gha&#7789;&#299; --</span>
+        <span id="scrub-next" title="Next sunrise">--:-- &#9728;</span>
+      </div>
+    </div>
+    <button type="button" id="next-alarm" hidden></button>
+  </div>
+</div>
+
+<div id="settings-panel" class="hidden">
+  <button id="settings-close" type="button" aria-label="Close">&times;</button>
+  <h2>Settings</h2>
+
+  <section id="alarm-section">
+    <h3>Alarms</h3>
+    <button id="alarm-set" type="button" class="primary-action">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a1 1 0 0 1 1 1v.7a6 6 0 0 1 5 5.9v3.2l1.6 2.6a.9.9 0 0 1-.8 1.4H5.2a.9.9 0 0 1-.8-1.4L6 13.8V10.8a6 6 0 0 1 5-5.9v-.7a1 1 0 0 1 1-1Z"/><path d="M9.6 19.2a2.5 2.5 0 0 0 4.8 0"/></svg>
+      Set Alarm
+    </button>
+    <ul id="alarm-list" class="alarm-list"></ul>
+    <p class="settings-note">Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring while the clock is open - after a reload, tap the page once so the browser allows sound. To be alerted with the browser closed, use the calendar icon on an alarm to send its next rings to your phone's calendar.</p>
+  </section>
+
+  <section>
+    <h3>Time</h3>
+    <label>Set clock to <input type="datetime-local" id="set-time"></label>
+    <button id="set-time-now" type="button">Now</button>
+    <button id="set-time-pause" type="button">Pause</button>
+    <p class="settings-note" id="set-time-live">Live (following real time)</p>
+  </section>
+
+  <section>
+    <h3>Location</h3>
+    <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
+    <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
+    <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>
+    <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
+  </section>
+
+  <section>
+    <h3>Ayanāṃśa</h3>
+    <select id="set-ayanamsa">
+      <option value="lahiri">Lahiri (Citrapakṣa)</option>
+    </select>
+    <p class="settings-note">Only Lahiri is implemented in this prototype; see js/engine/ayanamsa.js.</p>
+  </section>
+
+  <section>
+    <h3>Sunrise definition</h3>
+    <label><input type="radio" name="sunriseEdge" value="upper-limb"> Upper limb, with refraction (default)</label>
+    <label><input type="radio" name="sunriseEdge" value="disc-centre"> Disc centre, geometric (no refraction)</label>
+  </section>
+
+  <section>
+    <h3>Switchable ring order</h3>
+    <p class="settings-note">The order Switch display cycles through. Untick an element to leave it out. The good and bad times (Rāhu Kālam, Yamagaṇḍa, Gulika, Durmuhūrta, Varjyam; Abhijit, Pradoṣa, Godhūli, Amṛta Kālam; and the Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi yogas) share the always-on Good / Bad Times ring: good windows on its outer half, bad ones on its inner half.</p>
+    <ul id="set-ring-order" class="reorder-list"></ul>
+  </section>
+
+  <section>
+    <h3>Marker lines</h3>
+    <div id="set-markers"></div>
+    <p class="settings-note">Candrodaya/Candrāsta (moonrise/moonset) appear only when they fall within the day; Saṅkrānti only on the day the Sun enters a new rāśi.</p>
+  </section>
+
+  <section>
+    <h3>Defaults</h3>
+    <button id="settings-reset" type="button">Reset to defaults</button>
+    <p class="settings-note">Puts every setting above (location, ayanāṃśa, sunrise, ring order, marker lines) back to its default. Nothing changes until you Save.</p>
+  </section>
+
+  <div class="settings-actions">
+    <button id="settings-save" type="button">Save</button>
+    <button id="settings-cancel" type="button">Cancel</button>
+  </div>
+</div>

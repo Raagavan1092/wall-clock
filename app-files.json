@@ -1,0 +1,32 @@
+{
+  "_readme": "The files the clock is made of. index.html (a tiny shell that never needs editing) fetches each of these on every load, asking the server whether it changed (cache: no-cache), then runs them in this order. To add a script or stylesheet, list it here - there are no ?v= numbers to bump and nothing else to update. `shell` must match SHELL in index.html's boot script; bump both only if that script changes.",
+  "shell": 1,
+  "css": [
+    "css/style.css"
+  ],
+  "html": "app.html",
+  "js": [
+    "js/vendor/astronomy.browser.js",
+    "js/engine/util.js",
+    "js/engine/ayanamsa.js",
+    "js/engine/sunrise.js",
+    "js/engine/sidereal.js",
+    "js/engine/elongation.js",
+    "js/engine/tithi.js",
+    "js/engine/nakshatra.js",
+    "js/engine/yoga.js",
+    "js/engine/karana.js",
+    "js/engine/lagna.js",
+    "js/engine/day-events.js",
+    "js/engine/masa.js",
+    "js/engine/scaled-intervals.js",
+    "js/engine/ghati.js",
+    "js/engine/panchanga.js",
+    "js/render/ring-adapter.js",
+    "js/render/dial.js",
+    "js/settings.js",
+    "js/alarms.js",
+    "js/alarm-ui.js",
+    "js/app.js"
+  ]
+}

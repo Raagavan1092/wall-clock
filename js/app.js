@@ -373,7 +373,13 @@
   }
 
   const DAY_MS = 86400000;
+  const NAV_DAYS = 7; // the navigator reaches this many days either side of today
   function istDayNumber(ms) { return Math.floor((ms + IST_OFFSET_MS) / DAY_MS); }
+
+  // Whole days the date on show is from the real today (IST calendar dates).
+  function shownDayOffset() {
+    return istDayNumber(getNow().getTime()) - istDayNumber(Date.now());
+  }
 
   // The shown clock time, `days` calendar days from the real today (IST).
   function sameTimeOnDay(days) {
@@ -382,11 +388,22 @@
     return new Date((istDayNumber(Date.now()) + days) * DAY_MS + timeOfDay - IST_OFFSET_MS);
   }
 
+  // Goes to the day `days` from today (kept within the navigator's range),
+  // at the clock time on show. Today while live stays live.
+  function goToDay(days) {
+    days = Math.max(-NAV_DAYS, Math.min(NAV_DAYS, days));
+    if (days === 0 && isLive()) return;
+    setManualTime(sameTimeOnDay(days));
+  }
+
   let scrubbing = false;
   let syncDayControls = function () { /* set by wireDayControls */ };
 
   function wireDayControls() {
-    const buttons = Array.from(document.querySelectorAll("#day-buttons button"));
+    const prevBtn = document.getElementById("day-prev");
+    const todayBtn = document.getElementById("day-today");
+    const nextBtn = document.getElementById("day-next");
+    const strip = document.getElementById("day-strip");
     const slider = document.getElementById("time-slider");
     const scrub = document.getElementById("time-scrub");
     const readout = document.getElementById("scrub-readout");
@@ -395,14 +412,21 @@
     const ghatiLabel = document.getElementById("scrub-ghati");
     const nextLabel = document.getElementById("scrub-next");
 
-    buttons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        const days = Number(btn.dataset.day);
-        if (days === 0 && isLive()) return; // already on today, in real time
-        setManualTime(sameTimeOnDay(days));
-      });
-    });
+    prevBtn.addEventListener("click", function () { goToDay(shownDayOffset() - 1); });
+    nextBtn.addEventListener("click", function () { goToDay(shownDayOffset() + 1); });
+    todayBtn.addEventListener("click", function () { goToDay(0); });
     nowBtn.addEventListener("click", goLive);
+
+    // One dot per day, -7 .. +7; each jumps straight to that day.
+    const dots = [];
+    for (let d = -NAV_DAYS; d <= NAV_DAYS; d++) {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = "day-dot" + (d === 0 ? " is-today" : "");
+      dot.addEventListener("click", function () { goToDay(d); });
+      strip.appendChild(dot);
+      dots.push({ days: d, el: dot });
+    }
 
     syncDayControls = function () {
       if (!cachedSnapshot) return;
@@ -410,12 +434,20 @@
       const now = getNow();
       const sunrise = a.governingSunrise.getTime();
 
-      // Which button is lit: the date on show against the real one.
-      const delta = istDayNumber(now.getTime()) - istDayNumber(Date.now());
-      buttons.forEach(function (btn) {
-        const on = Number(btn.dataset.day) === delta;
-        btn.classList.toggle("on", on);
-        btn.setAttribute("aria-pressed", String(on));
+      // Which day is on show, against the real today.
+      const offset = shownDayOffset();
+      todayBtn.classList.toggle("on", offset === 0);
+      todayBtn.setAttribute("aria-pressed", String(offset === 0));
+      prevBtn.disabled = offset <= -NAV_DAYS;
+      nextBtn.disabled = offset >= NAV_DAYS;
+      const todayNumber = istDayNumber(Date.now());
+      dots.forEach(function (d) {
+        const on = d.days === offset;
+        d.el.classList.toggle("on", on);
+        d.el.setAttribute("aria-current", on ? "date" : "false");
+        const label = new Date((todayNumber + d.days) * DAY_MS).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
+        const text = d.days === 0 ? "Today, " + label : label;
+        if (d.el.title !== text) { d.el.title = text; d.el.setAttribute("aria-label", text); }
       });
       const live = isLive();
       nowBtn.classList.toggle("is-live", live);
@@ -449,10 +481,6 @@
     });
   }
 
-  const LAYER_TITLES = {
-    switchable: "Switchable ring", goodBad: "Good / Bad Times", dayNight: "Day / Night",
-  };
-
   function wireSettingsPanel() {
     const toggleBtn = document.getElementById("settings-toggle");
     const panel = document.getElementById("settings-panel");
@@ -466,7 +494,6 @@
     const cancelBtn = document.getElementById("settings-cancel");
     const closeBtn = document.getElementById("settings-close");
 
-    const layerOrderList = document.getElementById("set-layer-order");
     const markerList = document.getElementById("set-markers");
 
     // Working copies of the ring order and the hidden rings/markers, only
@@ -474,15 +501,11 @@
     let workingRingOrder = settings.ringOrder.slice();
     let workingHiddenRings = settings.hiddenRings.slice();
     let workingHiddenMarkers = settings.hiddenMarkers.slice();
-    let workingLayerOrder = settings.layerOrder.slice();
 
     // An ↑/↓ reorderable list of `order` (mutated in place), labelled by
     // `titleFor(key)`; `extraFor(key)`, if given, returns content (e.g. a
     // show checkbox) to place before the title, or a falsy value for none.
-    // `fixedKeys`, if given, are appended after `order` as extra rows with
-    // no reorder buttons - for rings whose position can't be changed but
-    // still belong in the same list (e.g. hide/unhide for Day / Night).
-    function renderReorderList(container, order, titleFor, extraFor, fixedKeys) {
+    function renderReorderList(container, order, titleFor, extraFor) {
       container.innerHTML = "";
       function appendRow(key, reorderable, i) {
         const li = document.createElement("li");
@@ -500,7 +523,7 @@
             btn.disabled = j < 0 || j >= order.length;
             btn.addEventListener("click", function () {
               [order[i], order[j]] = [order[j], order[i]];
-              renderReorderList(container, order, titleFor, extraFor, fixedKeys);
+              renderReorderList(container, order, titleFor, extraFor);
             });
             li.appendChild(btn);
           });
@@ -508,7 +531,6 @@
         container.appendChild(li);
       }
       order.forEach(function (key, i) { appendRow(key, true, i); });
-      (fixedKeys || []).forEach(function (key) { appendRow(key, false); });
     }
 
     // A "show" checkbox bound to whether `key` is absent from `hiddenList`.
@@ -553,11 +575,7 @@
       workingRingOrder = from.ringOrder.slice();
       workingHiddenRings = from.hiddenRings.slice();
       workingHiddenMarkers = from.hiddenMarkers.slice();
-      workingLayerOrder = from.layerOrder.slice();
       renderRingOrderList();
-      renderReorderList(layerOrderList, workingLayerOrder, function (key) { return LAYER_TITLES[key]; },
-        function (key) { return E.RingAdapter.FIXED_RING_TITLES[key] && showCheckbox(key, workingHiddenRings); },
-        ["dayNight"]);
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
 
@@ -602,7 +620,7 @@
         ringOrder: workingRingOrder.slice(),
         hiddenRings: workingHiddenRings.slice(),
         hiddenMarkers: workingHiddenMarkers.slice(),
-        layerOrder: workingLayerOrder.slice(),
+        layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);
       E.Dial.setLayerOrder(settings.layerOrder);

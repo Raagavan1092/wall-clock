@@ -37,6 +37,8 @@
     edit: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="m14 7 3 3"/>',
     trash: '<path d="M5 7h14M10 4h4M7 7l.8 12h8.4L17 7M10 11v5M14 11v5"/>',
     x: '<path d="m6 6 12 12M18 6 6 18"/>',
+    calendar: '<rect x="4" y="5.5" width="16" height="14" rx="2.2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M12 12.8v3.6M10.2 14.6h3.6"/>',
+    music: '<path d="M9 17.5V6.5l9-2v11"/><circle cx="6.8" cy="17.6" r="2.2"/><circle cx="15.8" cy="15.6" r="2.2"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   };
   function icon(name, cls) {
@@ -133,6 +135,103 @@
     };
   })();
 
+  // ---- the person's own track ---------------------------------------------
+  // One audio file, kept on this device (IndexedDB - far too big for
+  // localStorage), that alarms can play instead of the bell.
+  const Track = (function () {
+    const DB = "vedicWallClock.sounds", STORE = "files", KEY = "alarmTrack";
+    const MAX_BYTES = 25 * 1024 * 1024;
+    let audio = null, objectUrl = null, stopper = null;
+
+    function open() {
+      return new Promise(function (resolve, reject) {
+        if (!global.indexedDB) { reject(new Error("This browser cannot store files.")); return; }
+        const req = indexedDB.open(DB, 1);
+        req.onupgradeneeded = function () { req.result.createObjectStore(STORE); };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error || new Error("Could not open the sound store.")); };
+      });
+    }
+    // Runs `work(store)` in one transaction; resolves with its request's result.
+    function run(mode, work) {
+      return open().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction(STORE, mode);
+          const req = work(tx.objectStore(STORE));
+          tx.oncomplete = function () { db.close(); resolve(req ? req.result : undefined); };
+          tx.onerror = tx.onabort = function () { db.close(); reject(tx.error || new Error("Could not save the file.")); };
+        });
+      });
+    }
+
+    function stop() {
+      clearTimeout(stopper);
+      stopper = null;
+      if (audio) { audio.pause(); audio = null; }
+      if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+    }
+
+    return {
+      // { name } of the stored track, or null.
+      info: function () {
+        return run("readonly", function (s) { return s.get(KEY); }).then(function (rec) { return rec ? { name: rec.name } : null; }).catch(function () { return null; });
+      },
+      // Stores `file` (replacing any earlier one); resolves { name }.
+      save: function (file) {
+        if (!/^audio\//.test(file.type) && !/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|weba|webm)$/i.test(file.name)) {
+          return Promise.reject(new Error("That is not an audio file."));
+        }
+        if (file.size > MAX_BYTES) return Promise.reject(new Error("That file is over 25 MB - pick a shorter track."));
+        return file.arrayBuffer().then(function (data) {
+          return run("readwrite", function (s) { return s.put({ name: file.name, type: file.type || "audio/mpeg", data: data }, KEY); });
+        }).then(function () { return { name: file.name }; });
+      },
+      clear: function () { stop(); return run("readwrite", function (s) { return s.delete(KEY); }); },
+      // Plays it (looping, up to maxMs); resolves true if sound started.
+      play: function (loop, maxMs) {
+        stop();
+        return run("readonly", function (s) { return s.get(KEY); }).then(function (rec) {
+          if (!rec) return false;
+          objectUrl = URL.createObjectURL(new Blob([rec.data], { type: rec.type }));
+          audio = new Audio(objectUrl);
+          audio.loop = !!loop;
+          stopper = setTimeout(stop, maxMs);
+          audio.addEventListener("ended", stop);
+          return audio.play().then(function () { return true; });
+        }).catch(function () { stop(); return false; });
+      },
+      stop: stop,
+      playing: function () { return !!audio; },
+      looping: function () { return !!audio && audio.loop; },
+    };
+  })();
+
+  // What an alarm plays: its own track if it chose one (and there is one),
+  // else the bell. Resolves true if sound actually started - false when the
+  // browser is still waiting for a tap before it allows any.
+  const Sound = {
+    start: function (alarm) {
+      if (alarm.soundKind === "track") {
+        return Track.play(true, 5 * 60 * 1000).then(function (ok) {
+          if (ok) return true;
+          Bell.start();
+          return Bell.running();
+        });
+      }
+      Bell.start();
+      return Promise.resolve(Bell.running());
+    },
+    stop: function () { Bell.stop(); Track.stop(); },
+  };
+
+  // A short message at the bottom of the screen.
+  function toast(text) {
+    const node = h("div", { class: "al-toast", role: "status", text: text });
+    document.body.appendChild(node);
+    requestAnimationFrame(function () { node.classList.add("show"); });
+    setTimeout(function () { node.classList.remove("show"); setTimeout(function () { node.remove(); }, 300); }, 4200);
+  }
+
   // Browsers only let a page make sound after the person has touched it
   // once; do that on the first touch so later alarms can ring.
   ["pointerdown", "keydown", "touchend"].forEach(function (type) {
@@ -165,7 +264,7 @@
   function dismissRing() {
     if (!ringRoot) return;
     document.removeEventListener("keydown", onRingKey);
-    Bell.stop();
+    Sound.stop();
     ringRoot.remove();
     ringRoot = ringList = ringNote = null;
     if (savedTitle != null) { document.title = savedTitle; savedTitle = null; }
@@ -205,8 +304,7 @@
     document.title = "🔔 " + ev.items[0].label;
 
     if (alarm.sound) {
-      Bell.start();
-      ringNote.hidden = Bell.running();
+      Sound.start(alarm).then(function (playing) { if (ringNote) ringNote.hidden = playing; });
     }
     if (alarm.notify && "Notification" in global && Notification.permission === "granted") {
       try {
@@ -252,9 +350,25 @@
           h("strong", { class: "alarm-row-title", text: a.title }),
           h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : "every time") }),
           h("span", { class: "alarm-row-next", text: nextText })),
+        h("div", { class: "alarm-row-actions" },
+        h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Add " + a.title + " to your phone's calendar", title: "Add its next rings to your phone's calendar (rings even with the browser closed)", onclick: function () { exportCalendar(a); } }, icon("calendar")),
         h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Edit " + a.title, title: "Edit", onclick: function (e) { openDialog(a.id, e.currentTarget); } }, icon("edit")),
-        h("button", { type: "button", class: "alarm-icon-btn danger", "aria-label": "Delete " + a.title, title: "Delete", onclick: function () { Alarms.remove(a.id); } }, icon("trash"))));
+        h("button", { type: "button", class: "alarm-icon-btn danger", "aria-label": "Delete " + a.title, title: "Delete", onclick: function () { Alarms.remove(a.id); } }, icon("trash")))));
     });
+  }
+
+  // Downloads the alarm's next rings as an .ics file for the phone's calendar.
+  function exportCalendar(a) {
+    Alarms.buildCalendar(a.id).then(function (cal) {
+      if (!cal.count) { toast("Nothing is due in the next 2 months, so there is nothing to export."); return; }
+      const url = URL.createObjectURL(new Blob([cal.text], { type: "text/calendar;charset=utf-8" }));
+      const link = h("a", { href: url, download: cal.filename });
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      toast(cal.count + (cal.count === 1 ? " ring" : " rings") + " saved as " + cal.filename + ". Open it on your phone to add them to its calendar.");
+    }).catch(function (err) { console.error(err); toast("Could not make the calendar file."); });
   }
 
   function renderChip() {
@@ -294,6 +408,7 @@
       repeat: editing ? editing.repeat : "always",
       label: editing ? editing.label : "",
       sound: editing ? editing.sound : true,
+      soundKind: editing ? editing.soundKind : "bell",
       notify: editing ? editing.notify : false,
       group: editing && editing.events.length ? Alarms.catalogItem(editing.events[0]).group : groups[0].id,
       query: "",
@@ -319,6 +434,12 @@
     const soundBox = h("input", { type: "checkbox", id: "al-sound" });
     const notifyBox = h("input", { type: "checkbox", id: "al-notify" });
     const notifyNote = h("span", { class: "al-sub" });
+    const soundKindEl = h("div", { class: "al-seg small", role: "radiogroup", "aria-label": "Alarm sound" });
+    const soundPanel = h("div", { class: "al-sound-panel" });
+    const trackRow = h("div", { class: "al-track" });
+    const fileInput = h("input", { type: "file", accept: "audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac", hidden: true, "aria-hidden": "true", tabindex: "-1" });
+    let trackInfo = null; // { name } of the stored track, once known
+    let trackMessage = ""; // the last problem choosing a file
     const unitEl = h("div", { class: "al-seg small", role: "radiogroup", "aria-label": "Unit" });
     const presetsEl = h("div", { class: "al-presets" });
 
@@ -330,7 +451,7 @@
     function draft() {
       return {
         events: Array.from(state.selected), mode: state.mode, offsetValue: state.offsetValue, offsetUnit: state.offsetUnit,
-        repeat: state.repeat, label: state.label, sound: state.sound, notify: state.notify,
+        repeat: state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify,
       };
     }
     function instantOnly() { return Alarms.allInstants(Array.from(state.selected)); }
@@ -478,10 +599,27 @@
     }
 
     function renderFoot() {
-      saveBtn.disabled = !state.selected.size || !amountValid();
+      saveBtn.disabled = !state.selected.size || !amountValid() || (state.sound && state.soundKind === "track" && !trackInfo);
     }
 
-    function renderAll() { renderPicker(); renderSelected(); renderWhen(); renderFoot(); schedulePreview(); }
+    // Bell or the person's own track, with the file chooser for the latter.
+    const renderSound = focusKept(function () {
+      soundPanel.hidden = !state.sound;
+      segmented(soundKindEl, [["bell", "Bell"], ["track", "My track"]], state.soundKind, function (k) { state.soundKind = k; renderSound(); renderFoot(); });
+      trackRow.hidden = state.soundKind !== "track";
+      trackRow.innerHTML = "";
+      trackRow.appendChild(h("div", { class: "al-track-file" }, icon("music"),
+        h("span", { class: "al-track-name", text: trackInfo ? trackInfo.name : "No track chosen yet" })));
+      trackRow.appendChild(h("div", { class: "al-track-actions" },
+        h("button", { type: "button", class: "al-link", "data-fk": "track-choose", text: trackInfo ? "Replace…" : "Choose audio file…", onclick: function () { fileInput.click(); } }),
+        trackInfo ? h("button", { type: "button", class: "al-link", "data-fk": "track-remove", text: "Remove", onclick: function () {
+          Track.clear().then(function () { trackInfo = null; trackMessage = ""; renderSound(); renderFoot(); });
+        } }) : null));
+      if (trackMessage) trackRow.appendChild(h("p", { class: "al-track-msg", text: trackMessage }));
+      else if (!trackInfo) trackRow.appendChild(h("p", { class: "al-sub", text: "MP3, M4A, WAV or OGG, up to 25 MB. It is kept on this device and shared by every alarm that uses it." }));
+    });
+
+    function renderAll() { renderPicker(); renderSelected(); renderWhen(); renderSound(); renderFoot(); schedulePreview(); }
 
     // -- live preview of when it will actually ring --
     let previewTimer = null, previewToken = 0;
@@ -539,7 +677,25 @@
     });
     amountInput.addEventListener("blur", function () { amountInput.value = isFinite(state.offsetValue) ? state.offsetValue : ""; });
     labelInput.addEventListener("input", function () { state.label = labelInput.value; });
-    soundBox.addEventListener("change", function () { state.sound = soundBox.checked; });
+    soundBox.addEventListener("change", function () { state.sound = soundBox.checked; renderSound(); renderFoot(); });
+    fileInput.addEventListener("change", function () {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = "";
+      if (!file) return;
+      Track.save(file).then(function (info) {
+        trackInfo = info;
+        trackMessage = "";
+        state.soundKind = "track";
+      }).catch(function (err) {
+        trackMessage = err.message || "Could not use that file.";
+      }).then(function () { renderSound(); renderFoot(); });
+    });
+    function previewSound() {
+      Bell.unlock();
+      if (Track.playing()) { Track.stop(); return; }
+      if (state.soundKind === "track") Track.play(false, 10000).then(function (ok) { if (!ok) { trackMessage = "That file would not play - try another."; renderSound(); } });
+      else Bell.preview();
+    }
     notifyBox.addEventListener("change", function () { state.notify = notifyBox.checked; });
 
     function nudge(dir) {
@@ -565,6 +721,7 @@
 
     function close() {
       document.removeEventListener("keydown", onKey);
+      Track.stop();
       clearTimeout(previewTimer);
       previewToken++;
       modal.classList.add("closing");
@@ -610,10 +767,10 @@
             h("div", { class: "al-step plain" }, "Alert"),
             h("div", { class: "al-toggles" },
               h("label", { class: "al-toggle", for: "al-sound" }, soundBox, h("span", { class: "al-toggle-track" }),
-                h("span", { class: "al-toggle-text" }, h("span", { text: "Bell sound" }),
-                  h("button", { type: "button", class: "al-link al-sub", text: "Preview", onclick: function (e) { e.preventDefault(); e.stopPropagation(); Bell.preview(); } }))),
+                h("span", { class: "al-toggle-text" }, h("span", { text: "Sound" }), h("span", { class: "al-sub", text: "Until dismissed" }))),
               h("label", { class: "al-toggle", for: "al-notify" }, notifyBox, h("span", { class: "al-toggle-track" }),
                 h("span", { class: "al-toggle-text" }, h("span", { text: "Notification" }), notifyNote))),
+            soundPanel,
             labelInput)),
         h("footer", { class: "al-foot" },
           previewEl,
@@ -621,6 +778,11 @@
             h("button", { type: "button", class: "al-btn", text: "Cancel", onclick: close }),
             saveBtn)),
         h("p", { class: "al-fineprint", text: "Alarms follow real time and ring while the clock is open on this device." })));
+
+    soundPanel.appendChild(h("div", { class: "al-sound-head" }, soundKindEl,
+      h("button", { type: "button", class: "al-link", text: "▶ Preview", onclick: previewSound })));
+    soundPanel.appendChild(trackRow);
+    soundPanel.appendChild(fileInput);
 
     // The "before" amount row, built once and shown only for "Before".
     beforeEl.appendChild(h("div", { class: "al-before-row" },
@@ -636,6 +798,7 @@
     document.body.appendChild(modal);
     renderAlerts();
     renderAll();
+    Track.info().then(function (info) { trackInfo = info; renderSound(); renderFoot(); });
     requestAnimationFrame(function () { modal.classList.add("open"); });
     (editing ? saveBtn : searchInput).focus();
     // Keep the modal's own scroll areas from scrolling the page behind.
@@ -659,5 +822,5 @@
     setInterval(refresh, 20000);
   }
 
-  VedicEngine.AlarmUI = { init, openDialog, showRing, dismissRing, Bell, fmtWhen, span };
+  VedicEngine.AlarmUI = { init, openDialog, showRing, dismissRing, Bell, Track, Sound, fmtWhen, span };
 })(typeof window !== "undefined" ? window : globalThis);

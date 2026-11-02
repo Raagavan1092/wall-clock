@@ -13,144 +13,72 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=21">
+<style>html, body { margin: 0; background: #0b0a08; }</style>
 </head>
 <body>
-<div id="stage">
-  <svg id="dial"></svg>
-  <div id="top-controls">
-    <div class="tc-row">
-      <div id="day-buttons" role="group" aria-label="Day shown on the clock">
-        <button type="button" id="day-yesterday" data-day="-1">Yesterday</button>
-        <button type="button" id="day-today" data-day="0">Today</button>
-        <button type="button" id="day-tomorrow" data-day="1">Tomorrow</button>
-      </div>
-      <button id="settings-toggle" aria-label="Settings">&#9881;</button>
-    </div>
-    <div id="time-scrub">
-      <div class="scrub-top">
-        <output id="scrub-readout" for="time-slider">--</output>
-        <button type="button" id="scrub-now" title="Back to live time"><span class="live-dot"></span>Now</button>
-      </div>
-      <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
-      <div class="scrub-ends">
-        <span id="scrub-sunrise" title="Sunrise">&#9728; --:--</span>
-        <span id="scrub-ghati">Gha&#7789;&#299; --</span>
-        <span id="scrub-next" title="Next sunrise">--:-- &#9728;</span>
-      </div>
-    </div>
-    <button type="button" id="next-alarm" hidden></button>
-  </div>
-</div>
-
-<div id="settings-panel" class="hidden">
-  <button id="settings-close" type="button" aria-label="Close">&times;</button>
-  <h2>Settings</h2>
-
-  <section id="alarm-section">
-    <h3>Alarms</h3>
-    <button id="alarm-set" type="button" class="primary-action">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a1 1 0 0 1 1 1v.7a6 6 0 0 1 5 5.9v3.2l1.6 2.6a.9.9 0 0 1-.8 1.4H5.2a.9.9 0 0 1-.8-1.4L6 13.8V10.8a6 6 0 0 1 5-5.9v-.7a1 1 0 0 1 1-1Z"/><path d="M9.6 19.2a2.5 2.5 0 0 0 4.8 0"/></svg>
-      Set Alarm
-    </button>
-    <ul id="alarm-list" class="alarm-list"></ul>
-    <p class="settings-note">Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring while the clock is open - after a reload, tap the page once so the browser allows sound.</p>
-  </section>
-
-  <section>
-    <h3>Time</h3>
-    <label>Set clock to <input type="datetime-local" id="set-time"></label>
-    <button id="set-time-now" type="button">Now</button>
-    <button id="set-time-pause" type="button">Pause</button>
-    <p class="settings-note" id="set-time-live">Live (following real time)</p>
-  </section>
-
-  <section>
-    <h3>Location</h3>
-    <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
-    <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
-    <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>
-    <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
-  </section>
-
-  <section>
-    <h3>Ayanāṃśa</h3>
-    <select id="set-ayanamsa">
-      <option value="lahiri">Lahiri (Citrapakṣa)</option>
-    </select>
-    <p class="settings-note">Only Lahiri is implemented in this prototype; see js/engine/ayanamsa.js.</p>
-  </section>
-
-  <section>
-    <h3>Sunrise definition</h3>
-    <label><input type="radio" name="sunriseEdge" value="upper-limb"> Upper limb, with refraction (default)</label>
-    <label><input type="radio" name="sunriseEdge" value="disc-centre"> Disc centre, geometric (no refraction)</label>
-  </section>
-
-  <section>
-    <h3>Ring layers (outside → in)</h3>
-    <p class="settings-note">The physical order of the rings on the dial, and which of the always-on rings are shown. Day / Night always stays innermost, inside the ghaṭī scale, so it has no reorder control.</p>
-    <ul id="set-layer-order" class="reorder-list"></ul>
-  </section>
-
-  <section>
-    <h3>Switchable ring order</h3>
-    <p class="settings-note">The order Switch display cycles through. Untick an element to leave it out. The good and bad times (Rāhu Kālam, Yamagaṇḍa, Gulika, Durmuhūrta, Varjyam; Abhijit, Pradoṣa, Godhūli, Amṛta Kālam; and the Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi yogas) share the always-on Good / Bad Times ring (see Ring layers above): good windows on its outer half, bad ones on its inner half.</p>
-    <ul id="set-ring-order" class="reorder-list"></ul>
-  </section>
-
-  <section>
-    <h3>Marker lines</h3>
-    <div id="set-markers"></div>
-    <p class="settings-note">Candrodaya/Candrāsta (moonrise/moonset) appear only when they fall within the day; Saṅkrānti only on the day the Sun enters a new rāśi.</p>
-  </section>
-
-  <section>
-    <h3>Defaults</h3>
-    <button id="settings-reset" type="button">Reset to defaults</button>
-    <p class="settings-note">Puts every setting above (location, ayanāṃśa, sunrise, ring layers, ring order, marker lines) back to its default. Nothing changes until you Save.</p>
-  </section>
-
-  <div class="settings-actions">
-    <button id="settings-save" type="button">Save</button>
-    <button id="settings-cancel" type="button">Cancel</button>
-  </div>
-</div>
-
-<script src="js/vendor/astronomy.browser.js?v=21"></script>
-<script src="js/engine/util.js?v=21"></script>
-<script src="js/engine/ayanamsa.js?v=21"></script>
-<script src="js/engine/sunrise.js?v=21"></script>
-<script src="js/engine/sidereal.js?v=21"></script>
-<script src="js/engine/elongation.js?v=21"></script>
-<script src="js/engine/tithi.js?v=21"></script>
-<script src="js/engine/nakshatra.js?v=21"></script>
-<script src="js/engine/yoga.js?v=21"></script>
-<script src="js/engine/karana.js?v=21"></script>
-<script src="js/engine/lagna.js?v=21"></script>
-<script src="js/engine/day-events.js?v=21"></script>
-<script src="js/engine/masa.js?v=21"></script>
-<script src="js/engine/scaled-intervals.js?v=21"></script>
-<script src="js/engine/ghati.js?v=21"></script>
-<script src="js/engine/panchanga.js?v=21"></script>
-<script src="js/render/ring-adapter.js?v=21"></script>
-<script src="js/render/dial.js?v=21"></script>
-<script src="js/settings.js?v=21"></script>
-<script src="js/alarms.js?v=21"></script>
-<script src="js/alarm-ui.js?v=21"></script>
-<script src="js/app.js?v=21"></script>
 <script>
-  // No offline cache: an old service worker serving stale files is what makes
-  // a new version look half-installed (new page, old scripts). Remove any that
-  // an earlier version registered, along with its caches.
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function (regs) {
-      regs.forEach(function (r) { r.unregister(); });
-    }).catch(function () {});
-  }
-  if (window.caches) {
-    caches.keys().then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
-  }
+  // Boot script. Fetches the clock's HTML, CSS and scripts - listed in
+  // app-files.json - revalidating each one with the server on every load
+  // (cache: "no-cache"), so a browser can never run a stale file or pair an
+  // old script with a new page. Unchanged files come back as a quick 304.
+  // This shell itself holds nothing that changes, and is never edited when
+  // the app is.
+  (function () {
+    var SHELL = 1;
+    var FRESH = { cache: "no-cache" };
+
+    // An old version registered a service worker / offline cache that could
+    // serve stale files; remove any left behind.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) { r.unregister(); });
+      }).catch(function () {});
+    }
+    if (window.caches) {
+      caches.keys().then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
+    }
+
+    function get(url) {
+      return fetch(url, FRESH).then(function (r) {
+        if (!r.ok) throw new Error(url + " (HTTP " + r.status + ")");
+        return r.text();
+      });
+    }
+
+    get("app-files.json").then(function (text) {
+      var files = JSON.parse(text);
+      if (files.shell !== SHELL) {
+        // This shell is out of date (only possible if the boot script itself
+        // changed): refresh it from the server, once.
+        var tried = false;
+        try { tried = sessionStorage.getItem("shellRefreshed") === "1"; sessionStorage.setItem("shellRefreshed", "1"); } catch (e) { tried = true; }
+        if (!tried) {
+          return fetch(location.pathname, { cache: "reload" }).then(function () { location.reload(); });
+        }
+      }
+      return Promise.all([
+        Promise.all(files.css.map(get)),
+        get(files.html),
+        Promise.all(files.js.map(get)),
+      ]).then(function (parts) {
+        files.css.forEach(function (url, i) {
+          var style = document.createElement("style");
+          style.textContent = parts[0][i] + "\n/*# sourceURL=" + url + " */";
+          document.head.appendChild(style);
+        });
+        document.body.insertAdjacentHTML("afterbegin", parts[1]);
+        // Appended in order; each runs as it is added, like a normal script tag.
+        files.js.forEach(function (url, i) {
+          var script = document.createElement("script");
+          script.textContent = parts[2][i] + "\n//# sourceURL=" + url;
+          document.body.appendChild(script);
+        });
+      });
+    }).catch(function (err) {
+      document.body.style.cssText = "color:#f0e6c8;font:16px system-ui;padding:24px";
+      document.body.textContent = "The clock could not load: " + err.message + ". Check the connection and reload.";
+    });
+  })();
 </script>
 </body>
 </html>

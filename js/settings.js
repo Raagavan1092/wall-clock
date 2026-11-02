@@ -25,14 +25,6 @@
     };
   }
 
-  // A full permutation of Dial.LAYER_KEYS, or the default order if the
-  // saved one is missing/stale.
-  function sanitizeLayerOrder(order) {
-    const known = VedicEngine.Dial.LAYER_KEYS;
-    const cleaned = sanitizeKeys(order, known);
-    return cleaned.length === known.length ? cleaned : known.slice();
-  }
-
   // Keeps only keys that exist in `known` (an object or array of keys).
   function sanitizeKeys(keys, known) {
     const knownKeys = Array.isArray(known) ? known : Object.keys(known);
@@ -70,9 +62,12 @@
       ayanamsa: VedicEngine.Ayanamsa.registry[saved.ayanamsa] ? saved.ayanamsa : d.ayanamsa,
       sunriseEdge: saved.sunriseEdge === "disc-centre" ? "disc-centre" : "upper-limb",
       ringOrder: sanitizeRingOrder(saved.ringOrder),
-      hiddenRings: sanitizeKeys(saved.hiddenRings, VedicEngine.RingAdapter.RING_ORDER.concat(Object.keys(VedicEngine.RingAdapter.FIXED_RING_TITLES))),
+      // Only the switchable rings can be hidden; the always-on Good / Bad
+      // Times and Day / Night rings and the layer order are not settings any
+      // more, so anything an earlier version saved for them is dropped.
+      hiddenRings: sanitizeKeys(saved.hiddenRings, VedicEngine.RingAdapter.RING_ORDER),
       hiddenMarkers: sanitizeKeys(saved.hiddenMarkers, VedicEngine.RingAdapter.MARKER_TITLES),
-      layerOrder: sanitizeLayerOrder(saved.layerOrder),
+      layerOrder: d.layerOrder,
     };
   }
 
