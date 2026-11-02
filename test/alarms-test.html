@@ -209,6 +209,30 @@
     .every(t => E.RingAdapter.dateNote(t, snapNow.anchors) === A.dateNote(t.getTime()));
   check("dateNote: agrees with the dial's tooltip rule on every segment time", sameAsDial);
 
+  // --- for a host that rings natively: upcoming() and markRang() ------------------------
+  A.list().forEach(a => A.remove(a.id));
+  const up = A.add({ events: ["sun:rise"], mode: "start", repeat: "always" });
+  const upc = await A.upcoming(up.id, 5);
+  check("upcoming: 5 sunrises, ascending, in the future, one item each", upc.length === 5 && upc.every((g, i) => g.fireAt > Date.now() && g.items.length === 1 && (i === 0 || g.fireAt > upc[i - 1].fireAt)));
+  check("upcoming: items carry label, group and times", upc[0].items[0].label && upc[0].items[0].group && upc[0].items[0].start === upc[0].fireAt);
+  const both = A.add({ events: ["sun:rise", "sun:set"], mode: "start", repeat: "always" });
+  const bothUp = await A.upcoming(both.id, 6);
+  check("upcoming: sunrise and sunset are separate rings (not within a minute)", bothUp.length === 6 && bothUp.every(g => g.items.length === 1));
+  const dayAhead = await A.upcoming(up.id, 40);
+  check("upcoming: 40 daily rings span about 40 days", dayAhead.length === 40 && Math.abs((dayAhead[39].fireAt - dayAhead[0].fireAt) / 86400000 - 39) < 0.5);
+  A.setEnabled(up.id, false);
+  check("upcoming: a disabled alarm has none", (await A.upcoming(up.id, 3)).length === 0);
+  A.setEnabled(up.id, true);
+  const once = A.add({ events: ["sun:rise"], mode: "start", repeat: "once" });
+  const first = (await A.upcoming(once.id, 2))[0].fireAt;
+  check("markRang: records it, switches a once-alarm off", A.markRang(once.id, first, first + 2000) === true && A.get(once.id).enabled === false && A.get(once.id).lastRang === first + 2000);
+  check("markRang: is idempotent", A.markRang(once.id, first, first + 2000) === false);
+  const aw = A.get(up.id).armedAfter;
+  A.markRang(up.id, upc[0].fireAt, upc[0].fireAt + 1000);
+  const upc2 = await A.upcoming(up.id, 2);
+  check("markRang: an always-alarm moves on past that ring", A.get(up.id).enabled && A.get(up.id).armedAfter > aw && upc2[0].fireAt > upc[0].fireAt, upc2.map(g => g.fireAt).join());
+  check("markRang: unknown alarm is ignored", A.markRang("nope", first, first) === false);
+
   localStorage.removeItem(KEY);
   const s = document.getElementById("summary");
   s.textContent = failed ? failed + " of " + total + " FAILED" : "All " + total + " checks passed";

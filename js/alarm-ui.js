@@ -113,11 +113,15 @@
         osc.stop(when + p[2] + 0.1);
       });
     }
+    // Three strikes; `c` may be an OfflineAudioContext (tools/render-sounds.js
+    // renders the bell for the Android app with this).
+    function strikes(c, t) {
+      [0, 1.0, 2.0].forEach(function (dt, i) { strike(c, t + dt, [1, 0.85, 0.7][i]); });
+    }
     function phrase() {
       const c = context();
       if (!c) return;
-      const t = c.currentTime + 0.05;
-      [0, 1.0, 2.0].forEach(function (dt, i) { strike(c, t + dt, [1, 0.85, 0.7][i]); });
+      strikes(c, c.currentTime + 0.05);
     }
     return {
       // One strike, for the dialog's "Preview" - and it unlocks audio, since
@@ -125,11 +129,13 @@
       preview: function () { const c = context(); if (c) strike(c, c.currentTime + 0.02, 1); },
       unlock: function () { context(); },
       running: function () { return !!ac && ac.state === "running"; },
+      strikes: strikes,
+      PHRASE_SECONDS: 5.5, // how often the ringing bell repeats its three strikes
       // Rings until stopped (or 90 s, whichever first).
       start: function () {
         this.stop();
         phrase();
-        loop = setInterval(phrase, 5500);
+        loop = setInterval(phrase, 5500); // = PHRASE_SECONDS
         stopper = setTimeout(function () { Bell.stop(); }, 90000);
       },
       stop: function () { clearInterval(loop); clearTimeout(stopper); loop = stopper = null; },
@@ -188,10 +194,17 @@
         }
         if (file.size > MAX_BYTES) return Promise.reject(new Error("That file is over 25 MB - pick a shorter track."));
         return file.arrayBuffer().then(function (data) {
-          return run("readwrite", function (s) { return s.put({ name: file.name, type: file.type || "audio/mpeg", data: data }, KEY); });
+          return run("readwrite", function (s) { return s.put({ name: file.name, type: file.type || "audio/mpeg", data: data }, KEY); }).then(function () {
+            // In the Android app the native alarm plays the track, so it needs its own copy.
+            if (global.AndroidAlarms && VedicEngine.AndroidBridge) VedicEngine.AndroidBridge.sendTrack(file.name, data);
+          });
         }).then(function () { return { name: file.name }; });
       },
-      clear: function () { stop(); return run("readwrite", function (s) { return s.delete(KEY); }); },
+      clear: function () {
+        stop();
+        if (global.AndroidAlarms && VedicEngine.AndroidBridge) VedicEngine.AndroidBridge.clearTrack();
+        return run("readwrite", function (s) { return s.delete(KEY); });
+      },
       // Plays it (looping, up to maxMs); resolves true if sound started.
       play: function (loop, maxMs) {
         stop();
@@ -576,7 +589,9 @@
     });
 
     function renderAlerts() {
-      if (!("Notification" in global)) {
+      if (global.AndroidAlarms) {
+        notifyNote.textContent = "Leaves a notification after it rings";
+      } else if (!("Notification" in global)) {
         notifyBox.disabled = true;
         notifyNote.textContent = "Not supported here";
       } else if (Notification.permission === "denied") {
@@ -844,7 +859,9 @@
 
   function init(options) {
     Alarms.init({ getSettings: options.getSettings, getData: options.getData });
-    Alarms.onRing(showRing);
+    // In the Android app the native alarm rings (it works with the phone
+    // locked); the page must not ring a second time on top of it.
+    Alarms.onRing(global.AndroidAlarms ? function () {} : showRing);
     listEl = document.getElementById("alarm-list");
     chipEl = document.getElementById("next-alarm");
     const setBtn = document.getElementById("alarm-set");
@@ -857,5 +874,5 @@
     setInterval(refresh, 20000);
   }
 
-  VedicEngine.AlarmUI = { init, openDialog, showRing, dismissRing, Bell, Track, Sound, fmtWhen, span };
+  VedicEngine.AlarmUI = { init, openDialog, showRing, dismissRing, Bell, Track, Sound, fmtWhen, span, itemLine };
 })(typeof window !== "undefined" ? window : globalThis);

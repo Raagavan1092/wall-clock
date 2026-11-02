@@ -395,6 +395,49 @@
   function onChange(fn) { changeListeners.push(fn); }
   function onRing(fn) { ringHandler = fn; }
 
+  // The next rings of one alarm, as concrete times, for a host that rings
+  // them itself (the Android app's native alarms): Promise of
+  // [{ fireAt, items: [{ id, label, group, tone, instant, start, end }] }],
+  // earliest first, at most `count` of them, none past the search limit.
+  // Rings within BATCH_MS of each other are one entry, like tick() rings them.
+  function upcoming(id, count) {
+    const a = find(id);
+    if (!a || !a.enabled) return Promise.resolve([]);
+    const known = getCatalog().byId;
+    const now = Date.now();
+    const after = Math.max(a.armedAfter, now - GRACE_MS);
+    const token = a._token;
+    return findFires(specOf(a), after, count || 40).then(function (found) {
+      const out = [];
+      found.forEach(function (f) {
+        if (f.fire > now + MAX_SCAN_MS) return;
+        const item = known.get(f.id);
+        const entry = { id: f.id, label: f.detail || item.label, group: item.groupTitle, tone: item.tone, instant: !!item.instant, start: f.start, end: f.end };
+        const last = out[out.length - 1];
+        if (last && f.fire <= last.fireAt + BATCH_MS) last.items.push(entry);
+        else out.push({ fireAt: f.fire, items: [entry] });
+      });
+      return out.slice(0, count || 40);
+    });
+  }
+
+  // A host rang alarm `id` (due at fireAt) for us: record it exactly as tick()
+  // would have, without ringing again. Idempotent. Returns true if it changed anything.
+  function markRang(id, fireAt, rangAt) {
+    const a = find(id);
+    if (!a || !isFinite(fireAt)) return false;
+    if (a.lastRang != null && a.lastRang >= (isFinite(rangAt) ? rangAt : fireAt) && a.armedAfter >= fireAt + BATCH_MS) return false;
+    a.lastRang = Math.max(a.lastRang || 0, isFinite(rangAt) ? rangAt : fireAt);
+    a.armedAfter = Math.max(a.armedAfter, fireAt + BATCH_MS);
+    if (a.repeat === "once") a.enabled = false;
+    persist();
+    schedule(a);
+    emitChange();
+    return true;
+  }
+
+  function settingsKey() { return ctx ? settingsSignature() : ""; }
+
   // ---- wording ------------------------------------------------------------
 
   // " (Nov 3)" for a time after midnight and before that morning's sunrise
@@ -460,7 +503,7 @@
   }
 
   VedicEngine.Alarms = {
-    init, tick, add, update, remove, setEnabled, preview, list, onChange, onRing,
+    init, tick, add, update, remove, setEnabled, preview, list, onChange, onRing, upcoming, markRang, settingsKey,
     catalog: function () { return getCatalog().groups; },
     catalogItem: function (id) { return getCatalog().byId.get(id); },
     get: function (id) { const a = find(id); return a ? serialize(a) : null; },

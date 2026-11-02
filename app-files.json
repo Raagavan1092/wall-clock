@@ -28,6 +28,7 @@
     "js/tunes.js",
     "js/alarms.js",
     "js/alarm-ui.js",
+    "js/android-bridge.js",
     "js/app.js"
   ]
 }
