@@ -59,6 +59,17 @@
     return String(g.ghati).padStart(2, "0") + ":" + String(g.pala).padStart(2, "0");
   }
 
+  // " (Nov 3)" for a time that falls on a later calendar date (IST) than the
+  // Vedic day being shown - i.e. after midnight, before the next sunrise - so
+  // "till 02:10" is not mistaken for tonight's earlier hours. "" otherwise.
+  const IST_MS = 5.5 * 3600 * 1000;
+  const DAY_MS = 86400000;
+  function dateNote(date, anchors) {
+    const dayOf = function (d) { return Math.floor((d.getTime() + IST_MS) / DAY_MS); };
+    if (dayOf(date) === dayOf(anchors.governingSunrise)) return "";
+    return " (" + date.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" }) + ")";
+  }
+
   // Fills in startAngle/endAngle for any segment that doesn't already have
   // them (the "single value"/merged builders below set startTime/endTime
   // but leave angles null until anchors are available), and ALWAYS attaches
@@ -73,6 +84,8 @@
       }
       seg.startGhatiPala = ghatiPalaLabel(seg.startTime, anchors);
       seg.endGhatiPala = ghatiPalaLabel(seg.endTime, anchors);
+      seg.startDateNote = dateNote(seg.startTime, anchors);
+      seg.endDateNote = dateNote(seg.endTime, anchors);
     });
     return segments;
   }
@@ -477,6 +490,7 @@
     return markers.filter(function (m) { return (hiddenKeys || []).indexOf(m.key) === -1; }).map(function (m) {
       m.angle = angleOf(m.time, a);
       m.ghatiPala = ghatiPalaLabel(m.time, a);
+      m.dateNote = dateNote(m.time, a);
       return m;
     });
   }
@@ -660,5 +674,5 @@
     return out;
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, buildAlarmCatalog, buildAlarmEvents, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
+  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, buildAlarmCatalog, buildAlarmEvents, dateNote, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);

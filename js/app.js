@@ -100,6 +100,12 @@
     return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
   }
 
+  // A time for the centre readout, with " (Nov 3)" after it when it falls
+  // after midnight on the next date (see RingAdapter.dateNote).
+  function fmtTimeD(date, snapshot) {
+    return fmtTime(date) + E.RingAdapter.dateNote(date, snapshot.anchors);
+  }
+
   function buildCentreLines(now, snapshot, ringDescriptor, ghatiNow) {
     const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
     // `ghatiNow`, not `snapshot.ghati`: the snapshot is cached for hours at a
@@ -143,9 +149,9 @@
         if (!st) {
           lines.push({ text: "No more " + row[0] + " times today", emphasis: "muted" });
         } else if (st.active) {
-          lines.push({ text: row[2] + st.text + " · till " + fmtTime(st.until), emphasis: row[0] });
+          lines.push({ text: row[2] + st.text + " · till " + fmtTimeD(st.until, snapshot), emphasis: row[0] });
         } else {
-          lines.push({ text: "Next " + row[0] + ": " + st.text + " @ " + fmtTime(st.at), emphasis: "muted" });
+          lines.push({ text: "Next " + row[0] + ": " + st.text + " @ " + fmtTimeD(st.at, snapshot), emphasis: "muted" });
         }
       });
     }
@@ -161,7 +167,7 @@
       return seg.startTime > now && seg.text;
     });
     let ringLine = ringDescriptor.title + (nowSeg && nowSeg.text ? ": " + nowSeg.text : "");
-    if (nextSeg) ringLine += " · next " + nextSeg.text + " " + fmtTime(nextSeg.startTime);
+    if (nextSeg) ringLine += " · next " + nextSeg.text + " " + fmtTimeD(nextSeg.startTime, snapshot);
     lines.push({ text: ringLine });
     return lines;
   }

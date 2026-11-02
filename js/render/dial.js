@@ -69,7 +69,7 @@
   // "GG:PP – GG:PP (Gh:Pal)" then "HH:MM – HH:MM (Hr:Min)".
   const GP_TAG = " (Gh:Pal)", HM_TAG = " (Hr:Min)";
   function timeRangeTooltip(seg) {
-    return seg.startGhatiPala + " – " + seg.endGhatiPala + GP_TAG + "\n" + fmtHM(seg.startTime) + " – " + fmtHM(seg.endTime) + HM_TAG;
+    return seg.startGhatiPala + " – " + seg.endGhatiPala + GP_TAG + "\n" + fmtHM(seg.startTime) + (seg.startDateNote || "") + " – " + fmtHM(seg.endTime) + (seg.endDateNote || "") + HM_TAG;
   }
 
   // Custom dark-mode tooltip. SVG's native <title> tooltip is OS-rendered
@@ -666,7 +666,7 @@
     // Wide invisible twin so the thin line is easy to hover/tap.
     const p3 = polarToXY(m.angle, R.markerLabelEnd);
     const hit = el("line", { x1: p1.x, y1: p1.y, x2: p3.x, y2: p3.y, class: "day-marker-hit" });
-    const tip = (m.tooltipTitle || m.text) + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + HM_TAG;
+    const tip = (m.tooltipTitle || m.text) + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + (m.dateNote || "") + HM_TAG;
     attachTooltip(hit, tip);
     group.appendChild(hit);
     const label = markerLabel(m.text, m.angle, offset);
