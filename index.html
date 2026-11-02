@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="css/style.css?v=20">
+<link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
 <div id="stage">
@@ -28,12 +28,16 @@
       <button id="settings-toggle" aria-label="Settings">&#9881;</button>
     </div>
     <div id="time-scrub">
-      <div class="scrub-head">
-        <span id="scrub-sunrise" title="Sunrise">&#9728; --:--</span>
-        <output id="scrub-readout" for="time-slider">--:--</output>
-        <span id="scrub-next" title="Next sunrise">--:-- &#9728;</span>
+      <div class="scrub-top">
+        <output id="scrub-readout" for="time-slider">--</output>
+        <button type="button" id="scrub-now" title="Back to live time"><span class="live-dot"></span>Now</button>
       </div>
       <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
+      <div class="scrub-ends">
+        <span id="scrub-sunrise" title="Sunrise">&#9728; --:--</span>
+        <span id="scrub-ghati">Gha&#7789;&#299; --</span>
+        <span id="scrub-next" title="Next sunrise">--:-- &#9728;</span>
+      </div>
     </div>
     <button type="button" id="next-alarm" hidden></button>
   </div>
@@ -113,38 +117,39 @@
   </div>
 </div>
 
-<script src="js/vendor/astronomy.browser.js"></script>
-<script src="js/engine/util.js"></script>
-<script src="js/engine/ayanamsa.js"></script>
-<script src="js/engine/sunrise.js"></script>
-<script src="js/engine/sidereal.js"></script>
-<script src="js/engine/elongation.js"></script>
-<script src="js/engine/tithi.js"></script>
-<script src="js/engine/nakshatra.js"></script>
-<script src="js/engine/yoga.js"></script>
-<script src="js/engine/karana.js"></script>
-<script src="js/engine/lagna.js"></script>
-<script src="js/engine/day-events.js"></script>
-<script src="js/engine/masa.js"></script>
-<script src="js/engine/scaled-intervals.js"></script>
-<script src="js/engine/ghati.js"></script>
-<script src="js/engine/panchanga.js"></script>
-<script src="js/render/ring-adapter.js"></script>
-<script src="js/render/dial.js"></script>
-<script src="js/settings.js"></script>
-<script src="js/alarms.js"></script>
-<script src="js/alarm-ui.js"></script>
-<script src="js/app.js"></script>
+<script src="js/vendor/astronomy.browser.js?v=21"></script>
+<script src="js/engine/util.js?v=21"></script>
+<script src="js/engine/ayanamsa.js?v=21"></script>
+<script src="js/engine/sunrise.js?v=21"></script>
+<script src="js/engine/sidereal.js?v=21"></script>
+<script src="js/engine/elongation.js?v=21"></script>
+<script src="js/engine/tithi.js?v=21"></script>
+<script src="js/engine/nakshatra.js?v=21"></script>
+<script src="js/engine/yoga.js?v=21"></script>
+<script src="js/engine/karana.js?v=21"></script>
+<script src="js/engine/lagna.js?v=21"></script>
+<script src="js/engine/day-events.js?v=21"></script>
+<script src="js/engine/masa.js?v=21"></script>
+<script src="js/engine/scaled-intervals.js?v=21"></script>
+<script src="js/engine/ghati.js?v=21"></script>
+<script src="js/engine/panchanga.js?v=21"></script>
+<script src="js/render/ring-adapter.js?v=21"></script>
+<script src="js/render/dial.js?v=21"></script>
+<script src="js/settings.js?v=21"></script>
+<script src="js/alarms.js?v=21"></script>
+<script src="js/alarm-ui.js?v=21"></script>
+<script src="js/app.js?v=21"></script>
 <script>
-  // Registers the offline cache (sw.js) so the clock keeps working once
-  // installed, even without a connection. Harmless no-op over plain http://
-  // or file:// where Service Worker isn't available/permitted.
+  // No offline cache: an old service worker serving stale files is what makes
+  // a new version look half-installed (new page, old scripts). Remove any that
+  // an earlier version registered, along with its caches.
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function (err) {
-        console.warn("Service worker registration failed:", err);
-      });
-    });
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (r) { r.unregister(); });
+    }).catch(function () {});
+  }
+  if (window.caches) {
+    caches.keys().then(function (keys) { keys.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
   }
 </script>
 </body>

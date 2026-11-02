@@ -78,7 +78,6 @@
   function invalidateCache() {
     cachedSnapshot = null;
     lastRenderedRingKey = null;
-    realDay = null;
   }
 
   // "Switch time": "ghati" (Vedic readout leads, 60-ghati scale, pala hand)
@@ -310,7 +309,7 @@
       const now = getNow();
       const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
       input.value = local.toISOString().slice(0, 16);
-      liveIndicator.textContent = pausedAt ? "Paused" : timeOffsetMs === 0 ? "Live (following real time)" : "Overridden - not following real time";
+      liveIndicator.textContent = pausedAt ? "Paused at the time shown" : timeOffsetMs === 0 ? "Live (following real time)" : "Overridden - not following real time";
       pauseBtn.textContent = pausedAt ? "Resume" : "Pause";
     }
     syncTimeInput = syncInput;
@@ -320,12 +319,7 @@
       const parsed = new Date(input.value);
       if (!isNaN(parsed.getTime())) setViewedTime(parsed);
     });
-    nowBtn.addEventListener("click", function () {
-      timeOffsetMs = 0;
-      pausedAt = null;
-      syncTimeUi();
-      render();
-    });
+    nowBtn.addEventListener("click", goLive);
     pauseBtn.addEventListener("click", function () {
       if (pausedAt) {
         // Resume from exactly where it was paused, not from real "now".
@@ -346,13 +340,13 @@
     }, 1000);
   }
 
-  // ---- Yesterday / Today / Tomorrow and the time slider --------------------
-  // Both sit beside the settings gear. The day buttons are relative to the
-  // REAL current Vedic day (sunrise to sunrise, like the dial), and keep the
-  // same place in the day - the same ghaṭī - so flipping between them
-  // compares like with like. The slider scrubs through the Vedic day on show:
-  // sunrise at the left, the next sunrise at the right, its track coloured
-  // like the Day / Night ring.
+  // ---- Yesterday / Today / Tomorrow, the time slider and Now ---------------
+  // They sit beside the settings gear. Live is the default: the slider
+  // follows the real time. Moving the slider, or pressing a day button, holds
+  // the clock at that moment (it does not drift on) until Now is pressed.
+  // The day buttons change only the date: the clock time on show stays the
+  // same. The slider scrubs the Vedic day on show - sunrise at the left, the
+  // next sunrise at the right - its track coloured like the Day / Night ring.
 
   let syncTimeInput = function () { /* set by wireTimeControl */ };
   function syncTimeUi() {
@@ -360,32 +354,32 @@
     syncDayControls();
   }
 
-  // Sunrise-to-sunrise bounds (ms) of the real current Vedic day.
-  let realDay = null;
-  function getRealDay() {
-    const real = Date.now();
-    if (!realDay || real < realDay.sunrise || real >= realDay.next) {
-      const sunrise = E.Sunrise.sunriseAtOrBefore(settings.location, new Date(real), settings.sunriseEdge);
-      const next = E.Sunrise.sunriseAfter(settings.location, sunrise, settings.sunriseEdge);
-      realDay = { sunrise: sunrise.getTime(), next: next.getTime() };
-    }
-    return realDay;
+  function isLive() {
+    return !pausedAt && timeOffsetMs === 0;
   }
 
-  // The instant `days` Vedic days from the real one, at the same place in the day.
-  function instantForDay(days) {
-    const real = getRealDay();
-    const intoDay = Date.now() - real.sunrise;
-    let sunrise = real.sunrise, next = real.next;
-    for (let k = days; k > 0; k--) {
-      sunrise = next;
-      next = E.Sunrise.sunriseAfter(settings.location, new Date(sunrise), settings.sunriseEdge).getTime();
-    }
-    for (let k = days; k < 0; k++) {
-      next = sunrise;
-      sunrise = E.Sunrise.sunriseAtOrBefore(settings.location, new Date(next - 60000), settings.sunriseEdge).getTime();
-    }
-    return new Date(Math.min(sunrise + intoDay, next - 1000));
+  function goLive() {
+    timeOffsetMs = 0;
+    pausedAt = null;
+    syncTimeUi();
+    render();
+  }
+
+  // Holds the clock at `date`.
+  function setManualTime(date) {
+    pausedAt = date;
+    syncTimeUi();
+    render();
+  }
+
+  const DAY_MS = 86400000;
+  function istDayNumber(ms) { return Math.floor((ms + IST_OFFSET_MS) / DAY_MS); }
+
+  // The shown clock time, `days` calendar days from the real today (IST).
+  function sameTimeOnDay(days) {
+    const shown = getNow().getTime();
+    const timeOfDay = (((shown + IST_OFFSET_MS) % DAY_MS) + DAY_MS) % DAY_MS;
+    return new Date((istDayNumber(Date.now()) + days) * DAY_MS + timeOfDay - IST_OFFSET_MS);
   }
 
   let scrubbing = false;
@@ -396,22 +390,19 @@
     const slider = document.getElementById("time-slider");
     const scrub = document.getElementById("time-scrub");
     const readout = document.getElementById("scrub-readout");
+    const nowBtn = document.getElementById("scrub-now");
     const sunriseLabel = document.getElementById("scrub-sunrise");
+    const ghatiLabel = document.getElementById("scrub-ghati");
     const nextLabel = document.getElementById("scrub-next");
 
     buttons.forEach(function (btn) {
       btn.addEventListener("click", function () {
         const days = Number(btn.dataset.day);
-        if (days === 0) {
-          timeOffsetMs = 0;
-          pausedAt = null;
-          syncTimeUi();
-          render();
-        } else {
-          setViewedTime(instantForDay(days));
-        }
+        if (days === 0 && isLive()) return; // already on today, in real time
+        setManualTime(sameTimeOnDay(days));
       });
     });
+    nowBtn.addEventListener("click", goLive);
 
     syncDayControls = function () {
       if (!cachedSnapshot) return;
@@ -419,13 +410,16 @@
       const now = getNow();
       const sunrise = a.governingSunrise.getTime();
 
-      // Which button is lit: the viewed day against the real one.
-      const delta = Math.round((sunrise - getRealDay().sunrise) / 86400000);
+      // Which button is lit: the date on show against the real one.
+      const delta = istDayNumber(now.getTime()) - istDayNumber(Date.now());
       buttons.forEach(function (btn) {
         const on = Number(btn.dataset.day) === delta;
         btn.classList.toggle("on", on);
         btn.setAttribute("aria-pressed", String(on));
       });
+      const live = isLive();
+      nowBtn.classList.toggle("is-live", live);
+      nowBtn.setAttribute("aria-pressed", String(live));
 
       // Slider: one step per minute across this Vedic day (the last step
       // stays just short of the next sunrise, which would be the next day).
@@ -435,8 +429,8 @@
       scrub.style.setProperty("--day-frac", (dayFrac * 100).toFixed(2) + "%");
       sunriseLabel.textContent = "\u2600 " + fmtTime(a.governingSunrise);
       nextLabel.textContent = fmtTime(a.nextSunrise) + " \u2600";
-      const g = E.Ghati.current(now, a);
-      readout.textContent = fmtTime(now) + " \u00b7 Gha\u1e6d\u012b " + g.ghati;
+      ghatiLabel.textContent = "Gha\u1e6d\u012b " + E.Ghati.current(now, a).ghati;
+      readout.textContent = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" }) + " \u00b7 " + fmtTime(now);
       if (!scrubbing) {
         slider.value = String(Math.max(0, Math.min(max, Math.floor((now.getTime() - sunrise) / 60000))));
       }
@@ -445,7 +439,7 @@
 
     slider.addEventListener("input", function () {
       if (!cachedSnapshot) return;
-      setViewedTime(new Date(cachedSnapshot.anchors.governingSunrise.getTime() + Number(slider.value) * 60000));
+      setManualTime(new Date(cachedSnapshot.anchors.governingSunrise.getTime() + Number(slider.value) * 60000));
     });
     ["pointerdown", "touchstart"].forEach(function (type) {
       slider.addEventListener(type, function () { scrubbing = true; }, { passive: true });

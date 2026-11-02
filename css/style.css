@@ -368,21 +368,45 @@ html, body {
   backdrop-filter: blur(8px);
   --day-frac: 50%;
 }
-.scrub-head {
+.scrub-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#scrub-readout {
+  color: var(--gold-hi);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.scrub-ends {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
   gap: 8px;
   font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-#scrub-readout {
-  color: var(--gold-hi);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
+#scrub-ghati { color: var(--ink); }
+/* Now: lit gold when the clock has been moved off live time (an invitation to
+   return), quiet with a green dot while it is live. */
+#scrub-now {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 14px 0 11px;
+  border: 1px solid #e8c878;
+  border-radius: 999px;
+  background: var(--gold-fill);
+  color: #1a1208;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(201, 168, 92, 0.3);
 }
+#scrub-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #7a6636; }
+#scrub-now.is-live { background: transparent; border-color: var(--ring-stroke); color: var(--muted); box-shadow: none; font-weight: 600; }
+#scrub-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
+#scrub-now:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
 #time-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -452,6 +476,7 @@ html, body {
   #top-controls { gap: 5px; width: min(270px, calc(100vw - 24px)); }
   #day-buttons button { height: 30px; font-size: 12px; }
   #time-scrub { padding: 5px 12px 6px; }
+  .scrub-ends { display: none; }
 }
 
 .ai {
