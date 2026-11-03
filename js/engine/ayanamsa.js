@@ -41,12 +41,30 @@
     return arcsec / 3600.0;
   }
 
-  // Pluggable registry so other ayanamsas (Raman, KP/Krishnamurti, True
-  // Chitrapaksha) can be added later without touching call sites. Only Lahiri
-  // is implemented for this prototype; the others are left as explicit
-  // "not implemented" stubs rather than silently falling back to Lahiri.
+  // Raman and KP (Krishnamurti) are defined as fixed offsets from Lahiri. Each
+  // uses the same precession rate as Lahiri, so only the epoch value differs.
+  // The offsets come from published J2000 values:
+  //   Lahiri  ~23.8531 deg (libephemeris reference)
+  //   Raman   ~22.4108 deg  -> offset -1.4422 deg
+  //   KP      ~23.7602 deg  -> offset -0.0929 deg
+  // Sources disagree by a few arcminutes at J2000, so these are approximate.
+  // They are NOT yet checked against a reference almanac (the harness only
+  // covers Lahiri).
+  const LAHIRI_J2000_LIBEPHEMERIS_DEG = 23.8531;
+  const RAMAN_J2000_DEG = 22.4108;
+  const KP_J2000_DEG = 23.7602;
+
+  function offsetFromLahiri(offsetDeg) {
+    return function (date) { return lahiri(date) + offsetDeg; };
+  }
+
+  // Pluggable registry: add a name here, then add an <option> in app.html.
+  // True Chitrapaksha (Spica-based) is not included: it needs a star position
+  // catalogue with proper motion, which this engine does not have.
   const registry = {
     lahiri: lahiri,
+    raman: offsetFromLahiri(RAMAN_J2000_DEG - LAHIRI_J2000_LIBEPHEMERIS_DEG),
+    krishnamurti: offsetFromLahiri(KP_J2000_DEG - LAHIRI_J2000_LIBEPHEMERIS_DEG),
   };
 
   function get(name, date) {
