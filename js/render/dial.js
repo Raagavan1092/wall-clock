@@ -744,8 +744,8 @@
   // smaller than the seconds).
   // Line heights by emphasis: the big ghaṭī line, the clock line, then
   // everything else in a tighter rhythm.
-  const CENTRE_LINE_HEIGHT = { ghati: 58, "clock-secondary": 42 };
-  const CENTRE_LINE_HEIGHT_DEFAULT = 33;
+  const CENTRE_LINE_HEIGHT = { ghati: 64, "clock-secondary": 46, ring: 38 };
+  const CENTRE_LINE_HEIGHT_DEFAULT = 36;
   // Text may reach a little past the plate's edge (into the empty space
   // before the day/night ring) but no further than this radius.
   const CENTRE_REACH = 236;

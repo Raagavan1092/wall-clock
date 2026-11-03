@@ -171,13 +171,12 @@
     // blank (unlabelled) night band - name just the ring there rather than
     // show a bare "Kāla: ", and look past blank segment(s) for "next".
     if (!ringDescriptor) return lines; // every switchable ring hidden
-    const nowSeg = ringDescriptor.segments.find(function (seg) {
-      return now >= seg.startTime && now < seg.endTime;
-    });
     const nextSeg = ringDescriptor.segments.find(function (seg) {
       return seg.startTime > now && seg.text;
     });
-    lines.push({ text: ringDescriptor.title + (nowSeg && nowSeg.text ? ": " + nowSeg.text : "") });
+    // The current division is already highlighted on the dial, so the centre
+    // names the ring (highlighted) and says only when the next one starts.
+    lines.push({ text: ringDescriptor.title, emphasis: "ring" });
     if (nextSeg) lines.push({ text: "next " + nextSeg.text + " " + fmtTimeD(nextSeg.startTime, snapshot) });
     return lines;
   }
@@ -234,9 +233,21 @@
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
     E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow));
+    updateSwitchLabel();
     if (changed || !controlsSynced) { controlsSynced = true; syncDayControls(); }
   }
   let controlsSynced = false;
+
+  // "Switch to <next ring>" on the Switch display button.
+  let lastSwitchLabel = null;
+  function updateSwitchLabel() {
+    const n = activeRingOrder.length;
+    const nextKey = n ? activeRingOrder[(currentRingIndex + 1) % n] : null;
+    const label = nextKey ? "Switch to " + (E.RingAdapter.RING_TITLES[nextKey] || nextKey) : "Switch display";
+    if (label === lastSwitchLabel) return;
+    lastSwitchLabel = label;
+    document.getElementById("btn-switch-display").textContent = label;
+  }
 
   const IST_OFFSET_MS = 5.5 * 3600 * 1000;
   function minuteAngle(now) {
