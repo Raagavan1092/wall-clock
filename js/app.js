@@ -167,7 +167,7 @@
       });
     }
 
-    // Now/next for the active switchable ring, on one line. Kāla has a
+    // Now/next for the active switchable ring, on two lines. Kāla has a
     // blank (unlabelled) night band - name just the ring there rather than
     // show a bare "Kāla: ", and look past blank segment(s) for "next".
     if (!ringDescriptor) return lines; // every switchable ring hidden
@@ -177,9 +177,8 @@
     const nextSeg = ringDescriptor.segments.find(function (seg) {
       return seg.startTime > now && seg.text;
     });
-    let ringLine = ringDescriptor.title + (nowSeg && nowSeg.text ? ": " + nowSeg.text : "");
-    if (nextSeg) ringLine += " · next " + nextSeg.text + " " + fmtTimeD(nextSeg.startTime, snapshot);
-    lines.push({ text: ringLine });
+    lines.push({ text: ringDescriptor.title + (nowSeg && nowSeg.text ? ": " + nowSeg.text : "") });
+    if (nextSeg) lines.push({ text: "next " + nextSeg.text + " " + fmtTimeD(nextSeg.startTime, snapshot) });
     return lines;
   }
 

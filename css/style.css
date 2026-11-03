@@ -222,25 +222,25 @@ html, body {
 
 .centre-line {
   fill: var(--centre-text);
-  font-size: 20px;
+  font-size: 25px;
   pointer-events: none;
 }
 .centre-line-ghati {
   fill: var(--centre-ghati);
-  font-size: 40px;
+  font-size: 50px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .centre-line-clock-secondary {
   fill: var(--centre-clock-secondary);
-  font-size: 26px;
+  font-size: 32px;
   font-variant-numeric: tabular-nums;
 }
 .centre-line-bad { fill: var(--centre-bad); font-weight: 600; }
 .centre-line-good { fill: var(--centre-good); font-weight: 600; }
-.centre-line-muted { fill: var(--centre-clock-secondary); font-size: 18px; }
+.centre-line-muted { fill: var(--centre-clock-secondary); font-size: 22px; }
 .centre-line-sub {
-  font-size: 22px;
+  font-size: 27px;
   font-weight: 400;
   fill: var(--centre-clock-secondary);
 }
@@ -557,23 +557,22 @@ html, body {
 #next-alarm .chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Landscape: the clock on the left; the controls on the right in one column,
-   the navigator stuck to the top with the buttons under it. Nothing overlaps
-   the rings. The clock is the screen's height, or less if the right column
-   needs the width. */
+   the navigator stuck to the top right with the buttons under it. The clock
+   is centred in the rest of the width, the screen's height at most. */
 @media (orientation: landscape) {
   #stage {
-    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 330px)));
+    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 360px)));
     display: grid;
-    grid-template-columns: var(--dial) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 360px;
     grid-template-rows: auto 1fr;
     align-items: start;
     justify-items: center;
     gap: 10px 0;
     padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) env(safe-area-inset-left);
   }
-  #dial { grid-column: 1; grid-row: 1 / span 2; align-self: center; order: 0; margin: 0; width: var(--dial); height: var(--dial); max-width: none; flex: none; }
-  #top-controls { grid-column: 2; grid-row: 1; order: 0; width: min(100% - 16px, 360px); }
-  #clock-buttons { grid-column: 2; grid-row: 2; order: 0; width: min(100% - 16px, 360px); }
+  #dial { grid-column: 1; grid-row: 1 / span 2; align-self: center; justify-self: center; order: 0; margin: 0; width: var(--dial); height: var(--dial); max-width: none; flex: none; }
+  #top-controls { grid-column: 2; grid-row: 1; order: 0; justify-self: end; width: min(100% - 8px, 352px); }
+  #clock-buttons { grid-column: 2; grid-row: 2; order: 0; justify-self: end; width: min(100% - 8px, 352px); }
   #day-buttons button { font-size: 11.5px; padding: 0 2px; }
   #day-prev, #day-next { flex: 1.6; }
   #day-today { flex: 0.8; }

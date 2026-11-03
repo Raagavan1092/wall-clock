@@ -19,21 +19,27 @@
   // ghaṭī/pala scale, then the innermost day/night ring, then the centre
   // readout. The layers' radii (outerRing*/goodBadRing*) are filled in by
   // setLayerOrder below.
+  // Everything inside the ring layers (the ghaṭī scale, day/night ring,
+  // hands, marker labels and the centre readout) is drawn at the radii below
+  // times K, so the clock face is larger than it was: the Good / Bad Times
+  // ring gave up some width to make room (LAYER_THICKNESS), and the centre
+  // text grew with the face.
+  const K = 1.13;
   const R = {
-    ghatiMajorTickOuter: 356,
-    ghatiMajorTickInner: 322,
-    ghatiMinorTickOuter: 356,
-    ghatiMinorTickInner: 340,
-    ghatiNumeral: 300,
-    dayNightRingOuter: 284,
-    dayNightRingInner: 258, // thin band - a little thicker than the tithi ring
-    hand: 270, // same length as palaHand, per the project owner
-    palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
+    ghatiMajorTickOuter: 356 * K,
+    ghatiMajorTickInner: 322 * K,
+    ghatiMinorTickOuter: 356 * K,
+    ghatiMinorTickInner: 340 * K,
+    ghatiNumeral: 300 * K,
+    dayNightRingOuter: 284 * K,
+    dayNightRingInner: 258 * K, // thin band - a little thicker than the tithi ring
+    hand: 270 * K, // same length as palaHand, per the project owner
+    palaHand: 270 * K, // shorter/faster second spoke, reaches into the day/night ring
     markerLineOuter: 611, // Āvartana/Niśītha lines run out through every ring to its outer edge (610)...
-    markerLabel: 254, // ...and their name sits just inside where the line starts (the day/night ring's inner edge, 258)...
-    markerLabelInner: 188, // ...running inward along the same angle, no further than the centre plate (186)
-    hub: 14,
-    centrePlate: 186,
+    markerLabel: 254 * K, // ...and their name sits just inside where the line starts (the day/night ring's inner edge)...
+    markerLabelInner: 188 * K, // ...running inward along the same angle, no further than the centre plate
+    hub: 16,
+    centrePlate: 186 * K,
     centreTextY: 0, // the centre readout is centred; the buttons now live below the clock (app.html)
   };
 
@@ -232,7 +238,7 @@
   // the marker labels moved inside the clock went mostly to the Good / Bad
   // Times ring, a little to the switchable one.
   const LAYER_KEYS = ["switchable", "goodBad"];
-  const LAYER_THICKNESS = { switchable: 70, goodBad: 168 };
+  const LAYER_THICKNESS = { switchable: 70, goodBad: 120 };
   const LAYER_RADIUS_PREFIX = { switchable: "outerRing", goodBad: "goodBadRing" };
   const LAYERS_OUTER = 610, LAYER_GAP = 4;
   let layerFrame = null;
@@ -303,7 +309,7 @@
       const angle = gh * 6;
       tick(g, angle, R.ghatiMajorTickInner, R.ghatiMajorTickOuter, "tick-major");
       const isLandmark = gh % 5 === 0;
-      g.appendChild(radialLabel(String(gh), angle, R.ghatiNumeral, isLandmark ? 16 : 12, isLandmark ? "ghati-numeral" : "ghati-numeral-minor"));
+      g.appendChild(radialLabel(String(gh), angle, R.ghatiNumeral, isLandmark ? 20 : 15, isLandmark ? "ghati-numeral" : "ghati-numeral-minor", true));
     }
   }
 
@@ -323,7 +329,7 @@
       const distFromTop = Math.min(h.angle, 360 - h.angle);
       if (distFromTop < 7) return;
       const isLandmark = h.hour % 6 === 0;
-      g.appendChild(radialLabel(String(h.hour), h.angle, R.ghatiNumeral, isLandmark ? 20 : 17, isLandmark ? "ghati-numeral" : "hour-numeral"));
+      g.appendChild(radialLabel(String(h.hour), h.angle, R.ghatiNumeral, isLandmark ? 24 : 20, isLandmark ? "ghati-numeral" : "hour-numeral", true));
     });
     // The first whole hour after sunrise is less than 15 deg clockwise of the
     // top, so the minor ticks before it still need drawing.
@@ -332,7 +338,7 @@
       tick(g, a, R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
     }
     tick(g, 0, R.ghatiMajorTickInner - 6, R.ghatiMajorTickOuter, "tick-sunrise");
-    g.appendChild(radialLabel(scale.sunriseLabel, 0, R.ghatiNumeral, 18, "sunrise-numeral"));
+    g.appendChild(radialLabel(scale.sunriseLabel, 0, R.ghatiNumeral, 22, "sunrise-numeral", true));
   }
 
   function buildStaticStructure(svg) {
@@ -738,8 +744,11 @@
   // smaller than the seconds).
   // Line heights by emphasis: the big ghaṭī line, the clock line, then
   // everything else in a tighter rhythm.
-  const CENTRE_LINE_HEIGHT = { ghati: 48, "clock-secondary": 36 };
-  const CENTRE_LINE_HEIGHT_DEFAULT = 28;
+  const CENTRE_LINE_HEIGHT = { ghati: 58, "clock-secondary": 42 };
+  const CENTRE_LINE_HEIGHT_DEFAULT = 33;
+  // Text may reach a little past the plate's edge (into the empty space
+  // before the day/night ring) but no further than this radius.
+  const CENTRE_REACH = 236;
   function setCentreText(centreGroup, lines) {
     while (centreGroup.firstChild) centreGroup.removeChild(centreGroup.firstChild);
     const heights = lines.map(function (line) { return CENTRE_LINE_HEIGHT[line.emphasis] || CENTRE_LINE_HEIGHT_DEFAULT; });
@@ -755,10 +764,25 @@
         class: "centre-line" + (line.emphasis ? " centre-line-" + line.emphasis : ""),
       });
       t.appendChild(document.createTextNode(line.text));
+      let sub = null;
       if (line.subText) {
-        t.appendChild(el("tspan", { class: "centre-line-sub" })).textContent = line.subText;
+        sub = t.appendChild(el("tspan", { class: "centre-line-sub" }));
+        sub.textContent = line.subText;
       }
       centreGroup.appendChild(t);
+      // A line that would run past CENTRE_REACH at its height (chord of
+      // the circle, narrower toward the top and bottom) shrinks to fit.
+      if (t.getComputedTextLength) {
+        const reach = CENTRE_REACH;
+        const dy = Math.abs(lineY - CY) + heights[i] / 2;
+        const maxWidth = 2 * Math.sqrt(Math.max(0, reach * reach - dy * dy));
+        const length = t.getComputedTextLength();
+        if (length > maxWidth && length > 0) {
+          const f = maxWidth / length;
+          t.style.fontSize = (parseFloat(getComputedStyle(t).fontSize) * f).toFixed(1) + "px";
+          if (sub) sub.style.fontSize = (parseFloat(getComputedStyle(sub).fontSize) * f).toFixed(1) + "px";
+        }
+      }
     });
   }
 
