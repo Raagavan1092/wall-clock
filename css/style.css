@@ -51,18 +51,29 @@ html, body {
   font-family: "Segoe UI", system-ui, sans-serif;
 }
 
+/* Portrait: navigator on top, the clock, then the buttons below it. The clock
+   is as large as fits (a square no wider than the screen); see the landscape
+   block further down for the side-by-side arrangement. */
 #stage {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 #dial {
-  width: min(100vw, 100vh);
-  height: min(100vw, 100vh);
+  order: 2;
+  flex: 0 1 100vw;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
   background: var(--dial-bg);
   border-radius: 50%;
   touch-action: pan-y;
@@ -140,20 +151,64 @@ html, body {
 .pala-hand-line { stroke: var(--centre-ghati); stroke-width: 2.5; stroke-linecap: round; opacity: 0.85; }
 .centre-plate { fill: var(--dial-bg); }
 
-/* "Switch time" / "Switch display" buttons in the centre of the dial
-   (SVG, see dial.js centreButton). */
-.centre-button { cursor: pointer; outline: none; }
-.centre-button-bg { fill: var(--ring-fill-alt); stroke: var(--ring-stroke); stroke-width: 1.5; }
-.centre-button:hover .centre-button-bg,
-.centre-button:focus-visible .centre-button-bg { fill: var(--ring-stroke); }
-.centre-button-label { fill: var(--centre-text); font-size: 15px; font-weight: 600; pointer-events: none; }
+/* The buttons under (portrait) or left of (landscape) the clock. */
+#clock-buttons {
+  order: 3;
+  flex: none;
+  width: min(440px, calc(100vw - 24px));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.cb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 12px;
+  background: var(--glass);
+  color: var(--ink);
+  border: 1px solid var(--ring-stroke);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cb:hover { background: rgba(60, 46, 24, 0.9); }
+.cb:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.cb[hidden] { display: none; }
+/* The Show good / bad times buttons behave like checkboxes. */
+.cb-toggle::before {
+  content: "";
+  flex: none;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 2px solid var(--muted);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.cb-toggle[aria-checked="true"]::before { content: "\2713"; background: var(--accent); border-color: var(--accent); }
+.cb-toggle[aria-checked="true"] { border-color: var(--accent); }
+#btn-show-good { --accent: var(--good-fill); }
+#btn-show-bad { --accent: var(--bad-fill); }
 
 /* Avartana / Nishitha marker lines (dial.js renderDayMarkers). */
 .day-marker-line { stroke: #ffffff; stroke-opacity: 0.6; stroke-width: 2; pointer-events: none; }
 .day-marker-hit { stroke: transparent; stroke-width: 14; }
 .day-marker-label {
   fill: #ffffff; fill-opacity: 0.9;
-  font-size: 13px; font-weight: 700; letter-spacing: 0.01em;
+  font-size: 15px; font-weight: 700; letter-spacing: 0.01em;
   /* dark halo so the text stays legible over whichever ring it crosses */
   stroke: var(--dial-bg); stroke-width: 3px; stroke-opacity: 0.8; paint-order: stroke;
   pointer-events: none;
@@ -315,9 +370,9 @@ html, body {
 }
 
 #top-controls {
-  position: absolute;
-  top: 3%;
-  right: 3%;
+  order: 1;
+  flex: none;
+  position: relative;
   z-index: 5;
   width: min(360px, calc(100vw - 24px));
   display: flex;
@@ -358,38 +413,6 @@ html, body {
 #day-prev, #day-next { flex: 1.7; }
 #day-buttons button { white-space: nowrap; font-size: 12.5px; padding: 0 4px; }
 
-/* Seven days either side of today: one dot each, the day on show lit. */
-#day-strip {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 6px;
-  margin-top: -2px;
-}
-.day-dot {
-  position: relative;
-  width: 20px;
-  height: 18px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-.day-dot::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: #6b5a35;
-  transition: all 0.15s;
-}
-.day-dot:hover::before { background: var(--gold); }
-.day-dot.is-today::before { width: 7px; height: 7px; background: transparent; border: 1.5px solid var(--gold); }
-.day-dot.on::before { width: 9px; height: 9px; background: var(--gold-hi); border: 0; box-shadow: 0 0 8px rgba(255, 215, 122, 0.7); }
-.day-dot:focus-visible { outline: 2px solid var(--gold-hi); border-radius: 6px; }
 #day-buttons button.on {
   background: var(--gold-fill);
   color: #1a1208;
@@ -509,10 +532,36 @@ html, body {
 #next-alarm:hover { background: rgba(42, 33, 19, 0.9); }
 #next-alarm .chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Landscape: the buttons to the left of the clock, the navigator to its
+   right, each in its own column, so nothing overlaps the rings. The clock is
+   the screen's height, or less if the two side columns need the width. */
+@media (orientation: landscape) {
+  #stage {
+    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 440px)));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--dial) minmax(0, 1fr);
+    grid-template-rows: 100%;
+    align-items: center;
+    justify-items: center;
+    gap: 0;
+  }
+  #clock-buttons { grid-column: 1; grid-row: 1; order: 0; width: min(100% - 24px, 250px); grid-template-columns: 1fr; }
+  #dial { grid-column: 2; grid-row: 1; order: 0; width: var(--dial); height: var(--dial); max-width: none; flex: none; }
+  #top-controls { grid-column: 3; grid-row: 1; order: 0; width: min(100% - 24px, 360px); }
+  /* The column is narrow: the gear goes on its own line above the day buttons. */
+  .tc-row { flex-wrap: wrap; justify-content: flex-end; }
+  #settings-toggle { order: 1; }
+  #day-buttons { order: 2; flex: 1 1 100%; }
+  #day-buttons button { font-size: 11.5px; padding: 0 2px; }
+  #day-prev, #day-next { flex: 1.6; }
+  #day-today { flex: 0.8; }
+}
+
 @media (max-height: 520px) {
-  #top-controls { gap: 5px; width: min(270px, calc(100vw - 24px)); }
-  #day-buttons button { height: 30px; font-size: 12px; }
-  #day-strip { display: none; }
+  #top-controls { gap: 5px; }
+  #day-buttons button { height: 30px; font-size: 11px; }
+  .cb { min-height: 44px; font-size: 15px; }
+  #clock-buttons { gap: 6px; }
   #time-scrub { padding: 5px 12px 6px; }
   .scrub-ends { display: none; }
 }

@@ -1,5 +1,11 @@
 <!-- The clock's markup. Loaded into index.html by its boot script (see app-files.json). -->
 <div id="stage">
+  <div id="clock-buttons" role="group" aria-label="Clock display">
+    <button type="button" id="btn-switch-time" class="cb">Switch time</button>
+    <button type="button" id="btn-switch-display" class="cb">Switch display</button>
+    <button type="button" id="btn-show-good" class="cb cb-toggle" role="checkbox" aria-checked="true">Show good times</button>
+    <button type="button" id="btn-show-bad" class="cb cb-toggle" role="checkbox" aria-checked="true">Show bad times</button>
+  </div>
   <svg id="dial"></svg>
   <div id="top-controls">
     <div class="tc-row">
@@ -10,7 +16,6 @@
       </div>
       <button id="settings-toggle" aria-label="Settings">&#9881;</button>
     </div>
-    <div id="day-strip" role="group" aria-label="Seven days before and after today"></div>
     <div id="time-scrub">
       <div class="scrub-top">
         <output id="scrub-readout" for="time-slider">--</output>

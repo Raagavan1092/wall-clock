@@ -78,6 +78,7 @@
   function invalidateCache() {
     cachedSnapshot = null;
     lastRenderedRingKey = null;
+    lastShowKey = null;
   }
 
   // "Switch time": "ghati" (Vedic readout leads, 60-ghati scale, pala hand)
@@ -87,6 +88,16 @@
   let timeMode = "ghati";
   try { if (localStorage.getItem(TIME_MODE_KEY) === "hour") timeMode = "hour"; } catch (e) { /* storage unavailable */ }
   let lastRenderedTimeMode = null;
+
+  // "Show good times" / "Show bad times": which halves of the Good / Bad
+  // Times ring are drawn. A viewing preference, remembered across reloads.
+  const SHOW_GOOD_KEY = "vedicWallClock.showGood", SHOW_BAD_KEY = "vedicWallClock.showBad";
+  const show = { good: true, bad: true };
+  try {
+    if (localStorage.getItem(SHOW_GOOD_KEY) === "0") show.good = false;
+    if (localStorage.getItem(SHOW_BAD_KEY) === "0") show.bad = false;
+  } catch (e) { /* storage unavailable */ }
+  let lastShowKey = null;
 
   let data = null;
   let dialHandles = null;
@@ -144,7 +155,7 @@
     // Status of the Good / Bad Times ring: bad first (the one people check),
     // then good. Each says what is active and until when, or what is next.
     if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1) {
-      [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].forEach(function (row) {
+      [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].filter(function (row) { return show[row[0]]; }).forEach(function (row) {
         const st = E.RingAdapter.statusFor(row[1], now);
         if (!st) {
           lines.push({ text: "No more " + row[0] + " times today", emphasis: "muted" });
@@ -182,10 +193,15 @@
       // which switchable ring is toggled, so they're rebuilt whenever the
       // snapshot itself changes.
       lastGoodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data);
-      E.Dial.renderGoodBadRing(dialHandles.goodBadRingGroup, lastGoodBad.good, lastGoodBad.bad);
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
       applyFixedRingVisibility();
+    }
+    // The Good / Bad Times ring also depends on which halves are switched on.
+    const showKey = (show.good ? "g" : "-") + (show.bad ? "b" : "-");
+    if (changed || showKey !== lastShowKey) {
+      E.Dial.renderGoodBadRing(dialHandles.goodBadRingGroup, lastGoodBad.good, lastGoodBad.bad, show);
+      lastShowKey = showKey;
     }
     if (changed || ringKey !== lastRenderedRingKey) {
       if (ringKey) {
@@ -244,6 +260,10 @@
     Object.keys(groups).forEach(function (k) {
       groups[k].style.display = settings.hiddenRings.indexOf(k) === -1 ? "" : "none";
     });
+    // With the Good / Bad Times ring hidden in Settings its toggles have nothing to do.
+    const goodBadOn = settings.hiddenRings.indexOf("goodBad") === -1;
+    document.getElementById("btn-show-good").hidden = !goodBadOn;
+    document.getElementById("btn-show-bad").hidden = !goodBadOn;
   }
 
   function cycleRing(delta) {
@@ -254,19 +274,23 @@
 
   function wireInput(svg) {
     // Tapping the dial itself no longer cycles the ring (per the project
-    // owner) - so a tap on a segment just shows its tooltip. The "Switch
-    // display" button, swipes and arrow keys do it instead. The buttons sit
-    // inside the SVG, so they stop their events here rather than letting
-    // them reach the dial's own handlers.
-    function wireButton(button, action) {
-      button.addEventListener("click", function (e) { e.stopPropagation(); action(); });
-      button.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); action(); }
-      });
-      button.addEventListener("touchend", function (e) { e.stopPropagation(); }, { passive: true });
+    // owner) - so a tap on a segment just shows its tooltip. The buttons
+    // below / beside the clock, swipes and arrow keys do it instead.
+    function setShown(kind, on) {
+      show[kind] = on;
+      try { localStorage.setItem(kind === "good" ? SHOW_GOOD_KEY : SHOW_BAD_KEY, on ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+      syncShowButtons();
+      render();
     }
-    wireButton(dialHandles.timeButton, toggleTimeMode);
-    wireButton(dialHandles.displayButton, function () { cycleRing(1); });
+    function syncShowButtons() {
+      document.getElementById("btn-show-good").setAttribute("aria-checked", String(show.good));
+      document.getElementById("btn-show-bad").setAttribute("aria-checked", String(show.bad));
+    }
+    document.getElementById("btn-switch-time").addEventListener("click", toggleTimeMode);
+    document.getElementById("btn-switch-display").addEventListener("click", function () { cycleRing(1); });
+    document.getElementById("btn-show-good").addEventListener("click", function () { setShown("good", !show.good); });
+    document.getElementById("btn-show-bad").addEventListener("click", function () { setShown("bad", !show.bad); });
+    syncShowButtons();
 
     window.addEventListener("keydown", function (e) {
       // Not while typing in / scrubbing a field or working in a dialog (the
@@ -409,7 +433,6 @@
     const prevBtn = document.getElementById("day-prev");
     const todayBtn = document.getElementById("day-today");
     const nextBtn = document.getElementById("day-next");
-    const strip = document.getElementById("day-strip");
     const slider = document.getElementById("time-slider");
     const scrub = document.getElementById("time-scrub");
     const readout = document.getElementById("scrub-readout");
@@ -423,17 +446,6 @@
     todayBtn.addEventListener("click", function () { goToDay(0); });
     nowBtn.addEventListener("click", goLive);
 
-    // One dot per day, -7 .. +7; each jumps straight to that day.
-    const dots = [];
-    for (let d = -NAV_DAYS; d <= NAV_DAYS; d++) {
-      const dot = document.createElement("button");
-      dot.type = "button";
-      dot.className = "day-dot" + (d === 0 ? " is-today" : "");
-      dot.addEventListener("click", function () { goToDay(d); });
-      strip.appendChild(dot);
-      dots.push({ days: d, el: dot });
-    }
-
     syncDayControls = function () {
       if (!cachedSnapshot) return;
       const a = cachedSnapshot.anchors;
@@ -446,15 +458,6 @@
       todayBtn.setAttribute("aria-pressed", String(offset === 0));
       prevBtn.disabled = offset <= -NAV_DAYS;
       nextBtn.disabled = offset >= NAV_DAYS;
-      const todayNumber = istDayNumber(Date.now());
-      dots.forEach(function (d) {
-        const on = d.days === offset;
-        d.el.classList.toggle("on", on);
-        d.el.setAttribute("aria-current", on ? "date" : "false");
-        const label = new Date((todayNumber + d.days) * DAY_MS).toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
-        const text = d.days === 0 ? "Today, " + label : label;
-        if (d.el.title !== text) { d.el.title = text; d.el.setAttribute("aria-label", text); }
-      });
       const live = isLive();
       nowBtn.classList.toggle("is-live", live);
       nowBtn.setAttribute("aria-pressed", String(live));

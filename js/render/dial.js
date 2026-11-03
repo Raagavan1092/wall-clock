@@ -8,9 +8,9 @@
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const SVG_NS = "http://www.w3.org/2000/svg";
 
-  // The rings end at radius 546; the thin margin beyond (546..615) holds
-  // the marker-line labels (Āvartana, Niśītha, ...), each written as a
-  // straight continuation of its own line.
+  // The rings run out to radius 610, almost the dial's edge (615). The
+  // marker-line labels (Āvartana, Niśītha, ...) sit INSIDE the clock instead,
+  // each written along its own line's angle, ending where the line starts.
   const CX = 615, CY = 615;
   // Concentric bands, outside in: two ring LAYERS - by default the
   // switchable ring (whichever of ring-adapter.js RING_ORDER is toggled,
@@ -29,13 +29,12 @@
     dayNightRingInner: 258, // thin band - a little thicker than the tithi ring
     hand: 270, // same length as palaHand, per the project owner
     palaHand: 270, // shorter/faster second spoke, reaches into the day/night ring
-    markerLineOuter: 547, // Āvartana/Niśītha lines run out through every ring to its outer edge (546)...
-    markerLabel: 550, // ...and their name carries on from there, along the same angle...
-    markerLabelEnd: 614, // ...to the dial's edge (615)
+    markerLineOuter: 611, // Āvartana/Niśītha lines run out through every ring to its outer edge (610)...
+    markerLabel: 254, // ...and their name sits just inside where the line starts (the day/night ring's inner edge, 258)...
+    markerLabelInner: 188, // ...running inward along the same angle, no further than the centre plate (186)
     hub: 14,
     centrePlate: 186,
-    centreTextY: -24, // centre readout sits a little above centre, leaving room for...
-    centreButtonsY: 112, // ...the Switch time / Switch display buttons below it
+    centreTextY: 0, // the centre readout is centred; the buttons now live below the clock (app.html)
   };
 
   function polarToXY(angleDeg, radius) {
@@ -151,7 +150,7 @@
   // dial it falls on.
   // A "\n" in `text` splits it over two lines, the second a little smaller,
   // centred together on the same point.
-  function radialLabel(text, angleDeg, radius, fontSize, extraClass) {
+  function radialLabel(text, angleDeg, radius, fontSize, extraClass, forceSize) {
     const p = polarToXY(angleDeg, radius);
     const t = el("text", {
       x: p.x, y: p.y,
@@ -160,12 +159,15 @@
       "font-size": fontSize,
       class: "dial-label" + (extraClass ? " " + extraClass : ""),
     });
+    // `forceSize` sets the size as an inline style, which (unlike the
+    // font-size attribute) wins over .dial-label's CSS font-size.
+    if (forceSize) t.style.fontSize = fontSize + "px";
     const lines = text.split("\n");
     if (lines.length === 1) {
       t.textContent = text;
       return t;
     }
-    const subSize = Math.max(10, Math.round(fontSize * 0.9));
+    const subSize = forceSize ? fontSize * 0.9 : Math.max(10, Math.round(fontSize * 0.9));
     t.appendChild(el("tspan", { x: p.x, y: p.y - subSize * 0.6 })).textContent = lines[0];
     t.appendChild(el("tspan", { x: p.x, y: p.y + fontSize * 0.6, "font-size": subSize })).textContent = lines[1];
     return t;
@@ -174,7 +176,7 @@
   let curvedLabelCounter = 0;
   const AVG_GLYPH_WIDTH = 0.55; // rough average advance per character, in ems
   const MIN_CURVED_FONT = 9;
-  const CSS_LABEL_FONT = 15; // .dial-label's font-size in style.css
+  const CSS_LABEL_FONT = 15; // .dial-label's font-size in style.css (curvedLabelAtStart's fallback)
 
   // Text that flows along the circle's curve, centred on `midAngle`. Used for
   // the tithi/nakshatra rings, where each segment is usually a single,
@@ -225,13 +227,14 @@
   // The two reorderable ring layers, outside in by default. The Good / Bad
   // Times ring is the wider one, as it holds two halves (see
   // renderGoodBadRing). Whatever the order, they pack inward from radius
-  // 546 with a 4-unit gap and always end at the same inner radius (368), so
-  // the ghaṭī scale and everything inside never move. The Good / Bad Times
-  // ring got the room freed when the marker labels moved onto their lines.
+  // 610 with a 4-unit gap and always end at the same inner radius (368), so
+  // the ghaṭī scale and everything inside never move. The room freed when
+  // the marker labels moved inside the clock went mostly to the Good / Bad
+  // Times ring, a little to the switchable one.
   const LAYER_KEYS = ["switchable", "goodBad"];
-  const LAYER_THICKNESS = { switchable: 56, goodBad: 118 };
+  const LAYER_THICKNESS = { switchable: 70, goodBad: 168 };
   const LAYER_RADIUS_PREFIX = { switchable: "outerRing", goodBad: "goodBadRing" };
-  const LAYERS_OUTER = 546, LAYER_GAP = 4;
+  const LAYERS_OUTER = 610, LAYER_GAP = 4;
   let layerFrame = null;
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
 
@@ -378,24 +381,7 @@
     const centreGroup = el("g", { class: "centre-text" });
     svg.appendChild(centreGroup);
 
-    // Two buttons side by side under the centre readout, drawn in the SVG
-    // so they scale with the dial on every screen size.
-    const BTN_W = 112, BTN_H = 36, BTN_GAP = 10, BTN_Y = CY + R.centreButtonsY;
-    const timeButton = centreButton("Switch time", CX - BTN_GAP / 2 - BTN_W, BTN_Y, BTN_W, BTN_H);
-    const displayButton = centreButton("Switch display", CX + BTN_GAP / 2, BTN_Y, BTN_W, BTN_H);
-    svg.appendChild(timeButton);
-    svg.appendChild(displayButton);
-
-    return { goodBadRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup, timeButton, displayButton };
-  }
-
-  function centreButton(label, x, y, w, h) {
-    const g = el("g", { class: "centre-button", role: "button", tabindex: "0", "aria-label": label });
-    g.appendChild(el("rect", { x: x, y: y, width: w, height: h, rx: h / 2, class: "centre-button-bg" }));
-    const t = el("text", { x: x + w / 2, y: y + h / 2, "text-anchor": "middle", "dominant-baseline": "central", class: "centre-button-label" });
-    t.textContent = label;
-    g.appendChild(t);
-    return g;
+    return { goodBadRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup };
   }
 
   // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel?,
@@ -414,6 +400,18 @@
   function fittedCurvedFont(text, span, radius) {
     const arcLength = (Math.min(span, 170) * Math.PI / 180) * radius * 0.9;
     return arcLength / (text.length * AVG_GLYPH_WIDTH);
+  }
+
+  // The largest font a straight label (one or two lines) can take in a cell
+  // of `span` degrees at `radius`, `thickness` units deep.
+  const RADIAL_MAX_FONT = 22, MIN_RADIAL_FONT = 8;
+  const CURVED_MAX_FONT = 26;
+  function fittedRadialFont(lines, span, radius, thickness) {
+    const widest = Math.max.apply(null, lines.map(function (l) { return l.length; }));
+    const width = (span * Math.PI / 180) * radius * 0.92;
+    const byWidth = width / (widest * AVG_GLYPH_WIDTH);
+    const byDepth = lines.length > 1 ? (thickness * 0.92) / 2.1 : thickness * 0.5;
+    return Math.min(RADIAL_MAX_FONT, byWidth, byDepth);
   }
 
   // Each segment (its path and its label) goes in its own group tagged with
@@ -449,7 +447,6 @@
 
   function renderRing(group, ringDescriptor, geom) {
     while (group.firstChild) group.removeChild(group.firstChild);
-    const fontSizeFn = typeof geom.fontSize === "function" ? geom.fontSize : function () { return geom.fontSize; };
     const minSpanForLabel = geom.minSpanForLabel != null ? geom.minSpanForLabel : 6;
 
     ringDescriptor.segments.forEach(function (seg, i) {
@@ -467,32 +464,29 @@
       if (seg.text && span >= minSpanForLabel) {
         const midAngle = seg.startAngle + span / 2;
         const midRadius = (geom.rInner + geom.rOuter) / 2;
-        const fontSize = fontSizeFn(span);
-        let fits = true;
-        let shrunkSize = null;
+        const labelClass = seg.contested ? "contested-label" : undefined;
+        const thickness = geom.rOuter - geom.rInner;
         if (geom.curved) {
-          // Shrink a curved label to fit its arc; skip it only if even
-          // small text won't fit - the tooltip still has it. Measured
-          // against the size actually shown (.dial-label's CSS font-size
-          // wins over the font-size attribute), and applied as an inline
-          // style, which in turn wins over the CSS. A start-anchored label
-          // gives up a little of the arc to its padding from the boundary.
+          // Grow the label to the ring's full width, but shrink it to fit
+          // its arc; skip it only if even small text won't fit - the
+          // tooltip still has it. The size is applied as an inline style,
+          // which wins over .dial-label's CSS font-size. A start-anchored
+          // label gives up a little of the arc to its padding from the
+          // boundary.
           const usable = geom.labelAtStart ? span - 2 * startPadDeg(midRadius) : span;
           const fitted = usable > 0 ? fittedCurvedFont(seg.text, usable, midRadius) : 0;
-          fits = fitted >= MIN_CURVED_FONT;
-          if (fitted < CSS_LABEL_FONT) shrunkSize = fitted;
-        }
-        const labelClass = seg.contested ? "contested-label" : undefined;
-        if (!fits) {
-          // no room - tooltip only
-        } else if (geom.curved && geom.labelAtStart) {
-          curvedLabelAtStart(segGroup, seg.text, seg.startAngle, span, midRadius, labelClass, shrunkSize);
-        } else if (geom.curved) {
-          curvedLabel(segGroup, seg.text, midAngle, span, midRadius, shrunkSize || fontSize, labelClass, shrunkSize);
+          const size = Math.min(Math.min(CURVED_MAX_FONT, thickness * 0.36), fitted);
+          if (fitted >= MIN_CURVED_FONT) {
+            if (geom.labelAtStart) curvedLabelAtStart(segGroup, seg.text, seg.startAngle, span, midRadius, labelClass, size);
+            else curvedLabel(segGroup, seg.text, midAngle, span, midRadius, size, labelClass, size);
+          }
         } else {
           // "Tvaṣṭā (Brahma Muhūrta)" is too long for one 12-deg muhūrta
-          // cell, so a parenthetical goes on a second line.
-          segGroup.appendChild(radialLabel(seg.text.replace(" (", "\n("), midAngle, midRadius, fontSize, labelClass));
+          // cell, so a parenthetical goes on a second line. The label is as
+          // large as its cell's width (and the ring's thickness) allow.
+          const text = seg.text.replace(" (", "\n(");
+          const size = fittedRadialFont(text.split("\n"), span, midRadius, thickness);
+          if (size >= MIN_RADIAL_FONT) segGroup.appendChild(radialLabel(text, midAngle, midRadius, size, labelClass, true));
         }
       }
       if (seg.contested) {
@@ -552,7 +546,6 @@
     const curved = !!CURVED_OUTER_RINGS[ringDescriptor.ringKey];
     renderRing(group, ringDescriptor, {
       rInner: R.outerRingInner, rOuter: R.outerRingOuter,
-      fontSize: curved ? 14 : function (span) { return span >= 15 ? 15 : 11; },
       minSpanForLabel: curved ? 0 : 6, // curved labels shrink to fit instead (see renderRing)
       curved: curved,
       alternate: true,
@@ -564,27 +557,49 @@
   // ring split down the middle by an axis circle. Good windows grow
   // OUTWARD from the axis, bad ones INWARD (toward the hand), so a clash
   // between a good and a bad window shows up at the same angle on both
-  // sides of the line. Within each half, every event has its own thin
-  // sub-ring ("lane"), lane 0 hugging the axis, so overlapping windows of
-  // the same kind sit side by side, each with its own colour and label.
-  // Each half sizes its own lanes (never wider than half the half, so on an
-  // ordinary day of 1-2 lanes per side both sides look alike, and a busy
-  // good side doesn't squeeze the bad side). A label that can't fit its
-  // lane even at the smallest size is left to the tooltip.
+  // sides of the line. A window that overlaps no other of its kind stretches
+  // across its whole half; windows that overlap share the half, each in its
+  // own thin sub-ring ("lane", lane 0 hugging the axis), side by side with
+  // its own colour and label. The overlap is judged per cluster of
+  // mutually-overlapping windows, so a busy stretch of the day doesn't
+  // squeeze the quiet ones.
+  // `show` ({good, bad}, both true by default) is the pair of "Show good /
+  // bad times" toggles: with only one kind shown it takes the whole ring,
+  // the axis goes, and its labels grow with the extra width.
+  // A label that can't fit its lane even at the smallest size is left to
+  // the tooltip.
   const LANE_GAP = 2;
   const AXIS_GAP = 2;
   const MIN_LANE_FONT = 7;
-  const MAX_LANE_FONT = 17; // wider lanes can take a slightly larger label than the plain rings
-  function renderGoodBadRing(group, good, bad) {
+  const MAX_LANE_FONT = 44;
+  // Per window, the number of lanes its cluster of overlapping windows
+  // needs (1 for a window on its own). Windows must be sorted by start, as
+  // ring-adapter.js's layoutEvents leaves them.
+  function clusterLaneCounts(segments) {
+    const counts = new Map();
+    let cluster = [], clusterEnd = -Infinity, lanes = 0;
+    function flush() { cluster.forEach(function (ev) { counts.set(ev, lanes); }); }
+    segments.forEach(function (ev) {
+      if (ev.startTime.getTime() >= clusterEnd) { flush(); cluster = []; lanes = 0; clusterEnd = -Infinity; }
+      cluster.push(ev);
+      lanes = Math.max(lanes, ev.lane + 1);
+      clusterEnd = Math.max(clusterEnd, ev.endTime.getTime());
+    });
+    flush();
+    return counts;
+  }
+
+  function renderGoodBadRing(group, good, bad, show) {
     while (group.firstChild) group.removeChild(group.firstChild);
+    const showGood = !show || show.good !== false, showBad = !show || show.bad !== false;
     const rInner = R.goodBadRingInner, rOuter = R.goodBadRingOuter;
     const axis = (rInner + rOuter) / 2;
-    const half = (rOuter - rInner) / 2 - AXIS_GAP;
     group.appendChild(el("path", { d: annularSectorPath(rInner, rOuter, 0, 360), class: "ring-segment neutral event-ring-bg" }));
-    function laneWidthFor(ringDescriptor) {
-      const lanes = Math.max(2, ringDescriptor.laneCount || 1);
-      return (half - LANE_GAP * (lanes - 1)) / lanes;
-    }
+
+    // Each kind has a base circle its lanes grow away from, and a depth.
+    const both = showGood && showBad;
+    const goodBase = both ? axis + AXIS_GAP : rInner, goodDepth = rOuter - goodBase;
+    const badBase = both ? axis - AXIS_GAP : rOuter, badDepth = badBase - rInner;
 
     function draw(ev, laneInner, laneOuter) {
       const laneWidth = laneOuter - laneInner;
@@ -598,20 +613,31 @@
       attachTooltip(path, segmentTooltip(ev));
       g.appendChild(path);
       const midRadius = (laneInner + laneOuter) / 2;
-      const size = Math.min(MAX_LANE_FONT, laneWidth * 0.7, fittedCurvedFont(ev.text, span, midRadius));
+      const size = Math.min(MAX_LANE_FONT, laneWidth * 0.42, fittedCurvedFont(ev.text, span, midRadius));
       if (size < MIN_LANE_FONT) return;
       curvedLabel(g, ev.text, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
     }
-    const goodLane = laneWidthFor(good), badLane = laneWidthFor(bad);
-    good.segments.forEach(function (ev) {
-      const inner = axis + AXIS_GAP + ev.lane * (goodLane + LANE_GAP);
-      draw(ev, inner, inner + goodLane);
-    });
-    bad.segments.forEach(function (ev) {
-      const outer = axis - AXIS_GAP - ev.lane * (badLane + LANE_GAP);
-      draw(ev, outer - badLane, outer);
-    });
-    group.appendChild(el("circle", { cx: CX, cy: CY, r: axis, class: "good-bad-axis" }));
+    // Lane geometry for a window: its cluster's lane count sets the width.
+    function laneOf(ev, counts, depth) {
+      const n = counts.get(ev) || 1;
+      const width = (depth - LANE_GAP * (n - 1)) / n;
+      return { width: width, offset: ev.lane * (width + LANE_GAP) };
+    }
+    if (showGood) {
+      const counts = clusterLaneCounts(good.segments);
+      good.segments.forEach(function (ev) {
+        const l = laneOf(ev, counts, goodDepth);
+        draw(ev, goodBase + l.offset, goodBase + l.offset + l.width);
+      });
+    }
+    if (showBad) {
+      const counts = clusterLaneCounts(bad.segments);
+      bad.segments.forEach(function (ev) {
+        const l = laneOf(ev, counts, badDepth);
+        draw(ev, badBase - l.offset - l.width, badBase - l.offset);
+      });
+    }
+    if (both) group.appendChild(el("circle", { cx: CX, cy: CY, r: axis, class: "good-bad-axis" }));
   }
 
   // Innermost ring: just day/night, two segments, always the same two
@@ -632,9 +658,9 @@
 
   // Avartana (midday) and Nishitha (midnight), and the other day markers: a
   // line from the day/night ring out through every ring to the outer ring
-  // edge, and the name carrying on from where the line stops, as its
-  // extension along the same angle, out to the dial's edge. On the left
-  // half of the dial the text is flipped so it still reads left-to-right.
+  // edge, and the name written inside the clock, ending where the line
+  // starts, as its extension inward along the same angle. On the left half
+  // of the dial the text is flipped so it still reads left-to-right.
   // `markers` is ring-adapter.js's buildDayMarkers output.
   //
   // Markers can land close together (e.g. moonset next to Āvartana); a run
@@ -642,7 +668,7 @@
   // their labels nudged sideways off their lines in angle order, so they
   // don't overprint.
   const MARKER_CLASH_DEG = 2.5;
-  const MARKER_FONT = 13; // .day-marker-label's font-size in style.css
+  const MARKER_FONT = 15; // .day-marker-label's font-size in style.css
   function renderDayMarkers(group, markers) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const sorted = markers.slice().sort(function (a, b) { return a.angle - b.angle; });
@@ -664,15 +690,14 @@
     const p2 = polarToXY(m.angle, R.markerLineOuter);
     group.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-line" }));
     // Wide invisible twin so the thin line is easy to hover/tap.
-    const p3 = polarToXY(m.angle, R.markerLabelEnd);
-    const hit = el("line", { x1: p1.x, y1: p1.y, x2: p3.x, y2: p3.y, class: "day-marker-hit" });
+    const hit = el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-hit" });
     const tip = (m.tooltipTitle || m.text) + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + (m.dateNote || "") + HM_TAG;
     attachTooltip(hit, tip);
     group.appendChild(hit);
     const label = markerLabel(m.text, m.angle, offset);
     group.appendChild(label);
-    // Shrink to fit between the outer ring edge and the dial's edge.
-    const room = R.markerLabelEnd - R.markerLabel;
+    // Shrink to fit between the line's start and the centre plate.
+    const room = R.markerLabel - R.markerLabelInner;
     const length = label.getComputedTextLength ? label.getComputedTextLength() : 0;
     if (length > room) label.style.fontSize = (MARKER_FONT * room / length).toFixed(1) + "px";
   }
@@ -687,9 +712,10 @@
       // In the rotated frame +y is clockwise on the right half but
       // anticlockwise on the left, where the text is flipped.
       x: 0, y: leftHalf ? -offset : offset,
-      // Runs outward from `start` either way: on the left half the baseline
-      // points inward, so the text is anchored at its end instead.
-      "text-anchor": leftHalf ? "end" : "start",
+      // Runs inward from `start` either way: on the right half the baseline
+      // points outward, so the text is anchored at its end; on the left half
+      // it points inward, so it is anchored at its start.
+      "text-anchor": leftHalf ? "start" : "end",
       "dominant-baseline": "central",
       transform: `translate(${start.x} ${start.y}) rotate(${rotation})`,
       class: "day-marker-label",
