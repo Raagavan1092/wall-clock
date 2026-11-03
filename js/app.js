@@ -126,10 +126,10 @@
     // same as the hand angle.
     const g = ghatiNow;
 
-    // Date is the Vedic day's own date (governingSunrise's calendar date in
-    // IST), same as vara - before today's sunrise this still reads as
-    // yesterday's date, consistently with the weekday shown.
-    const dateText = snapshot.anchors.governingSunrise.toLocaleDateString("en-IN", {
+    // The English date is the calendar date in IST, so it changes at
+    // midnight (00:00), not at sunrise. The vāra and tithi beneath it stay
+    // the Vedic day's, which runs from sunrise to sunrise.
+    const dateText = now.toLocaleDateString("en-IN", {
       timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric",
     });
 
@@ -315,59 +315,18 @@
     }, { passive: true });
   }
 
-  // Time control lives in the settings panel (see index.html's "Time"
-  // section) but applies immediately on change, unlike the other settings
-  // which wait for Save - scrubbing time is a live control, not a persisted
-  // preference, so there's nothing to persist and no reason to make it wait.
   // Moves the clock to `date`, whatever state it is in: a paused clock stays
-  // paused there; a running one keeps ticking forward from it. Shared by the
-  // Time field, the day buttons and the time slider.
+  // paused there; a running one keeps ticking forward from it.
   function setViewedTime(date) {
     if (pausedAt) pausedAt = date;
     else timeOffsetMs = date.getTime() - Date.now();
-    syncTimeUi();
+    syncDayControls();
     render();
   }
 
-  function wireTimeControl() {
-    const input = document.getElementById("set-time");
-    const nowBtn = document.getElementById("set-time-now");
-    const pauseBtn = document.getElementById("set-time-pause");
-    const liveIndicator = document.getElementById("set-time-live");
-
-    function syncInput() {
-      const now = getNow();
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-      input.value = local.toISOString().slice(0, 16);
-      liveIndicator.textContent = pausedAt ? "Paused at the time shown" : timeOffsetMs === 0 ? "Live (following real time)" : "Overridden - not following real time";
-      pauseBtn.textContent = pausedAt ? "Resume" : "Pause";
-    }
-    syncTimeInput = syncInput;
-    syncInput();
-
-    input.addEventListener("change", function () {
-      const parsed = new Date(input.value);
-      if (!isNaN(parsed.getTime())) setViewedTime(parsed);
-    });
-    nowBtn.addEventListener("click", goLive);
-    pauseBtn.addEventListener("click", function () {
-      if (pausedAt) {
-        // Resume from exactly where it was paused, not from real "now".
-        timeOffsetMs = pausedAt.getTime() - Date.now();
-        pausedAt = null;
-      } else {
-        pausedAt = getNow();
-      }
-      syncTimeUi();
-      render();
-    });
-
-    // Keep the field in sync while it's not focused, so it visibly ticks
-    // forward if left open (and so reopening settings later shows "now").
-    setInterval(function () {
-      if (document.activeElement !== input) syncInput();
-      syncDayControls();
-    }, 1000);
+  // Keeps the day controls (and the time slider) current while the clock runs.
+  function startControlSync() {
+    setInterval(function () { syncDayControls(); }, 1000);
   }
 
   // ---- Yesterday / Today / Tomorrow, the time slider and Now ---------------
@@ -378,9 +337,7 @@
   // same. The slider scrubs the Vedic day on show - sunrise at the left, the
   // next sunrise at the right - its track coloured like the Day / Night ring.
 
-  let syncTimeInput = function () { /* set by wireTimeControl */ };
   function syncTimeUi() {
-    syncTimeInput();
     syncDayControls();
   }
 
@@ -403,7 +360,6 @@
   }
 
   const DAY_MS = 86400000;
-  const NAV_DAYS = 7; // the navigator reaches this many days either side of today
   function istDayNumber(ms) { return Math.floor((ms + IST_OFFSET_MS) / DAY_MS); }
 
   // Whole days the date on show is from the real today (IST calendar dates).
@@ -418,10 +374,9 @@
     return new Date((istDayNumber(Date.now()) + days) * DAY_MS + timeOfDay - IST_OFFSET_MS);
   }
 
-  // Goes to the day `days` from today (kept within the navigator's range),
+  // Goes to the day `days` from today,
   // at the clock time on show. Today while live stays live.
   function goToDay(days) {
-    days = Math.max(-NAV_DAYS, Math.min(NAV_DAYS, days));
     if (days === 0 && isLive()) return;
     setManualTime(sameTimeOnDay(days));
   }
@@ -446,6 +401,17 @@
     todayBtn.addEventListener("click", function () { goToDay(0); });
     nowBtn.addEventListener("click", goLive);
 
+    // The date button: a transparent native date field laid over it, so a
+    // tap opens the system date dialog. Picking a date goes to that day at
+    // the clock time on show (like the day buttons).
+    const picker = document.getElementById("date-pick-input");
+    picker.addEventListener("change", function () {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(picker.value);
+      if (!m) return;
+      const picked = Date.UTC(+m[1], +m[2] - 1, +m[3]) / DAY_MS;
+      goToDay(picked - istDayNumber(Date.now()));
+    });
+
     syncDayControls = function () {
       if (!cachedSnapshot) return;
       const a = cachedSnapshot.anchors;
@@ -456,8 +422,9 @@
       const offset = shownDayOffset();
       todayBtn.classList.toggle("on", offset === 0);
       todayBtn.setAttribute("aria-pressed", String(offset === 0));
-      prevBtn.disabled = offset <= -NAV_DAYS;
-      nextBtn.disabled = offset >= NAV_DAYS;
+      // The picker opens on the date on show.
+      const shownIst = new Date(now.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+      if (picker.value !== shownIst && document.activeElement !== picker) picker.value = shownIst;
       const live = isLive();
       nowBtn.classList.toggle("is-live", live);
       nowBtn.setAttribute("aria-pressed", String(live));
@@ -656,7 +623,7 @@
     E.Dial.setLayerOrder(settings.layerOrder);
 
     wireInput(svg);
-    wireTimeControl();
+    startControlSync();
     wireDayControls();
     wireSettingsPanel();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.

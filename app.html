@@ -19,7 +19,13 @@
     <div id="time-scrub">
       <div class="scrub-top">
         <output id="scrub-readout" for="time-slider">--</output>
-        <button type="button" id="scrub-now" title="Back to live time"><span class="live-dot"></span>Now</button>
+        <span class="scrub-actions">
+          <label id="date-pick" title="Pick a date">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+            <input type="date" id="date-pick-input" aria-label="Pick a date">
+          </label>
+          <button type="button" id="scrub-now" title="Back to live time"><span class="live-dot"></span>Now</button>
+        </span>
       </div>
       <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
       <div class="scrub-ends">
@@ -44,14 +50,6 @@
     </button>
     <ul id="alarm-list" class="alarm-list"></ul>
     <p class="settings-note">Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring while the clock is open - after a reload, tap the page once so the browser allows sound.</p>
-  </section>
-
-  <section>
-    <h3>Time</h3>
-    <label>Set clock to <input type="datetime-local" id="set-time"></label>
-    <button id="set-time-now" type="button">Now</button>
-    <button id="set-time-pause" type="button">Pause</button>
-    <p class="settings-note" id="set-time-live">Live (following real time)</p>
   </section>
 
   <section>
