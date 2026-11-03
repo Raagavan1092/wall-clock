@@ -744,7 +744,7 @@
   // smaller than the seconds).
   // Line heights by emphasis: the big ghaṭī line, the clock line, then
   // everything else in a tighter rhythm.
-  const CENTRE_LINE_HEIGHT = { ghati: 64, "clock-secondary": 46, ring: 38 };
+  const CENTRE_LINE_HEIGHT = { ghati: 64, "clock-secondary": 46, ring: 38, gap: 18 };
   const CENTRE_LINE_HEIGHT_DEFAULT = 36;
   // Text may reach a little past the plate's edge (into the empty space
   // before the day/night ring) but no further than this radius.
@@ -757,6 +757,7 @@
     lines.forEach(function (line, i) {
       const lineY = y + heights[i] / 2;
       y += heights[i];
+      if (!line.text) return; // a blank spacer line
       const t = el("text", {
         x: CX, y: lineY,
         "text-anchor": "middle",

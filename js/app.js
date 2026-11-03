@@ -126,13 +126,6 @@
     // same as the hand angle.
     const g = ghatiNow;
 
-    // The English date is the calendar date in IST, so it changes at
-    // midnight (00:00), not at sunrise. The vāra and tithi beneath it stay
-    // the Vedic day's, which runs from sunrise to sunrise.
-    const dateText = now.toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata", day: "numeric", month: "long", year: "numeric",
-    });
-
     // Ghati/pala leads by default (this is a Vedic clock first), with the
     // modern clock as the smaller line underneath; "Switch time" swaps them.
     const clockText = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
@@ -148,13 +141,13 @@
     // Vāra and the tithi holding right now share a line ("Ravivāra ·
     // Saptamī (kṛṣṇa)"), since together they name the day.
     const lines = timeLines.concat([
-      { text: dateText },
       { text: varaName + " · " + E.RingAdapter.tithiNameAt(snapshot, data, now) },
     ]);
 
-    // Status of the Good / Bad Times ring: bad first (the one people check),
+    // A blank line, then the Good / Bad Times ring's status: bad first (the one people check),
     // then good. Each says what is active and until when, or what is next.
-    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1) {
+    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1 && (show.bad || show.good)) {
+      lines.push({ text: "", emphasis: "gap" });
       [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].filter(function (row) { return show[row[0]]; }).forEach(function (row) {
         const st = E.RingAdapter.statusFor(row[1], now);
         if (!st) {
@@ -176,7 +169,8 @@
     });
     // The current division is already highlighted on the dial, so the centre
     // names the ring (highlighted) and says only when the next one starts.
-    lines.push({ text: ringDescriptor.title, emphasis: "ring" });
+    lines.push({ text: "", emphasis: "gap" });
+    lines.push({ text: "Current Ring: " + ringDescriptor.title, emphasis: "ring" });
     if (nextSeg) lines.push({ text: "next " + nextSeg.text + " " + fmtTimeD(nextSeg.startTime, snapshot) });
     return lines;
   }
