@@ -420,6 +420,7 @@
       ckind: editing && editing.custom ? editing.custom.kind : "clock",
       hour: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.hour : 6,
       minute: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.minute : 0,
+      date: editing && editing.custom && editing.custom.date ? editing.custom.date : "",
       ghati: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.ghati : 0,
       pala: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.pala : 0,
     };
@@ -462,9 +463,12 @@
     const clockRow = h("div", { class: "al-time-row" }, tHour.field, h("span", { class: "al-time-sep", text: ":" }), tMin.field);
     const ghatiRow = h("div", { class: "al-time-row" }, tGhati.field, h("span", { class: "al-time-sep", text: "·" }), tPala.field);
     const customHint = h("p", { class: "al-hint" });
+    const dateInput = h("input", { type: "date", class: "al-date-input", "aria-label": "Date (optional)" });
+    const dateClear = h("button", { type: "button", class: "al-link", text: "Clear" });
+    const dateRow = h("div", { class: "al-date-row" }, h("span", { class: "al-date-label", text: "Date" }), dateInput, dateClear, h("span", { class: "al-sub", text: "Leave empty for every day" }));
     const customPane = h("div", { class: "al-custom-pane" },
       h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Time of day"),
-      customKindEl, clockRow, ghatiRow, customHint);
+      customKindEl, clockRow, ghatiRow, customHint, dateRow);
     const repeatNum = h("span", { class: "al-step-n", text: "3" });
     const eventPane = h("div", { class: "al-event-pane" });
     const eventConfig = h("div", { class: "al-event-config" });
@@ -478,8 +482,8 @@
     // -- helpers --
     function customOf() {
       return state.ckind === "clock"
-        ? { kind: "clock", hour: state.hour, minute: state.minute }
-        : { kind: "ghati", ghati: state.ghati, pala: state.pala };
+        ? { kind: "clock", hour: state.hour, minute: state.minute, date: state.date || null }
+        : { kind: "ghati", ghati: state.ghati, pala: state.pala, date: state.date || null };
     }
     function whole(v, max) { return typeof v === "number" && isFinite(v) && v >= 0 && v <= max && Math.floor(v) === v; }
     function customValid() {
@@ -487,7 +491,7 @@
     }
     function draft() {
       if (state.customOn) {
-        return { events: [], custom: customOf(), mode: "start", repeat: state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
+        return { events: [], custom: customOf(), mode: "start", repeat: state.date ? "once" : state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
       }
       return {
         events: Array.from(state.selected), mode: state.mode, offsetValue: state.offsetValue, offsetUnit: state.offsetUnit,
@@ -621,7 +625,7 @@
       amountInput.max = String(UNIT_MAX[state.offsetUnit]);
       amountInput.classList.toggle("invalid", !amountValid());
 
-      segmented(repeatEl, [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+      segmented(repeatEl, state.customOn && state.date ? [["once", "Just once"]] : [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
     });
 
     function renderAlerts() {
@@ -695,9 +699,11 @@
         if (document.activeElement !== p[0].input) p[0].input.value = isFinite(p[1]) ? p[1] : "";
       });
       customHint.textContent = state.ckind === "clock"
-        ? "24-hour clock, Indian Standard Time. Rings at this time every day."
-        : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of every Vedic day.";
+        ? "24-hour clock, Indian Standard Time. Rings at this time " + (state.date ? "on that date." : "every day.")
+        : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of " + (state.date ? "the Vedic day that begins on that date." : "every Vedic day.");
       customPane.classList.toggle("invalid", !customValid());
+      if (document.activeElement !== dateInput) dateInput.value = state.date;
+      dateClear.hidden = !state.date;
     });
     function renderView() {
       customToggle.textContent = state.customOn ? "← Back to events" : "Or set a specific time…";
@@ -727,7 +733,7 @@
             if (token !== previewToken) return;
             const now = Date.now();
             previewEl.innerHTML = "";
-            if (!found.length) { previewEl.className = "al-preview none"; previewEl.textContent = "Could not work out the time."; return; }
+            if (!found.length) { previewEl.className = "al-preview none"; previewEl.textContent = state.date ? "That moment has already passed (or is more than 2 months away)." : "Could not work out the time."; return; }
             previewEl.className = "al-preview ok";
             previewEl.appendChild(h("div", { class: "al-preview-main" },
               icon("bell"),
@@ -796,6 +802,9 @@
       renderWhen(); renderFoot(); schedulePreview();
     });
     amountInput.addEventListener("blur", function () { amountInput.value = isFinite(state.offsetValue) ? state.offsetValue : ""; });
+    dateInput.min = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+    dateInput.addEventListener("input", function () { state.date = dateInput.value; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
+    dateClear.addEventListener("click", function () { state.date = ""; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
     customToggle.addEventListener("click", function () { state.customOn = !state.customOn; renderAll(); });
     [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala]].forEach(function (p) {
       p[1].input.addEventListener("input", function () {

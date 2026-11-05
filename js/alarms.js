@@ -202,6 +202,30 @@
     const out = [];
     const detail = customText(c);
     function add(fire) { out.push({ fire: fire, id: CUSTOM_ID, start: fire, end: fire, detail: detail }); }
+    if (c.date) {
+      // One chosen IST date: the clock time on it, or the ghaṭī·pala of the Vedic day that sunrises on it.
+      const dayStart = Date.parse(c.date + "T00:00:00Z") - IST_MS;
+      if (c.kind === "clock") {
+        const fire = dayStart + (c.hour * 60 + c.minute) * MIN_MS;
+        if (fire > afterMs) add(fire);
+        return out;
+      }
+      for (;;) {
+        const gen = index.gen;
+        ensureStart(afterMs);
+        const days = index.days.slice();
+        const hit = days.filter(function (day) { return day.sunrise >= dayStart && day.sunrise < dayStart + DAY_MS; })[0];
+        const last = days[days.length - 1];
+        if (hit) {
+          const fire = hit.sunrise + c.ghati * GHATI_MS + c.pala * PALA_MS;
+          if (fire > afterMs) add(fire);
+          return out;
+        }
+        if (last.sunrise >= dayStart + DAY_MS || dayStart - afterMs > MAX_SCAN_MS) return out;
+        await extend();
+        if (gen !== index.gen) syncSettings();
+      }
+    }
     if (c.kind === "clock") {
       const first = Math.floor((afterMs + IST_MS) / DAY_MS) - 1;
       for (let d = first; out.length < count && d < first + 80; d++) {
@@ -230,19 +254,22 @@
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   // "06:30 IST" or "Ghaṭī 12 · Pala 30 after sunrise".
   function customText(c) {
-    return c.kind === "clock" ? pad2(c.hour) + ":" + pad2(c.minute) + " IST" : "Ghaṭī " + c.ghati + " · Pala " + c.pala + " after sunrise";
+    const t = c.kind === "clock" ? pad2(c.hour) + ":" + pad2(c.minute) + " IST" : "Ghaṭī " + c.ghati + " · Pala " + c.pala + " after sunrise";
+    if (!c.date) return t;
+    return t + " · " + new Date(c.date + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
   }
 
   function normalizeCustom(c) {
     if (!c || typeof c !== "object") return null;
     function whole(v, max) { const n = Math.floor(Number(v)); return isFinite(n) && n >= 0 && n <= max ? n : null; }
+    const date = typeof c.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(c.date) && isFinite(Date.parse(c.date + "T00:00:00Z")) ? c.date : null;
     if (c.kind === "clock") {
       const hour = whole(c.hour, 23), minute = whole(c.minute, 59);
-      return hour == null || minute == null ? null : { kind: "clock", hour: hour, minute: minute };
+      return hour == null || minute == null ? null : { kind: "clock", hour: hour, minute: minute, date: date };
     }
     if (c.kind === "ghati") {
       const ghati = whole(c.ghati, 59), pala = whole(c.pala, 59);
-      return ghati == null || pala == null ? null : { kind: "ghati", ghati: ghati, pala: pala };
+      return ghati == null || pala == null ? null : { kind: "ghati", ghati: ghati, pala: pala, date: date };
     }
     return null;
   }
@@ -285,7 +312,7 @@
       offsetValue: value,
       offsetUnit: unit,
       offsetMs: offsetMs,
-      repeat: d.repeat === "once" ? "once" : "always",
+      repeat: d.repeat === "once" || (custom && custom.date) ? "once" : "always",
       label: typeof d.label === "string" ? d.label.trim().slice(0, 60) : "",
       sound: d.sound !== false,
       soundKind: validSoundKind(d.soundKind), // "bell", "track" (their own file) or "tune:<id>"

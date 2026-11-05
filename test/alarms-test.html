@@ -175,6 +175,12 @@
   const dd = gh[0].fire - gh0[0].fire, want = (10 * 24 + 12) * MIN;
   check("ghaṭī offset is exact (10 ghaṭī 30 pala = 252 min after ghaṭī 0)", gh0.length === 1 && (Math.abs(dd - want) < 4 * MIN || Math.abs(dd - want + 24 * 60 * MIN) < 6 * MIN), String(dd / MIN));
   check("out-of-range custom time is refused", A.add({ custom: { kind: "clock", hour: 24, minute: 0 } }) === null && A.add({ custom: { kind: "ghati", ghati: 60, pala: 0 } }) === null);
+  const tom = new Date(Date.now() + IST + 24 * 60 * MIN).toISOString().slice(0, 10);
+  const dc = await A.preview({ custom: { kind: "clock", hour: 6, minute: 30, date: tom }, repeat: "always" }, 3);
+  check("custom clock time with a date: that one date only", dc.length === 1 && new Date(dc[0].fire + IST).toISOString() === tom + "T06:30:00.000Z", dc.map(x => new Date(x.fire).toISOString()).join(","));
+  const dg = await A.preview({ custom: { kind: "ghati", ghati: 10, pala: 30, date: tom }, repeat: "always" }, 3);
+  check("custom ghaṭī with a date: one ring, on that day", dg.length === 1 && new Date(dg[0].fire + IST).toISOString().slice(0, 10) === tom, dg.map(x => new Date(x.fire).toISOString()).join(","));
+  check("a date in the past never rings", (await A.preview({ custom: { kind: "clock", hour: 6, minute: 30, date: "2020-01-01" } }, 1)).length === 0);
   const ac = A.add({ custom: { kind: "clock", hour: 6, minute: 30 }, repeat: "once", label: "wake" });
   await until(() => listed().find(a => a.id === ac.id).next);
   const nc = listed().find(a => a.id === ac.id);
