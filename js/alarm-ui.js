@@ -366,7 +366,7 @@
         toggle,
         h("div", { class: "alarm-row-main" },
           h("strong", { class: "alarm-row-title", text: a.title }),
-          h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : "every time") }),
+          h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : a.custom ? "every day" : "every time") }),
           h("span", { class: "alarm-row-next", text: nextText })),
         h("div", { class: "alarm-row-actions" },
         h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Edit " + a.title, title: "Edit", onclick: function (e) { openDialog(a.id, e.currentTarget); } }, icon("edit")),
@@ -415,6 +415,13 @@
       notify: editing ? editing.notify : false,
       group: editing && editing.events.length ? Alarms.catalogItem(editing.events[0]).group : groups[0].id,
       query: "",
+      // A specific time instead of an event: IST clock time, or ghaṭī + pala after sunrise.
+      customOn: !!(editing && editing.custom),
+      ckind: editing && editing.custom ? editing.custom.kind : "clock",
+      hour: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.hour : 6,
+      minute: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.minute : 0,
+      ghati: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.ghati : 0,
+      pala: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.pala : 0,
     };
 
     // -- pieces that re-render --
@@ -444,6 +451,23 @@
     const stopWatching = []; // unsubscribe functions, run when the dialog closes
     let trackInfo = null; // { name } of the stored track, once known
     let trackMessage = ""; // the last problem choosing a file
+    const customToggle = h("button", { type: "button", class: "al-link al-custom-toggle" });
+    const customKindEl = h("div", { class: "al-seg", role: "radiogroup", "aria-label": "Time kind" });
+    function timeInput(label, max) {
+      const input = h("input", { type: "number", class: "al-amount al-time-input", min: "0", max: String(max), step: "1", inputmode: "numeric", "aria-label": label });
+      return { input: input, field: h("label", { class: "al-time-field" }, h("span", { text: label }), input) };
+    }
+    const tHour = timeInput("Hour (0–23)", 23), tMin = timeInput("Minute (0–59)", 59);
+    const tGhati = timeInput("Ghaṭī (0–59)", 59), tPala = timeInput("Pala (0–59)", 59);
+    const clockRow = h("div", { class: "al-time-row" }, tHour.field, h("span", { class: "al-time-sep", text: ":" }), tMin.field);
+    const ghatiRow = h("div", { class: "al-time-row" }, tGhati.field, h("span", { class: "al-time-sep", text: "·" }), tPala.field);
+    const customHint = h("p", { class: "al-hint" });
+    const customPane = h("div", { class: "al-custom-pane" },
+      h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Time of day"),
+      customKindEl, clockRow, ghatiRow, customHint);
+    const repeatNum = h("span", { class: "al-step-n", text: "3" });
+    const eventPane = h("div", { class: "al-event-pane" });
+    const eventConfig = h("div", { class: "al-event-config" });
     const unitEl = h("div", { class: "al-seg small", role: "radiogroup", "aria-label": "Unit" });
     const presetsEl = h("div", { class: "al-presets" });
 
@@ -452,7 +476,19 @@
     notifyBox.checked = state.notify;
 
     // -- helpers --
+    function customOf() {
+      return state.ckind === "clock"
+        ? { kind: "clock", hour: state.hour, minute: state.minute }
+        : { kind: "ghati", ghati: state.ghati, pala: state.pala };
+    }
+    function whole(v, max) { return typeof v === "number" && isFinite(v) && v >= 0 && v <= max && Math.floor(v) === v; }
+    function customValid() {
+      return state.ckind === "clock" ? whole(state.hour, 23) && whole(state.minute, 59) : whole(state.ghati, 59) && whole(state.pala, 59);
+    }
     function draft() {
+      if (state.customOn) {
+        return { events: [], custom: customOf(), mode: "start", repeat: state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
+      }
       return {
         events: Array.from(state.selected), mode: state.mode, offsetValue: state.offsetValue, offsetUnit: state.offsetUnit,
         repeat: state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify,
@@ -585,7 +621,7 @@
       amountInput.max = String(UNIT_MAX[state.offsetUnit]);
       amountInput.classList.toggle("invalid", !amountValid());
 
-      segmented(repeatEl, [["always", "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+      segmented(repeatEl, [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
     });
 
     function renderAlerts() {
@@ -605,7 +641,7 @@
     }
 
     function renderFoot() {
-      saveBtn.disabled = !state.selected.size || !amountValid() || (state.sound && state.soundKind === "track" && !trackInfo);
+      saveBtn.disabled = (state.customOn ? !customValid() : !state.selected.size || !amountValid()) || (state.sound && state.soundKind === "track" && !trackInfo);
     }
 
     // The sound list: the bell, the person's own track (with its file
@@ -651,13 +687,65 @@
       if (on) soundList.scrollTop = Math.max(0, on.offsetTop - soundList.offsetTop - 40);
     }
 
-    function renderAll() { renderPicker(); renderSelected(); renderWhen(); renderSound(); renderFoot(); schedulePreview(); }
+    const renderCustom = focusKept(function () {
+      segmented(customKindEl, [["clock", "Clock time"], ["ghati", "Ghaṭī · Pala"]], state.ckind, function (k) { state.ckind = k; renderAll(); });
+      clockRow.hidden = state.ckind !== "clock";
+      ghatiRow.hidden = state.ckind !== "ghati";
+      [[tHour, state.hour], [tMin, state.minute], [tGhati, state.ghati], [tPala, state.pala]].forEach(function (p) {
+        if (document.activeElement !== p[0].input) p[0].input.value = isFinite(p[1]) ? p[1] : "";
+      });
+      customHint.textContent = state.ckind === "clock"
+        ? "24-hour clock, Indian Standard Time. Rings at this time every day."
+        : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of every Vedic day.";
+      customPane.classList.toggle("invalid", !customValid());
+    });
+    function renderView() {
+      customToggle.textContent = state.customOn ? "← Back to events" : "Or set a specific time…";
+      customPane.hidden = !state.customOn;
+      eventPane.hidden = state.customOn;
+      eventConfig.hidden = state.customOn;
+      repeatNum.textContent = state.customOn ? "2" : "3";
+    }
+    function renderAll() { renderView(); renderCustom(); renderPicker(); renderSelected(); renderWhen(); renderSound(); renderFoot(); schedulePreview(); }
 
     // -- live preview of when it will actually ring --
     let previewTimer = null, previewToken = 0;
     function schedulePreview() {
       clearTimeout(previewTimer);
       const token = ++previewToken;
+      if (state.customOn) {
+        if (!customValid()) {
+          previewEl.className = "al-preview idle";
+          previewEl.textContent = "Enter a valid time.";
+          return;
+        }
+        previewEl.className = "al-preview busy";
+        previewEl.textContent = "Working out when this rings…";
+        previewTimer = setTimeout(function () {
+          const d = draft();
+          Alarms.preview(d, d.repeat === "once" ? 1 : 3).then(function (found) {
+            if (token !== previewToken) return;
+            const now = Date.now();
+            previewEl.innerHTML = "";
+            if (!found.length) { previewEl.className = "al-preview none"; previewEl.textContent = "Could not work out the time."; return; }
+            previewEl.className = "al-preview ok";
+            previewEl.appendChild(h("div", { class: "al-preview-main" },
+              icon("bell"),
+              h("div", {},
+                h("strong", { text: "Rings " + fmtWhen(found[0].fire, now) + " IST" }),
+                h("span", { text: "in " + span(found[0].fire - now) + " · " + found[0].detail }))));
+            if (found.length > 1) {
+              previewEl.appendChild(h("p", { class: "al-preview-then" }, "Then " + found.slice(1).map(function (f) { return fmtWhen(f.fire, now); }).join("  ·  ")));
+            }
+          }).catch(function (err) {
+            if (token !== previewToken) return;
+            console.error(err);
+            previewEl.className = "al-preview none";
+            previewEl.textContent = "Could not work out the time.";
+          });
+        }, 160);
+        return;
+      }
       if (!state.selected.size || !amountValid()) {
         previewEl.className = "al-preview idle";
         previewEl.textContent = state.selected.size ? "Enter how long before the start." : "Choose an event to see when it will ring.";
@@ -708,6 +796,15 @@
       renderWhen(); renderFoot(); schedulePreview();
     });
     amountInput.addEventListener("blur", function () { amountInput.value = isFinite(state.offsetValue) ? state.offsetValue : ""; });
+    customToggle.addEventListener("click", function () { state.customOn = !state.customOn; renderAll(); });
+    [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala]].forEach(function (p) {
+      p[1].input.addEventListener("input", function () {
+        const v = p[1].input.value;
+        state[p[0]] = v === "" ? NaN : Number(v);
+        renderFoot(); schedulePreview(); customPane.classList.toggle("invalid", !customValid());
+      });
+      p[1].input.addEventListener("blur", function () { p[1].input.value = isFinite(state[p[0]]) ? state[p[0]] : ""; });
+    });
     labelInput.addEventListener("input", function () { state.label = labelInput.value; });
     soundBox.addEventListener("change", function () { state.sound = soundBox.checked; renderSound(); renderFoot(); });
     fileInput.addEventListener("change", function () {
@@ -800,18 +897,12 @@
           h("button", { type: "button", class: "al-x", "aria-label": "Close", onclick: close }, icon("x"))),
         h("div", { class: "al-body" },
           h("section", { class: "al-col al-pick" },
-            h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Event"),
-            h("label", { class: "al-search" }, icon("search"), searchInput),
-            tabsEl,
-            h("div", { class: "al-tools" }, toolsHint, selectAllBtn, clearBtn),
-            itemsEl),
+            customToggle,
+            customPane,
+            eventPane),
           h("section", { class: "al-col al-config" },
-            h("div", { class: "al-step plain" }, selectedTitle),
-            selectedEl,
-            h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "2" }), "When should it ring?"),
-            modeEl, modeHint,
-            beforeEl,
-            h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "3" }), "Repeat"),
+            eventConfig,
+            h("div", { class: "al-step" }, repeatNum, "Repeat"),
             repeatEl,
             h("div", { class: "al-step plain" }, "Alert"),
             h("div", { class: "al-toggles" },
@@ -828,6 +919,17 @@
             saveBtn)),
         h("p", { class: "al-fineprint", text: "Alarms follow real time and ring while the clock is open on this device." })));
 
+    eventPane.appendChild(h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Event"));
+    eventPane.appendChild(h("label", { class: "al-search" }, icon("search"), searchInput));
+    eventPane.appendChild(tabsEl);
+    eventPane.appendChild(h("div", { class: "al-tools" }, toolsHint, selectAllBtn, clearBtn));
+    eventPane.appendChild(itemsEl);
+    eventConfig.appendChild(h("div", { class: "al-step plain" }, selectedTitle));
+    eventConfig.appendChild(selectedEl);
+    eventConfig.appendChild(h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "2" }), "When should it ring?"));
+    eventConfig.appendChild(modeEl);
+    eventConfig.appendChild(modeHint);
+    eventConfig.appendChild(beforeEl);
     soundPanel.appendChild(soundList);
     soundPanel.appendChild(fileInput);
 
@@ -850,7 +952,7 @@
     Track.info().then(function (info) { trackInfo = info; renderSound(); renderFoot(); });
     showSelectedSound();
     requestAnimationFrame(function () { modal.classList.add("open"); });
-    (editing ? saveBtn : searchInput).focus();
+    (editing ? saveBtn : state.customOn ? tHour.input : searchInput).focus();
     // Keep the modal's own scroll areas from scrolling the page behind.
     modal.addEventListener("wheel", function (e) { e.stopPropagation(); }, { passive: true });
   }

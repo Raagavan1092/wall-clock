@@ -35,6 +35,10 @@
   // Rarest events (a given nakṣatra, a Saṅkrānti) recur within ~30 days.
   const MAX_SCAN_MS = 75 * DAY_MS;
 
+  const CUSTOM_ID = "custom";
+  const GHATI_MS = 24 * MIN_MS, PALA_MS = GHATI_MS / 60; // a pala is 1/60 of a ghaṭī (24 s)
+  const IST_MS = 5.5 * 60 * MIN_MS;
+
   let ctx = null; // { getSettings(), getData() }
   let storageKey = STORAGE_KEY;
   let ringHandler = null;
@@ -49,6 +53,9 @@
       groups.forEach(function (g) {
         g.items.forEach(function (it) { it.group = g.id; it.groupTitle = g.title; it.tone = g.tone; byId.set(it.id, it); });
       });
+      // The stand-in item every custom-time alarm rings as (not in any group, so
+      // the event picker never lists it).
+      byId.set(CUSTOM_ID, { id: CUSTOM_ID, label: "Custom time", group: CUSTOM_ID, groupTitle: "Custom time", tone: "", instant: true });
       catalogCache = { groups: groups, byId: byId };
     }
     return catalogCache;
@@ -154,6 +161,7 @@
   // earlier-ringing occurrence is known and final), or the search limit is
   // hit. Resolves with every certain one, not just `count`.
   async function findFires(spec, afterMs, count) {
+    if (spec.custom) return findCustomFires(spec.custom, afterMs, count);
     const wanted = new Set(spec.events);
     for (;;) {
       const gen = index.gen;
@@ -188,6 +196,57 @@
     }
   }
 
+  // A custom-time alarm rings every day at a fixed IST clock time, or at a
+  // ghaṭī + pala after that Vedic day's sunrise. Resolves like findFires.
+  async function findCustomFires(c, afterMs, count) {
+    const out = [];
+    const detail = customText(c);
+    function add(fire) { out.push({ fire: fire, id: CUSTOM_ID, start: fire, end: fire, detail: detail }); }
+    if (c.kind === "clock") {
+      const first = Math.floor((afterMs + IST_MS) / DAY_MS) - 1;
+      for (let d = first; out.length < count && d < first + 80; d++) {
+        const fire = d * DAY_MS - IST_MS + (c.hour * 60 + c.minute) * MIN_MS;
+        if (fire > afterMs) add(fire);
+      }
+      return out;
+    }
+    for (;;) {
+      const gen = index.gen;
+      ensureStart(afterMs);
+      const days = index.days.slice();
+      out.length = 0;
+      days.forEach(function (day) {
+        const fire = day.sunrise + c.ghati * GHATI_MS + c.pala * PALA_MS;
+        if (fire > afterMs) add(fire);
+      });
+      out.sort(function (a, b) { return a.fire - b.fire; });
+      const last = days[days.length - 1];
+      if (out.length >= count || last.next - afterMs > MAX_SCAN_MS) return out.slice(0, count);
+      await extend();
+      if (gen !== index.gen) syncSettings();
+    }
+  }
+
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  // "06:30 IST" or "Ghaṭī 12 · Pala 30 after sunrise".
+  function customText(c) {
+    return c.kind === "clock" ? pad2(c.hour) + ":" + pad2(c.minute) + " IST" : "Ghaṭī " + c.ghati + " · Pala " + c.pala + " after sunrise";
+  }
+
+  function normalizeCustom(c) {
+    if (!c || typeof c !== "object") return null;
+    function whole(v, max) { const n = Math.floor(Number(v)); return isFinite(n) && n >= 0 && n <= max ? n : null; }
+    if (c.kind === "clock") {
+      const hour = whole(c.hour, 23), minute = whole(c.minute, 59);
+      return hour == null || minute == null ? null : { kind: "clock", hour: hour, minute: minute };
+    }
+    if (c.kind === "ghati") {
+      const ghati = whole(c.ghati, 59), pala = whole(c.pala, 59);
+      return ghati == null || pala == null ? null : { kind: "ghati", ghati: ghati, pala: pala };
+    }
+    return null;
+  }
+
   // ---- alarm records ------------------------------------------------------
 
   function newId() {
@@ -207,17 +266,21 @@
     const events = (Array.isArray(d.events) ? d.events : []).filter(function (id, i, arr) {
       return typeof id === "string" && known.has(id) && arr.indexOf(id) === i;
     });
-    if (!events.length) return null;
+    const custom = normalizeCustom(d.custom);
+    if (!events.length && !custom) return null;
+    if (custom) events.length = 0;
     let mode = d.mode === "end" || d.mode === "before" ? d.mode : "start";
     const unit = UNIT_MS[d.offsetUnit] ? d.offsetUnit : "min";
     let value = Number(d.offsetValue);
     if (!isFinite(value) || value <= 0) value = 0;
     let offsetMs = Math.min(MAX_OFFSET_MS, Math.round(value * UNIT_MS[unit] / 1000) * 1000);
     if (mode === "before" && offsetMs === 0) mode = "start";
-    if (mode !== "before") { offsetMs = 0; value = 0; }
+    if (mode !== "before" || custom) { offsetMs = 0; value = 0; }
+    if (custom) mode = "start";
     return {
       id: typeof d.id === "string" ? d.id : newId(),
       events: events,
+      custom: custom,
       mode: mode,
       offsetValue: value,
       offsetUnit: unit,
@@ -259,7 +322,7 @@
   }
 
   function specOf(a) {
-    return { events: a.events, mode: a.mode, offsetMs: a.offsetMs };
+    return { events: a.events, mode: a.mode, offsetMs: a.offsetMs, custom: a.custom };
   }
 
   // Finds when `a` rings next (async) and stores it as a._next:
@@ -465,6 +528,7 @@
 
   // "15 min before the start", "At the end", "At the moment" ...
   function triggerText(a) {
+    if (a.custom) return "At " + customText(a.custom);
     const instant = allInstants(a.events);
     if (a.mode === "before") return offsetText(a) + (instant ? " before" : " before the start");
     if (a.mode === "end") return instant ? "At the moment" : "At the end";
@@ -488,7 +552,7 @@
   }
 
   function title(a) {
-    return a.label || eventsText(a.events);
+    return a.label || (a.custom ? customText(a.custom) : eventsText(a.events));
   }
 
   // What the UI needs per alarm, including the next ring (undefined while
@@ -496,7 +560,7 @@
   function list() {
     return alarms.map(function (a) {
       return Object.assign({}, serialize(a), {
-        title: title(a), eventsText: eventsText(a.events), triggerText: triggerText(a),
+        title: title(a), eventsText: a.custom ? customText(a.custom) : eventsText(a.events), triggerText: triggerText(a),
         next: a._next,
       });
     });
@@ -507,7 +571,7 @@
     catalog: function () { return getCatalog().groups; },
     catalogItem: function (id) { return getCatalog().byId.get(id); },
     get: function (id) { const a = find(id); return a ? serialize(a) : null; },
-    eventsText, triggerText, allInstants, dateNote,
+    eventsText, triggerText, allInstants, dateNote, customText,
     UNIT_LABEL, UNIT_MS, GRACE_MS, STORAGE_KEY,
   };
 })(typeof window !== "undefined" ? window : globalThis);

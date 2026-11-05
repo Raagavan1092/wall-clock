@@ -135,6 +135,9 @@
   // An alarm that is long overdue (the page was asleep) is skipped, not shouted.
   // a2's first ring was already far in the past at the tick above.
   check("overdue beyond the grace period is skipped silently", !rings.some(r => r.alarm.id === a2.id));
+  // Whether a2's first ring is already past depends on the time of day the test
+  // runs at, so push the clock beyond its grace period explicitly.
+  A.tick(Math.max(n1.fireAt, n2.fireAt) + A.GRACE_MS + MIN);
   const a2Next = await until(() => { const a = listed().find(x => x.id === a2.id); return a.next && a.next.fireAt > n2.fireAt && a.next; });
   check("a skipped 'once' alarm stays armed for its next occurrence", listed().find(a => a.id === a2.id).enabled && !!a2Next && a2Next.fireAt > n2.fireAt);
   const a5 = A.add({ events: ["win:yamaganda"], mode: "start", repeat: "always" });
@@ -161,6 +164,24 @@
   const n4 = listed().find(a => a.id === a4.id).next;
   A.tick(n4.fireAt + 2 * MIN);
   check("2 minutes late still rings (within grace)", rings.some(r => r.alarm.id === a4.id));
+
+  // custom times: an IST clock time, or ghaṭī + pala after sunrise
+  const IST = 5.5 * 60 * MIN, now0 = Date.now();
+  const ck = await A.preview({ custom: { kind: "clock", hour: 6, minute: 30 }, repeat: "always" }, 3);
+  check("custom clock time: 3 daily rings at 06:30 IST", ck.length === 3 && ck.every(x => x.fire > now0 && (x.fire + IST) % (24 * 60 * MIN) === 6.5 * 60 * MIN) && ck[1].fire - ck[0].fire === 24 * 60 * MIN, ck.map(x => new Date(x.fire).toISOString()).join(", "));
+  const gh = await A.preview({ custom: { kind: "ghati", ghati: 10, pala: 30 }, repeat: "always" }, 2);
+  check("custom ghaṭī·pala: rings 10 ghaṭī 30 pala after sunrise, daily", gh.length === 2 && gh[0].fire > now0 && gh[1].fire - gh[0].fire > 23 * 60 * MIN && gh[1].fire - gh[0].fire < 25 * 60 * MIN, gh.map(x => new Date(x.fire).toISOString()).join(", "));
+  const gh0 = await A.preview({ custom: { kind: "ghati", ghati: 0, pala: 0 }, repeat: "always" }, 1);
+  const dd = gh[0].fire - gh0[0].fire, want = (10 * 24 + 12) * MIN;
+  check("ghaṭī offset is exact (10 ghaṭī 30 pala = 252 min after ghaṭī 0)", gh0.length === 1 && (Math.abs(dd - want) < 4 * MIN || Math.abs(dd - want + 24 * 60 * MIN) < 6 * MIN), String(dd / MIN));
+  check("out-of-range custom time is refused", A.add({ custom: { kind: "clock", hour: 24, minute: 0 } }) === null && A.add({ custom: { kind: "ghati", ghati: 60, pala: 0 } }) === null);
+  const ac = A.add({ custom: { kind: "clock", hour: 6, minute: 30 }, repeat: "once", label: "wake" });
+  await until(() => listed().find(a => a.id === ac.id).next);
+  const nc = listed().find(a => a.id === ac.id);
+  check("custom alarm lists with its wording", nc.title === "wake" && nc.triggerText === "At 06:30 IST" && nc.events.length === 0);
+  A.tick(nc.next.fireAt + 1000);
+  check("custom alarm rings and 'once' switches off", rings.some(r => r.alarm.id === ac.id && r.items[0].label === "06:30 IST") && listed().find(a => a.id === ac.id).enabled === false);
+  A.remove(ac.id);
 
   // persistence + toggles
   const stored = JSON.parse(localStorage.getItem(KEY));

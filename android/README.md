@@ -19,7 +19,7 @@ that ring on a locked phone**. It does not use the stock Clock app: the app sche
 
 ## Get the APK (no Android Studio needed)
 
-GitHub builds it on every push to `master` (`.github/workflows/android.yml`):
+GitHub builds it when the native code (`android/`) changes on `master`, or when run by hand from the Actions tab (`.github/workflows/android.yml`). Web-side changes don't need a new APK: the app loads its UI from the web.
 
 1. Open the repo on GitHub > **Releases** > the newest `Vedic Wall Clock (Android) build N`.
 2. Download `VedicWallClock-N.apk` on the phone and open it. Allow "install unknown apps" for the browser/Files app when asked.
@@ -106,7 +106,7 @@ Web-side tests (from the repo root): `node test/run-web-tests.js`.
 ## Signing
 
 The signing key is **not in git**. The GitHub workflow generates one on its first run and keeps it in the
-repo's Actions cache (private to the repo; a weekly run keeps it alive), and signs every debug and release
+repo's Actions cache (private to the repo; with no scheduled run it can expire after a week or so of no builds, so for a key that never changes use the repository secrets below), and signs every debug and release
 build with it, so each new build installs over the last and keeps your alarms.
 
 If the cache is ever lost, the next build gets a new key and Android will refuse to install it over the old

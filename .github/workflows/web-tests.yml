@@ -1,0 +1,26 @@
+name: Web tests
+
+# The alarm engine, a smoke test of the page and the Android bridge (no APK build).
+on:
+  push:
+    paths:
+      - "index.html"
+      - "app.html"
+      - "app-files.json"
+      - "js/**"
+      - "css/**"
+      - "test/**"
+      - ".github/workflows/web-tests.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+          node test/run-web-tests.js

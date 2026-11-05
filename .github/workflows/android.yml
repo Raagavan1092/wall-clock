@@ -4,22 +4,15 @@ name: Android APK
 #  - every run: the APK is a workflow artifact;
 #  - pushes to master: also a GitHub Release "android-<run number>" with the APK attached,
 #    which is the link to open on the phone.
+# The app's UI is loaded from the web, so web changes do NOT trigger a build. It
+# only builds when the native code (android/) changes, or when run by hand.
 on:
   push:
     branches: [master]
     paths:
       - "android/**"
-      - "index.html"
-      - "app.html"
-      - "app-files.json"
-      - "manifest.json"
-      - "css/**"
-      - "js/**"
-      - "icons/**"
       - ".github/workflows/android.yml"
   workflow_dispatch:
-  schedule:
-    - cron: "17 3 * * 0" # weekly: keeps the cached signing key from expiring (no release is made)
 
 permissions:
   contents: write
