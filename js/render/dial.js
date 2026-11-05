@@ -599,11 +599,18 @@
     while (group.firstChild) group.removeChild(group.firstChild);
     const showGood = !show || show.good !== false, showBad = !show || show.bad !== false;
     const rInner = R.goodBadRingInner, rOuter = R.goodBadRingOuter;
-    const axis = (rInner + rOuter) / 2;
     group.appendChild(el("path", { d: annularSectorPath(rInner, rOuter, 0, 360), class: "ring-segment neutral event-ring-bg" }));
 
     // Each kind has a base circle its lanes grow away from, and a depth.
     const both = showGood && showBad;
+    // With both halves on, the axis sits where the room is split in
+    // proportion to each side's lane count (more overlapping layers = more
+    // ring width), rather than down the middle.
+    let axis = (rInner + rOuter) / 2;
+    if (both) {
+      const gl = Math.max(1, good.laneCount || 1), bl = Math.max(1, bad.laneCount || 1);
+      axis = rOuter - (rOuter - rInner) * gl / (gl + bl);
+    }
     const goodBase = both ? axis + AXIS_GAP : rInner, goodDepth = rOuter - goodBase;
     const badBase = both ? axis - AXIS_GAP : rOuter, badDepth = badBase - rInner;
 

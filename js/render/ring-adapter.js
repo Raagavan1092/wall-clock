@@ -138,7 +138,7 @@
   }
 
   // The daily good/bad time windows: Rāhu Kālam, Yamagaṇḍa, Gulika Kālam,
-  // Durmuhūrta and Varjyam (bad), and Abhijit, Pradoṣa, Godhūli and Amṛta
+  // Durmuhūrta and Varjyam (bad), and Abhijit, Pradoṣa and Amṛta
   // Kālam (good), as raw (possibly overlapping, possibly outside the day)
   // intervals - buildGoodBadTimes below clips and lays them out.
   function dailyWindows(snapshot, data) {
@@ -162,9 +162,6 @@
     }
     const pradoshaEnd = muhurta.night[data.pradosha.nightMuhurtaCount - 1].endTime;
     intervals.push(windowOf({ startTime: snapshot.anchors.sunsetToday, endTime: pradoshaEnd }, "Pradoṣa", "good"));
-    const godhuliHalfMs = data.godhuli.halfWidthGhati * Ghati.FIXED_SECONDS_PER_GHATI * 1000;
-    const sunset = snapshot.anchors.sunsetToday.getTime();
-    intervals.push(windowOf({ startTime: new Date(sunset - godhuliHalfMs), endTime: new Date(sunset + godhuliHalfMs) }, "Godhūli", "good"));
     // Varjyam / Amṛta Kālam: 4 "ghaṭīs" of each nakṣatra touching this day,
     // where a ghaṭī here is 1/60 of that nakṣatra's own full length (its
     // true start/end, not the part clipped to this day). Windows falling
@@ -539,7 +536,6 @@
     { id: "combo:visha", text: "Viṣa Yoga", goodBad: "bad", note: "Weekday + tithi, inauspicious" },
     { id: "win:abhijit", text: "Abhijit", goodBad: "good", note: "The midday muhūrta" },
     { id: "win:pradosha", text: "Pradoṣa", goodBad: "good", note: "Dusk, after sunset" },
-    { id: "win:godhuli", text: "Godhūli", goodBad: "good", note: "Twilight around sunset" },
     { id: "win:amrita-kalam", text: "Amṛta Kālam", goodBad: "good", note: "Auspicious window inside each nakṣatra" },
     { id: "combo:amrita", text: "Amṛta Yogam", goodBad: "good", note: "Weekday + nakṣatra, most auspicious" },
     { id: "combo:sarvartha", text: "Sarvārtha Siddhi", goodBad: "good", note: "Weekday + nakṣatra, auspicious" },

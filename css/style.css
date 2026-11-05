@@ -105,7 +105,7 @@ html, body {
 .ring-segment.div-alt { fill: var(--div-alt); }
 
 /* Good Times / Bad Times rings (Rahu/Yama/Gulika/Durmuhurta/Varjyam/
-   Marana/Visha; Abhijit/Pradosha/Godhuli/Amrita Kalam/Amrita/Sarvartha
+   Marana/Visha; Abhijit/Pradosha/Amrita Kalam/Amrita/Sarvartha
    Siddhi/Ravi Yoga): inauspicious windows in dark brown, auspicious ones
    in blue. These come after the `:nth-of-type(odd)`/`.neutral` rules above
    so they win the (equal-specificity) cascade regardless of position. */
@@ -159,9 +159,11 @@ html, body {
   flex: none;
   width: min(440px, calc(100vw - 24px));
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
+#clock-buttons > .cb { grid-column: span 3; }
+#clock-buttons > #btn-switch-time, #clock-buttons > #btn-prev-display, #clock-buttons > #btn-next-display { grid-column: span 2; }
 .cb {
   display: flex;
   align-items: center;

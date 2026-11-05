@@ -232,15 +232,20 @@
   }
   let controlsSynced = false;
 
-  // "Switch to <next ring>" on the Switch display button.
+  // "Next (<ring>)" / "Previous (<ring>)" on the display buttons.
   let lastSwitchLabel = null;
   function updateSwitchLabel() {
     const n = activeRingOrder.length;
-    const nextKey = n ? activeRingOrder[(currentRingIndex + 1) % n] : null;
-    const label = nextKey ? "Switch to " + (E.RingAdapter.RING_TITLES[nextKey] || nextKey) : "Switch display";
-    if (label === lastSwitchLabel) return;
-    lastSwitchLabel = label;
-    document.getElementById("btn-switch-display").textContent = label;
+    function title(delta) {
+      const k = n ? activeRingOrder[(currentRingIndex + delta + n) % n] : null;
+      return k ? (E.RingAdapter.RING_TITLES[k] || k) : "";
+    }
+    const next = title(1), prev = title(-1);
+    const key = prev + "|" + next;
+    if (key === lastSwitchLabel) return;
+    lastSwitchLabel = key;
+    document.getElementById("btn-next-display").textContent = next ? "Next (" + next + ")" : "Next";
+    document.getElementById("btn-prev-display").textContent = prev ? "Previous (" + prev + ")" : "Previous";
   }
 
   const IST_OFFSET_MS = 5.5 * 3600 * 1000;
@@ -291,7 +296,8 @@
       document.getElementById("btn-show-bad").setAttribute("aria-checked", String(show.bad));
     }
     document.getElementById("btn-switch-time").addEventListener("click", toggleTimeMode);
-    document.getElementById("btn-switch-display").addEventListener("click", function () { cycleRing(1); });
+    document.getElementById("btn-next-display").addEventListener("click", function () { cycleRing(1); });
+    document.getElementById("btn-prev-display").addEventListener("click", function () { cycleRing(-1); });
     document.getElementById("btn-show-good").addEventListener("click", function () { setShown("good", !show.good); });
     document.getElementById("btn-show-bad").addEventListener("click", function () { setShown("bad", !show.bad); });
     syncShowButtons();

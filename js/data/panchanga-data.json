@@ -153,12 +153,6 @@
     "nightMuhurtaCount": 3
   },
 
-  "godhuli": {
-    "status": "contested",
-    "note": "Godhūli: half a ghaṭī (12 min) either side of sunset, 24 min in all. Definitions vary (some use a full ghaṭī either side). Shown as good (auspicious for vivāha).",
-    "halfWidthGhati": 0.5
-  },
-
   "varjyamAmrita": {
     "status": "contested",
     "note": "Varjyam (tyājya / viṣa ghaṭī, bad) and Amṛta Kālam (amṛta ghaṭī, good): each is a 4-ghaṭī window starting the given number of ghaṭīs after the nakṣatra begins, where 1 ghaṭī = 1/60 of THAT nakṣatra's actual duration (so both scale with how long the nakṣatra lasts). Indexed like nakshatra.names. Varjyam rows 0-22 and 26 confirmed against drikpanchang.com's Nakshatra Thyajyam table (its '51 to 54' = start after 50) and a printed panchang's Thyajya column; Mūla uses 56 (some texts also give 20). Rows 23-25 (Śatabhiṣā 18, P.Bhādrapadā 16, U.Bhādrapadā 24) are the standard values but were not confirmed from a source here. Amṛta: Aśvinī-Rohiṇī, Hasta, Citrā and Revatī confirmed against the Praśnamārga table (wisdomlib); the rest are the commonly used values (as drikpanchang's Amrit Kalam), not yet cross-checked.",
