@@ -14,6 +14,11 @@ on:
       - "!android/**/*.md"
       - ".github/workflows/android.yml"
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Also publish a GitHub Release with the APK"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -117,7 +122,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Release
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || inputs.release)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-${{ github.run_number }}
