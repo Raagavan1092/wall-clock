@@ -30,8 +30,8 @@
       </div>
       <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
       <div class="scrub-ends">
-        <span id="scrub-sunrise" title="Sunrise">&#9728; Sunrise --:--</span>
-        <span id="scrub-sunset" title="Sunset">Sunset --:-- &#9790;</span>
+        <span id="scrub-sunrise" title="Sunrise">&#9728;&#8593; --:--</span>
+        <span id="scrub-sunset" title="Sunset">&#9728;&#8595; --:--</span>
       </div>
     </div>
     <button type="button" id="next-alarm" hidden></button>
@@ -78,7 +78,7 @@
       <option value="raman">Raman</option>
       <option value="krishnamurti">Krishnamurti (KP)</option>
     </select>
-    <p class="settings-note">Raman and KP are approximate; see js/engine/ayanamsa.js. True Citrapakṣa is not implemented.</p>
+    <p class="settings-note">Raman and KP are approximate; true Citrapakṣa isn't implemented.</p>
   </section>
 
   <section>
@@ -89,20 +89,20 @@
 
   <section>
     <h3>Switchable ring order</h3>
-    <p class="settings-note">The order Switch display cycles through. Untick an element to leave it out. The good and bad times (Rāhu Kālam, Yamagaṇḍa, Gulika, Durmuhūrta, Varjyam; Abhijit, Pradoṣa, Amṛta Kālam; and the Maraṇa, Viṣa, Amṛta, Sarvārtha Siddhi and Ravi yogas) share the always-on Good / Bad Times ring: good windows on its outer half, bad ones on its inner half.</p>
+    <p class="settings-note">Switch display order; untick to hide. Good/bad times share one fixed ring.</p>
     <ul id="set-ring-order" class="reorder-list"></ul>
   </section>
 
   <section>
     <h3>Marker lines</h3>
     <div id="set-markers"></div>
-    <p class="settings-note">Candrodaya/Candrāsta (moonrise/moonset) appear only when they fall within the day; Saṅkrānti only on the day the Sun enters a new rāśi.</p>
+    <p class="settings-note">Moonrise/moonset and Saṅkrānti show only on days they occur.</p>
   </section>
 
   <section>
     <h3>Defaults</h3>
     <button id="settings-reset" type="button">Reset to defaults</button>
-    <p class="settings-note">Puts every setting above (location, ayanāṃśa, sunrise, ring order, marker lines) back to its default. Nothing changes until you Save.</p>
+    <p class="settings-note">Restores all settings above. Nothing changes until you Save.</p>
   </section>
 
   <div class="settings-actions">

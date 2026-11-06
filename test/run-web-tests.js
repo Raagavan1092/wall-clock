@@ -152,8 +152,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
-    ok("slider shows sunrise and sunset only", await page.evaluate(() =>
-      /Sunrise \d\d:\d\d/.test(document.getElementById("scrub-sunrise").textContent) && /Sunset \d\d:\d\d/.test(document.getElementById("scrub-sunset").textContent) &&
+    ok("slider shows sunrise (up) and sunset (down) only", await page.evaluate(() =>
+      /\u2191 \d\d:\d\d/.test(document.getElementById("scrub-sunrise").textContent) && /\u2193 \d\d:\d\d/.test(document.getElementById("scrub-sunset").textContent) &&
       !document.getElementById("scrub-ghati") && !document.getElementById("scrub-next")));
     ok("second visit: no prompt, stays unlocked", await page.evaluate(() => document.getElementById("settings-panel").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert")));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));

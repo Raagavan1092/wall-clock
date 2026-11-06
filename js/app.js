@@ -444,8 +444,8 @@
       if (slider.max !== String(max)) slider.max = String(max);
       const dayFrac = (a.sunsetToday.getTime() - sunrise) / (a.nextSunrise.getTime() - sunrise);
       scrub.style.setProperty("--day-frac", (dayFrac * 100).toFixed(2) + "%");
-      sunriseLabel.textContent = "\u2600 Sunrise " + fmtTime(a.governingSunrise);
-      sunsetLabel.textContent = "Sunset " + fmtTime(a.sunsetToday) + " \u263e";
+      sunriseLabel.textContent = "\u2600\u2191 " + fmtTime(a.governingSunrise);
+      sunsetLabel.textContent = "\u2600\u2193 " + fmtTime(a.sunsetToday);
       readout.textContent = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" }) + " \u00b7 " + fmtTime(now);
       if (!scrubbing) {
         slider.value = String(Math.max(0, Math.min(max, Math.floor((now.getTime() - sunrise) / 60000))));
@@ -607,6 +607,7 @@
     // ---- Location: searchable place picker (themed dropdown), default location
     const placeInput = document.getElementById("set-place");
     const placeNote = document.getElementById("set-place-note");
+    const placeNoteDefault = placeNote.textContent;
     const placeResults = document.getElementById("set-place-results");
     const setDefaultBtn = document.getElementById("set-location-default");
     const defaultNote = document.getElementById("set-default-note");
@@ -675,9 +676,9 @@
       latInput.value = p.latitude;
       lonInput.value = p.longitude;
       elevInput.value = p.elevation;
-      placeInput.value = p.label;
+      placeInput.value = "";   // the "Current location" label shows what was chosen
       hideResults();
-      placeNote.textContent = "Filled from " + p.label + ". Press Save to apply.";
+      placeNote.textContent = placeNoteDefault;
       refreshLocationState();
     }
     placeInput.addEventListener("input", showResults);
@@ -701,9 +702,13 @@
     // location in the form differs from the default.
     const currentName = document.getElementById("set-current-name");
     const currentCoords = document.getElementById("set-current-coords");
+    function placeAt(lat, lon) {
+      const near = function (a, b) { return Math.abs(a - b) < 1e-4; };
+      return E.IndiaPlaces.PLACES.filter(function (q) { return near(q.latitude, lat) && near(q.longitude, lon); })[0] || null;
+    }
     function nameFor(lat, lon) {
       const near = function (a, b) { return Math.abs(a - b) < 1e-4; };
-      const p = E.IndiaPlaces.PLACES.filter(function (q) { return near(q.latitude, lat) && near(q.longitude, lon); })[0];
+      const p = placeAt(lat, lon);
       if (p) return p.label;
       const d = E.Settings.defaultLocation();
       return near(d.latitude, lat) && near(d.longitude, lon) ? d.name : "Custom location";
@@ -739,9 +744,8 @@
       if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return null; }
       if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return null; }
       if (!isFinite(elev) || elev < 0) { elevInput.focus(); return null; }
-      const p = E.IndiaPlaces.find(placeInput.value);
-      const same = p && Math.abs(p.latitude - lat) < 1e-4 && Math.abs(p.longitude - lon) < 1e-4;
-      const name = same ? (p.kind === "district" ? p.name + " (district)" : p.name) : fmtCoords(lat, lon);
+      const p = placeAt(lat, lon);
+      const name = p ? (p.kind === "district" ? p.name + " (district)" : p.name) : fmtCoords(lat, lon);
       return { name: name, latitude: lat, longitude: lon, elevation: elev };
     }
 

@@ -474,15 +474,19 @@ html, body {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* Sunrise at the left, sunset at the right, both bold. */
+/* Sunrise at the left; sunset starts where the slider turns black (day -> night). */
 .scrub-ends {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
+  position: relative;
+  height: 17px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+#scrub-sunrise { position: absolute; left: 0; top: 0; white-space: nowrap; }
+#scrub-sunset {
+  position: absolute; top: 0; white-space: nowrap;
+  left: min(var(--day-frac), calc(100% - 68px));
 }
 /* Now: lit gold when the clock has been moved off live time (an invitation to
    return), quiet with a green dot while it is live. */
