@@ -298,6 +298,7 @@ html, body {
 #settings-panel section { margin-bottom: 22px; }
 #settings-panel label { display: block; margin-bottom: 8px; font-size: 14px; }
 #settings-panel input[type="number"],
+#settings-panel input[type="text"],
 #settings-panel input[type="datetime-local"] {
   width: 100%;
   background: #262019;

@@ -55,6 +55,9 @@
 
   <section>
     <h3>Location</h3>
+    <label>Choose a place in India <input type="text" id="set-place" list="set-place-list" placeholder="Type a city or temple town - e.g. Varanasi" autocomplete="off" spellcheck="false"></label>
+    <datalist id="set-place-list"></datalist>
+    <p class="settings-note" id="set-place-note">Picking a place fills in its latitude, longitude and elevation below; you can still fine-tune them.</p>
     <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
     <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
     <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>

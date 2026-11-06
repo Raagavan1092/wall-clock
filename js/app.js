@@ -551,6 +551,7 @@
     // Fills the form from `from` (the saved settings, or the defaults for
     // Reset to defaults); nothing is committed until Save.
     function populateForm(from) {
+      placeInput.value = "";
       latInput.value = from.location.latitude;
       lonInput.value = from.location.longitude;
       elevInput.value = from.location.elevation;
@@ -581,7 +582,30 @@
       populateForm(E.Settings.defaults());
     });
 
+    const placeInput = document.getElementById("set-place");
+    const placeNote = document.getElementById("set-place-note");
+    const placeList = document.getElementById("set-place-list");
+    E.IndiaPlaces.PLACES.forEach(function (p) {
+      const opt = document.createElement("option");
+      opt.value = p.label;
+      placeList.appendChild(opt);
+    });
+    function onPlaceChosen() {
+      const p = E.IndiaPlaces.find(placeInput.value);
+      if (!p) return;
+      latInput.value = p.latitude;
+      lonInput.value = p.longitude;
+      elevInput.value = p.elevation;
+      placeInput.value = p.label;
+      placeNote.textContent = "Coordinates set from " + p.label + " (" + p.latitude + "\u00b0N, " + p.longitude + "\u00b0E, " + p.elevation + " m). Press Save to apply.";
+    }
+    placeInput.addEventListener("change", onPlaceChosen);
+    placeInput.addEventListener("input", function () {
+      if (E.IndiaPlaces.find(placeInput.value)) onPlaceChosen();
+    });
+
     resetLocationBtn.addEventListener("click", function () {
+      placeInput.value = "";
       const d = E.Settings.defaults().location;
       latInput.value = d.latitude;
       lonInput.value = d.longitude;
