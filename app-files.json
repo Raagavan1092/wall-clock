@@ -25,6 +25,7 @@
     "js/render/ring-adapter.js",
     "js/render/dial.js",
     "js/settings.js",
+    "js/india-districts.js",
     "js/india-places.js",
     "js/tunes.js",
     "js/alarms.js",

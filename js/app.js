@@ -595,9 +595,10 @@
       if (!p) return;
       latInput.value = p.latitude;
       lonInput.value = p.longitude;
-      elevInput.value = p.elevation;
+      if (p.elevation !== null) elevInput.value = p.elevation;
       placeInput.value = p.label;
-      placeNote.textContent = "Coordinates set from " + p.label + " (" + p.latitude + "\u00b0N, " + p.longitude + "\u00b0E, " + p.elevation + " m). Press Save to apply.";
+      placeNote.textContent = "Coordinates set from " + p.label + " (" + p.latitude + "\u00b0N, " + p.longitude + "\u00b0E" +
+        (p.elevation !== null ? ", " + p.elevation + " m" : "; elevation left as it was - a district has no single height, so set it if you know it") + "). Press Save to apply.";
     }
     placeInput.addEventListener("change", onPlaceChosen);
     placeInput.addEventListener("input", function () {

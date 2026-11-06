@@ -1,5 +1,6 @@
-// Built-in list of places in India (name, state, latitude, longitude,
-// approximate elevation in metres) so the Location setting can fill in
+// Built-in list of places in India - well-known towns plus every district
+// (name, state, latitude, longitude, and for the towns an approximate
+// elevation in metres) so the Location setting can fill in
 // coordinates without a network connection. Coordinates are city-centre
 // values, good to ~0.01 degree; fine-tune in the fields if needed.
 (function (global) {
@@ -103,6 +104,14 @@
 
   const PLACES = RAW.map(function (r) {
     return { name: r[0], state: r[1], latitude: r[2], longitude: r[3], elevation: r[4], label: r[0] + ", " + r[1] };
+  });
+
+  // Every district (js/india-districts.js, loaded first): the middle of the
+  // district, with no elevation (null) - the form keeps its current one.
+  (VedicEngine.IndiaDistricts || []).forEach(function (st) {
+    st[1].forEach(function (d) {
+      PLACES.push({ name: d[0], state: st[0], latitude: d[1], longitude: d[2], elevation: null, label: d[0] + " (district), " + st[0] });
+    });
   });
 
   function norm(s) {
