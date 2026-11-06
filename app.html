@@ -49,18 +49,16 @@
       Set Alarm
     </button>
     <ul id="alarm-list" class="alarm-list"></ul>
-    <p class="settings-note">Alarms save instantly and ring only while open; tap the page after reloading.</p>
   </section>
 
   <section>
     <h3>Location</h3>
     <label for="set-place">Choose a place in India</label>
     <div class="place-combo">
-      <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search - Varanasi, mysore, trichy, /^ra.*pur$/" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search for a district or town" autocomplete="off" autocapitalize="off" spellcheck="false">
       <ul id="set-place-results" class="place-results hidden" role="listbox"></ul>
     </div>
     <p class="current-loc" id="set-current"><span class="cl-tag">Current location</span> <strong id="set-current-name">-</strong> <span id="set-current-coords"></span></p>
-    <p class="settings-note" id="set-place-note">Search a district or town. Old names and regex work.</p>
     <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
     <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
     <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>

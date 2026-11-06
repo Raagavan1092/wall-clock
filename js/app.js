@@ -606,8 +606,6 @@
 
     // ---- Location: searchable place picker (themed dropdown), default location
     const placeInput = document.getElementById("set-place");
-    const placeNote = document.getElementById("set-place-note");
-    const placeNoteDefault = placeNote.textContent;
     const placeResults = document.getElementById("set-place-results");
     const setDefaultBtn = document.getElementById("set-location-default");
     const defaultNote = document.getElementById("set-default-note");
@@ -678,7 +676,6 @@
       elevInput.value = p.elevation;
       placeInput.value = "";   // the "Current location" label shows what was chosen
       hideResults();
-      placeNote.textContent = placeNoteDefault;
       refreshLocationState();
     }
     placeInput.addEventListener("input", showResults);
@@ -811,7 +808,6 @@
     refreshDefaultLabels();
     applyLock();
     if (locationLocked) {
-      placeNote.textContent = "Choose where you are to start the clock.";
       defaultNote.textContent = "Your first saved location becomes the default.";
       open();
       placeInput.focus();

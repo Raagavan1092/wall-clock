@@ -156,16 +156,19 @@
   function wireSettings() {
     const section = document.getElementById("alarm-section");
     if (!section) return;
-    const note = section.querySelector(".settings-note");
-    if (note) {
-      note.textContent = "Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring even when your phone is locked or this app is closed. Open the app now and then so the schedule stays topped up.";
+    // The web page has no alarm note; the app adds its own (phone-locked behaviour).
+    let note = section.querySelector(".settings-note");
+    if (!note) {
+      note = document.createElement("p");
+      note.className = "settings-note";
+      section.appendChild(note);
     }
-    const button = document.createElement("button");
+    note.textContent = "Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring even when your phone is locked or this app is closed. Open the app now and then so the schedule stays topped up.";    const button = document.createElement("button");
     button.type = "button";
     button.id = "alarm-reliable";
     button.textContent = "Make alarms reliable…";
     button.addEventListener("click", function () { safe(function () { Native.openSetup(); }); });
-    if (note) note.parentNode.insertBefore(button, note); else section.appendChild(button);
+    note.parentNode.insertBefore(button, note);
   }
 
   Alarms.onChange(function () { schedule(); });
