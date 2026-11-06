@@ -30,9 +30,8 @@
       </div>
       <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
       <div class="scrub-ends">
-        <span id="scrub-sunrise" title="Sunrise">&#9728; --:--</span>
-        <span id="scrub-ghati">Gha&#7789;&#299; --</span>
-        <span id="scrub-next" title="Next sunrise">--:-- &#9728;</span>
+        <span id="scrub-sunrise" title="Sunrise">&#9728; Sunrise --:--</span>
+        <span id="scrub-sunset" title="Sunset">Sunset --:-- &#9790;</span>
       </div>
     </div>
     <button type="button" id="next-alarm" hidden></button>
@@ -60,6 +59,7 @@
       <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search - Varanasi, mysore, trichy, /^ra.*pur$/" autocomplete="off" autocapitalize="off" spellcheck="false">
       <ul id="set-place-results" class="place-results hidden" role="listbox"></ul>
     </div>
+    <p class="current-loc" id="set-current"><span class="cl-tag">Current location</span> <strong id="set-current-name">-</strong> <span id="set-current-coords"></span></p>
     <p class="settings-note" id="set-place-note">Search a district or town. Old names and regex work.</p>
     <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
     <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>

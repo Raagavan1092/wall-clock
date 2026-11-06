@@ -403,8 +403,7 @@
     const readout = document.getElementById("scrub-readout");
     const nowBtn = document.getElementById("scrub-now");
     const sunriseLabel = document.getElementById("scrub-sunrise");
-    const ghatiLabel = document.getElementById("scrub-ghati");
-    const nextLabel = document.getElementById("scrub-next");
+    const sunsetLabel = document.getElementById("scrub-sunset");
 
     prevBtn.addEventListener("click", function () { goToDay(shownDayOffset() - 1); });
     nextBtn.addEventListener("click", function () { goToDay(shownDayOffset() + 1); });
@@ -445,9 +444,8 @@
       if (slider.max !== String(max)) slider.max = String(max);
       const dayFrac = (a.sunsetToday.getTime() - sunrise) / (a.nextSunrise.getTime() - sunrise);
       scrub.style.setProperty("--day-frac", (dayFrac * 100).toFixed(2) + "%");
-      sunriseLabel.textContent = "\u2600 " + fmtTime(a.governingSunrise);
-      nextLabel.textContent = fmtTime(a.nextSunrise) + " \u2600";
-      ghatiLabel.textContent = "Gha\u1e6d\u012b " + E.Ghati.current(now, a).ghati;
+      sunriseLabel.textContent = "\u2600 Sunrise " + fmtTime(a.governingSunrise);
+      sunsetLabel.textContent = "Sunset " + fmtTime(a.sunsetToday) + " \u263e";
       readout.textContent = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" }) + " \u00b7 " + fmtTime(now);
       if (!scrubbing) {
         slider.value = String(Math.max(0, Math.min(max, Math.floor((now.getTime() - sunrise) / 60000))));
@@ -580,6 +578,7 @@
       });
       if (locationLocked) stage.setAttribute("inert", ""); else stage.removeAttribute("inert");
       lockedButtons.forEach(function (b) { b.disabled = locationLocked; });
+      refreshLocationState();
     }
 
     function open() {
@@ -590,6 +589,7 @@
         elevInput.value = "";
       }
       panel.classList.remove("hidden");
+      refreshLocationState();
     }
     function close() {
       panel.classList.add("hidden");
@@ -601,6 +601,7 @@
     cancelBtn.addEventListener("click", close);
     document.getElementById("settings-reset").addEventListener("click", function () {
       populateForm(E.Settings.defaults());
+      refreshLocationState();
     });
 
     // ---- Location: searchable place picker (themed dropdown), default location
@@ -677,6 +678,7 @@
       placeInput.value = p.label;
       hideResults();
       placeNote.textContent = "Filled from " + p.label + ". Press Save to apply.";
+      refreshLocationState();
     }
     placeInput.addEventListener("input", showResults);
     placeInput.addEventListener("focus", function () { if (placeInput.value.trim()) showResults(); });
@@ -694,6 +696,34 @@
         if (open && shown[activeIdx]) { ev.preventDefault(); choose(shown[activeIdx]); }
       } else if (ev.key === "Escape" && open) { ev.stopPropagation(); hideResults(); }
     });
+
+    // "Current location" label under the search box, and Set as default only when the
+    // location in the form differs from the default.
+    const currentName = document.getElementById("set-current-name");
+    const currentCoords = document.getElementById("set-current-coords");
+    function nameFor(lat, lon) {
+      const near = function (a, b) { return Math.abs(a - b) < 1e-4; };
+      const p = E.IndiaPlaces.PLACES.filter(function (q) { return near(q.latitude, lat) && near(q.longitude, lon); })[0];
+      if (p) return p.label;
+      const d = E.Settings.defaultLocation();
+      return near(d.latitude, lat) && near(d.longitude, lon) ? d.name : "Custom location";
+    }
+    function refreshLocationState() {
+      const lat = parseFloat(latInput.value), lon = parseFloat(lonInput.value), elev = parseFloat(elevInput.value);
+      const valid = isFinite(lat) && Math.abs(lat) <= 90 && isFinite(lon) && Math.abs(lon) <= 180;
+      if (!valid) {
+        currentName.textContent = "Not chosen yet";
+        currentCoords.textContent = "";
+        setDefaultBtn.disabled = true;
+        return;
+      }
+      currentName.textContent = nameFor(lat, lon);
+      currentCoords.textContent = "\u00b7 " + fmtCoords(lat, lon) + (isFinite(elev) ? ", " + elev + " m" : "");
+      const d = E.Settings.defaultLocation();
+      const same = Math.abs(lat - d.latitude) < 1e-4 && Math.abs(lon - d.longitude) < 1e-4 && isFinite(elev) && Math.abs(elev - d.elevation) < 0.5;
+      setDefaultBtn.disabled = locationLocked || same || !isFinite(elev) || elev < 0;
+    }
+    [latInput, lonInput, elevInput].forEach(function (el) { el.addEventListener("input", refreshLocationState); });
 
     function refreshDefaultLabels() {
       const d = E.Settings.defaultLocation();
@@ -720,6 +750,7 @@
       if (!loc) return;
       if (E.Settings.setDefaultLocation(loc)) {
         refreshDefaultLabels();
+        refreshLocationState();
         defaultNote.textContent = "Default is now " + loc.name + ". Reset returns here.";
       } else {
         defaultNote.textContent = "Couldn't save - browser storage unavailable.";
@@ -733,6 +764,7 @@
       latInput.value = d.latitude;
       lonInput.value = d.longitude;
       elevInput.value = d.elevation;
+      refreshLocationState();
     });
 
     // Returns true on success (and closes), false if validation failed (stays open).

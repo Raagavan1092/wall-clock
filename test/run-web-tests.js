@@ -133,12 +133,28 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("search: 'banaras' fills Varanasi's coordinates", await page.evaluate(() => Math.abs(+document.getElementById("set-lat").value - 25.3) < 0.5 && +document.getElementById("set-elev").value > 50));
     await page.click("#settings-save");
     ok("first location is saved as the default and everything unlocks", await page.evaluate(() =>
-      !document.getElementById("stage").hasAttribute("inert") && !document.getElementById("set-location-default").disabled &&
+      !document.getElementById("stage").hasAttribute("inert") && document.getElementById("set-location-default").disabled &&
+      /Varanasi/.test(document.getElementById("set-current-name").textContent) &&
       /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name) &&
       /Reset to Varanasi/.test(document.getElementById("set-location-reset").textContent)));
+    await page.click("#settings-toggle");
+    ok("Set as default is inactive while the location equals the default, active once it differs", await page.evaluate(() => {
+      const btn = document.getElementById("set-location-default"), lat = document.getElementById("set-lat");
+      const before = btn.disabled;
+      lat.value = "13.4"; lat.dispatchEvent(new Event("input"));
+      const mid = btn.disabled;
+      lat.value = document.getElementById("set-lat").defaultValue || lat.value;
+      return before === true && mid === false && /Custom/.test(document.getElementById("set-current-name").textContent);
+    }));
+    await page.click("#set-location-default", { timeout: 3000 }).catch(() => {});
+    ok("pressing Set as default makes it the default and goes inactive again", await page.evaluate(() =>
+      document.getElementById("set-location-default").disabled && Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).latitude - 13.4) < 1e-6));
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
+    ok("slider shows sunrise and sunset only", await page.evaluate(() =>
+      /Sunrise \d\d:\d\d/.test(document.getElementById("scrub-sunrise").textContent) && /Sunset \d\d:\d\d/.test(document.getElementById("scrub-sunset").textContent) &&
+      !document.getElementById("scrub-ghati") && !document.getElementById("scrub-next")));
     ok("second visit: no prompt, stays unlocked", await page.evaluate(() => document.getElementById("settings-panel").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert")));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));
     await ctx.close();
