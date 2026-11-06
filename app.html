@@ -55,13 +55,20 @@
 
   <section>
     <h3>Location</h3>
-    <label>Choose a place in India <input type="text" id="set-place" list="set-place-list" placeholder="Type a town or district - e.g. Varanasi" autocomplete="off" spellcheck="false"></label>
-    <datalist id="set-place-list"></datalist>
-    <p class="settings-note" id="set-place-note">Pick any district of India, a well-known town, or one of two towns in a very wide district (where sunrise differs by several minutes across it); its latitude and longitude fill in below (and the elevation, for the well-known towns), and you can still fine-tune them. A district gives its middle, not a particular town.</p>
+    <label for="set-place">Choose a place in India</label>
+    <div class="place-combo">
+      <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search - Varanasi, mysore, trichy, /^ra.*pur$/" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <ul id="set-place-results" class="place-results hidden" role="listbox"></ul>
+    </div>
+    <p class="settings-note" id="set-place-note">Search any district of India, a well-known town, or one of two towns in a very wide district (where sunrise differs by several minutes across it). Old names and spelling variants work (Bangalore, Banaras, Trivandrum), and so does a regular expression such as <code>^ra.*pur$</code>. The latitude, longitude and elevation fill in below and you can still fine-tune them. A district gives the point near its middle, not a particular town.</p>
     <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
     <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
     <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>
-    <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
+    <div class="location-actions">
+      <button id="set-location-default" type="button">Set as default</button>
+      <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
+    </div>
+    <p class="settings-note" id="set-default-note">"Set as default" remembers the location above as the one Reset returns to. It is saved straight away - no need to press Save.</p>
   </section>
 
   <section>

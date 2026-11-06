@@ -582,32 +582,129 @@
       populateForm(E.Settings.defaults());
     });
 
+    // ---- Location: searchable place picker (themed dropdown), default location
     const placeInput = document.getElementById("set-place");
     const placeNote = document.getElementById("set-place-note");
-    const placeList = document.getElementById("set-place-list");
-    E.IndiaPlaces.PLACES.forEach(function (p) {
-      const opt = document.createElement("option");
-      opt.value = p.label;
-      placeList.appendChild(opt);
-    });
-    function onPlaceChosen() {
-      const p = E.IndiaPlaces.find(placeInput.value);
-      if (!p) return;
+    const placeResults = document.getElementById("set-place-results");
+    const setDefaultBtn = document.getElementById("set-location-default");
+    const defaultNote = document.getElementById("set-default-note");
+    const fmtCoords = function (lat, lon) { return lat + "°N, " + lon + "°E"; };
+    let shown = [];      // places currently listed
+    let activeIdx = -1;  // highlighted row
+
+    function hideResults() {
+      placeResults.classList.add("hidden");
+      placeInput.setAttribute("aria-expanded", "false");
+      placeInput.removeAttribute("aria-activedescendant");
+      activeIdx = -1;
+    }
+    function setActive(i) {
+      const rows = placeResults.querySelectorAll("li[data-i]");
+      if (!rows.length) return;
+      activeIdx = (i + rows.length) % rows.length;
+      rows.forEach(function (li, k) {
+        li.classList.toggle("active", k === activeIdx);
+        li.setAttribute("aria-selected", k === activeIdx ? "true" : "false");
+      });
+      const li = rows[activeIdx];
+      placeInput.setAttribute("aria-activedescendant", li.id);
+      li.scrollIntoView({ block: "nearest" });
+    }
+    function showResults() {
+      const q = placeInput.value;
+      placeResults.textContent = "";
+      shown = E.IndiaPlaces.search(q, 12);
+      if (!q.trim()) { hideResults(); return; }
+      if (!shown.length) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.textContent = "No match - try another spelling";
+        placeResults.appendChild(li);
+      }
+      shown.forEach(function (p, i) {
+        const li = document.createElement("li");
+        li.id = "set-place-opt-" + i;
+        li.setAttribute("role", "option");
+        li.dataset.i = i;
+        const main = document.createElement("span");
+        main.className = "pr-main";
+        const name = document.createElement("span");
+        name.className = "pr-name";
+        name.textContent = p.name;
+        const sub = document.createElement("span");
+        sub.className = "pr-sub";
+        sub.textContent = (p.kind === "district" ? "District" : p.district ? "Town in " + p.district + " district" : "Town") + " · " + p.state;
+        main.appendChild(name);
+        main.appendChild(sub);
+        const meta = document.createElement("span");
+        meta.className = "pr-meta";
+        meta.textContent = p.elevation + " m";
+        li.appendChild(main);
+        li.appendChild(meta);
+        // mousedown (not click) so it runs before the input loses focus
+        li.addEventListener("mousedown", function (ev) { ev.preventDefault(); choose(p); });
+        placeResults.appendChild(li);
+      });
+      placeResults.classList.remove("hidden");
+      placeInput.setAttribute("aria-expanded", "true");
+      if (shown.length) setActive(0);
+    }
+    function choose(p) {
       latInput.value = p.latitude;
       lonInput.value = p.longitude;
-      if (p.elevation !== null) elevInput.value = p.elevation;
+      elevInput.value = p.elevation;
       placeInput.value = p.label;
-      placeNote.textContent = "Coordinates set from " + p.label + " (" + p.latitude + "\u00b0N, " + p.longitude + "\u00b0E" +
-        (p.elevation !== null ? ", " + p.elevation + " m" : "; elevation left as it was - a district has no single height, so set it if you know it") + "). Press Save to apply.";
+      hideResults();
+      placeNote.textContent = "Coordinates set from " + p.label + " (" + fmtCoords(p.latitude, p.longitude) + ", " + p.elevation +
+        " m, elevation from SRTM at that point). Press Save to apply" + (p.kind === "district" ? "; a district gives the point near its middle." : ".");
     }
-    placeInput.addEventListener("change", onPlaceChosen);
-    placeInput.addEventListener("input", function () {
-      if (E.IndiaPlaces.find(placeInput.value)) onPlaceChosen();
+    placeInput.addEventListener("input", showResults);
+    placeInput.addEventListener("focus", function () { if (placeInput.value.trim()) showResults(); });
+    placeInput.addEventListener("blur", function () {
+      hideResults();
+      // A full name typed or pasted without picking from the list still counts.
+      const p = E.IndiaPlaces.find(placeInput.value);
+      if (p) choose(p);
+    });
+    placeInput.addEventListener("keydown", function (ev) {
+      const open = !placeResults.classList.contains("hidden");
+      if (ev.key === "ArrowDown") { ev.preventDefault(); if (!open) showResults(); else setActive(activeIdx + 1); }
+      else if (ev.key === "ArrowUp") { ev.preventDefault(); if (open) setActive(activeIdx - 1); }
+      else if (ev.key === "Enter") {
+        if (open && shown[activeIdx]) { ev.preventDefault(); choose(shown[activeIdx]); }
+      } else if (ev.key === "Escape" && open) { ev.stopPropagation(); hideResults(); }
+    });
+
+    function refreshDefaultLabels() {
+      const d = E.Settings.defaultLocation();
+      resetLocationBtn.textContent = "Reset to " + d.name;
+      resetLocationBtn.title = fmtCoords(d.latitude, d.longitude) + ", " + d.elevation + " m";
+    }
+    refreshDefaultLabels();
+
+    setDefaultBtn.addEventListener("click", function () {
+      const lat = parseFloat(latInput.value);
+      const lon = parseFloat(lonInput.value);
+      const elev = parseFloat(elevInput.value);
+      if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return; }
+      if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return; }
+      if (!isFinite(elev) || elev < 0) { elevInput.focus(); return; }
+      // Named after the chosen place when the fields still hold its coordinates.
+      const p = E.IndiaPlaces.find(placeInput.value);
+      const same = p && Math.abs(p.latitude - lat) < 1e-4 && Math.abs(p.longitude - lon) < 1e-4;
+      const name = same ? (p.kind === "district" ? p.name + " (district)" : p.name) : fmtCoords(lat, lon);
+      if (E.Settings.setDefaultLocation({ name: name, latitude: lat, longitude: lon, elevation: elev })) {
+        refreshDefaultLabels();
+        defaultNote.textContent = "Default location set to " + name + ". Reset now returns here.";
+      } else {
+        defaultNote.textContent = "Could not save the default (browser storage is unavailable).";
+      }
     });
 
     resetLocationBtn.addEventListener("click", function () {
       placeInput.value = "";
-      const d = E.Settings.defaults().location;
+      hideResults();
+      const d = E.Settings.defaultLocation();
       latInput.value = d.latitude;
       lonInput.value = d.longitude;
       elevInput.value = d.elevation;

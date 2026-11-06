@@ -314,6 +314,32 @@ html, body {
   border: 1px solid #555;
   padding: 5px 8px;
 }
+#settings-panel .settings-note code { background: #262019; padding: 0 4px; border: 1px solid #3a3022; border-radius: 3px; font-size: 11px; color: var(--numeral); }
+#settings-panel > section > label[for="set-place"] { margin-bottom: 3px; }
+.place-combo { position: relative; margin-bottom: 4px; }
+#settings-panel .place-combo input[type="text"] { margin-top: 0; }
+#settings-panel input[type="text"]:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201, 168, 92, 0.25); }
+.place-results {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 30;
+  list-style: none; margin: 2px 0 0; padding: 3px;
+  max-height: 260px; overflow-y: auto;
+  background: #1a1510; border: 1px solid var(--ring-stroke); border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+.place-results.hidden { display: none; }
+.place-results li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; color: var(--centre-text);
+}
+.place-results li .pr-main { min-width: 0; }
+.place-results li .pr-name { font-weight: 600; }
+.place-results li .pr-sub { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.place-results li .pr-meta { flex: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.place-results li.active, .place-results li:hover { background: #332817; }
+.place-results li.active .pr-name { color: var(--centre-ghati); }
+.place-results li.empty { cursor: default; color: var(--muted); font-style: italic; }
+.place-results li.empty:hover { background: transparent; }
+.location-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 #settings-panel .settings-note { font-size: 12px; color: #a89a78; margin: 6px 0 0; }
 #settings-panel button {
   background: #332817;

@@ -7,11 +7,44 @@
 
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const STORAGE_KEY = "vedicWallClock.settings.v1";
+  // The location "Reset" returns to. Built in: Śṛṅgeri; the user can replace it
+  // (Settings > Location > Set as default). Applies at once, not on Save.
+  const DEFAULT_LOCATION_KEY = "vedicWallClock.defaultLocation.v1";
+  const BUILT_IN_DEFAULT_NAME = "Śṛṅgeri";
+
+  // { name, latitude, longitude, elevation } - the user's default location, or the built-in one.
+  function defaultLocation() {
+    const base = VedicEngine.Panchanga.DEFAULT_SETTINGS.location;
+    const builtIn = Object.assign({}, base, { name: BUILT_IN_DEFAULT_NAME });
+    try {
+      const raw = localStorage.getItem(DEFAULT_LOCATION_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && isFinite(d.latitude) && Math.abs(d.latitude) <= 90 && isFinite(d.longitude) && Math.abs(d.longitude) <= 180 &&
+            isFinite(d.elevation) && d.elevation >= 0) {
+          return { name: String(d.name || "").slice(0, 80) || "your default", latitude: +d.latitude, longitude: +d.longitude, elevation: +d.elevation };
+        }
+      }
+    } catch (e) {
+      console.warn("Settings: failed to read the default location.", e);
+    }
+    return builtIn;
+  }
+
+  function setDefaultLocation(loc) {
+    try {
+      localStorage.setItem(DEFAULT_LOCATION_KEY, JSON.stringify({ name: loc.name, latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation }));
+      return true;
+    } catch (e) {
+      console.warn("Settings: failed to write the default location.", e);
+      return false;
+    }
+  }
 
   function defaults() {
     const base = VedicEngine.Panchanga.DEFAULT_SETTINGS;
     return {
-      location: Object.assign({}, base.location),
+      location: (function () { const d = defaultLocation(); return { latitude: d.latitude, longitude: d.longitude, elevation: d.elevation }; })(),
       ayanamsa: base.ayanamsa,
       sunriseEdge: base.sunriseEdge,
       ringOrder: VedicEngine.RingAdapter.RING_ORDER.slice(),
@@ -79,5 +112,5 @@
     }
   }
 
-  VedicEngine.Settings = { defaults, load, save, sanitizeRingOrder, STORAGE_KEY };
+  VedicEngine.Settings = { defaults, load, save, sanitizeRingOrder, defaultLocation, setDefaultLocation, STORAGE_KEY, DEFAULT_LOCATION_KEY };
 })(typeof window !== "undefined" ? window : globalThis);
