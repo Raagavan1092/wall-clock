@@ -578,6 +578,9 @@
   const AXIS_GAP = 2;
   const MIN_LANE_FONT = 7;
   const MAX_LANE_FONT = 44;
+  // A label's font size as a share of its lane's width (the rest is padding, ~15% each side).
+  // 0.67 puts a 28-unit lane's label at 18.8, up from 11.8 at the old 0.42.
+  const LANE_FONT_RATIO = 0.67;
   // Per window, the number of lanes its cluster of overlapping windows
   // needs (1 for a window on its own). Windows must be sorted by start, as
   // ring-adapter.js's layoutEvents leaves them.
@@ -626,7 +629,7 @@
       attachTooltip(path, segmentTooltip(ev));
       g.appendChild(path);
       const midRadius = (laneInner + laneOuter) / 2;
-      const size = Math.min(MAX_LANE_FONT, laneWidth * 0.42, fittedCurvedFont(ev.text, span, midRadius));
+      const size = Math.min(MAX_LANE_FONT, laneWidth * LANE_FONT_RATIO, fittedCurvedFont(ev.text, span, midRadius));
       if (size < MIN_LANE_FONT) return;
       curvedLabel(g, ev.text, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
     }
