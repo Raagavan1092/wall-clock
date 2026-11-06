@@ -114,6 +114,36 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await ctx.close();
   }
 
+  // 4. first visit: Location must be chosen first; that location becomes the default
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#settings-panel:not(.hidden)", { timeout: 20000 });
+    ok("first visit: Settings opens by itself, location fields empty", await page.evaluate(() => document.getElementById("set-lat").value === ""));
+    ok("first visit: default/reset/close buttons and the other sections are inactive", await page.evaluate(() =>
+      ["set-location-default", "set-location-reset", "settings-reset", "settings-close", "settings-cancel"].every(id => document.getElementById(id).disabled) &&
+      document.getElementById("stage").hasAttribute("inert") && document.querySelector("#alarm-section").hasAttribute("inert")));
+    await page.click("#settings-save");
+    ok("first visit: Save without a location is refused", await page.evaluate(() => !document.getElementById("settings-panel").classList.contains("hidden")));
+    await page.fill("#set-place", "banaras");
+    await page.keyboard.press("Enter");
+    ok("search: 'banaras' fills Varanasi's coordinates", await page.evaluate(() => Math.abs(+document.getElementById("set-lat").value - 25.3) < 0.5 && +document.getElementById("set-elev").value > 50));
+    await page.click("#settings-save");
+    ok("first location is saved as the default and everything unlocks", await page.evaluate(() =>
+      !document.getElementById("stage").hasAttribute("inert") && !document.getElementById("set-location-default").disabled &&
+      /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name) &&
+      /Reset to Varanasi/.test(document.getElementById("set-location-reset").textContent)));
+    await page.reload();
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForTimeout(500);
+    ok("second visit: no prompt, stays unlocked", await page.evaluate(() => document.getElementById("settings-panel").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert")));
+    ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
+
   await browser.close();
   server.close();
   console.log(failures ? failures + " FAILED" : "ALL PASSED");

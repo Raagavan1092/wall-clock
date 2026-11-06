@@ -31,6 +31,17 @@
     return builtIn;
   }
 
+  // True on a first visit: nothing saved yet, so the user must say where they are
+  // before the clock can be used (their first location then becomes the default).
+  // False if browser storage is unavailable, so the app still works with the built-in location.
+  function needsLocation() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === null && localStorage.getItem(DEFAULT_LOCATION_KEY) === null;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function setDefaultLocation(loc) {
     try {
       localStorage.setItem(DEFAULT_LOCATION_KEY, JSON.stringify({ name: loc.name, latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation }));
@@ -112,5 +123,5 @@
     }
   }
 
-  VedicEngine.Settings = { defaults, load, save, sanitizeRingOrder, defaultLocation, setDefaultLocation, STORAGE_KEY, DEFAULT_LOCATION_KEY };
+  VedicEngine.Settings = { defaults, load, save, sanitizeRingOrder, defaultLocation, setDefaultLocation, needsLocation, STORAGE_KEY, DEFAULT_LOCATION_KEY };
 })(typeof window !== "undefined" ? window : globalThis);

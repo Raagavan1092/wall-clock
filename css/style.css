@@ -339,6 +339,8 @@ html, body {
 .place-results li.active .pr-name { color: var(--centre-ghati); }
 .place-results li.empty { cursor: default; color: var(--muted); font-style: italic; }
 .place-results li.empty:hover { background: transparent; }
+#settings-panel section.locked { opacity: 0.35; }
+#stage[inert] { opacity: 0.2; transition: opacity 0.3s; }
 .location-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 #settings-panel .settings-note { font-size: 12px; color: #a89a78; margin: 6px 0 0; }
 #settings-panel button {

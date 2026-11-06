@@ -566,8 +566,29 @@
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
 
+    // First visit: only Location (and Save) work until a location is saved; that first
+    // location becomes the default automatically. Everything else is inert and dimmed.
+    let locationLocked = E.Settings.needsLocation();
+    const stage = document.getElementById("stage");
+    const lockedButtons = [closeBtn, cancelBtn, document.getElementById("settings-reset"), resetLocationBtn, document.getElementById("set-location-default")];
+    function applyLock() {
+      const locationSection = document.getElementById("set-place").closest("section");
+      panel.querySelectorAll("section").forEach(function (sec) {
+        const lock = locationLocked && sec !== locationSection;
+        sec.classList.toggle("locked", lock);
+        if (lock) sec.setAttribute("inert", ""); else sec.removeAttribute("inert");
+      });
+      if (locationLocked) stage.setAttribute("inert", ""); else stage.removeAttribute("inert");
+      lockedButtons.forEach(function (b) { b.disabled = locationLocked; });
+    }
+
     function open() {
       populateForm(settings);
+      if (locationLocked) {
+        latInput.value = "";
+        lonInput.value = "";
+        elevInput.value = "";
+      }
       panel.classList.remove("hidden");
     }
     function close() {
@@ -655,8 +676,7 @@
       elevInput.value = p.elevation;
       placeInput.value = p.label;
       hideResults();
-      placeNote.textContent = "Coordinates set from " + p.label + " (" + fmtCoords(p.latitude, p.longitude) + ", " + p.elevation +
-        " m, elevation from SRTM at that point). Press Save to apply" + (p.kind === "district" ? "; a district gives the point near its middle." : ".");
+      placeNote.textContent = "Filled from " + p.label + ". Press Save to apply.";
     }
     placeInput.addEventListener("input", showResults);
     placeInput.addEventListener("focus", function () { if (placeInput.value.trim()) showResults(); });
@@ -677,27 +697,32 @@
 
     function refreshDefaultLabels() {
       const d = E.Settings.defaultLocation();
-      resetLocationBtn.textContent = "Reset to " + d.name;
+      resetLocationBtn.textContent = locationLocked ? "Reset to default" : "Reset to " + d.name;
       resetLocationBtn.title = fmtCoords(d.latitude, d.longitude) + ", " + d.elevation + " m";
     }
-    refreshDefaultLabels();
-
-    setDefaultBtn.addEventListener("click", function () {
+    // The form's location as { name, latitude, longitude, elevation }, or null (focusing the bad field).
+    // Named after the chosen place when the fields still hold its coordinates.
+    function formLocation() {
       const lat = parseFloat(latInput.value);
       const lon = parseFloat(lonInput.value);
       const elev = parseFloat(elevInput.value);
-      if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return; }
-      if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return; }
-      if (!isFinite(elev) || elev < 0) { elevInput.focus(); return; }
-      // Named after the chosen place when the fields still hold its coordinates.
+      if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return null; }
+      if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return null; }
+      if (!isFinite(elev) || elev < 0) { elevInput.focus(); return null; }
       const p = E.IndiaPlaces.find(placeInput.value);
       const same = p && Math.abs(p.latitude - lat) < 1e-4 && Math.abs(p.longitude - lon) < 1e-4;
       const name = same ? (p.kind === "district" ? p.name + " (district)" : p.name) : fmtCoords(lat, lon);
-      if (E.Settings.setDefaultLocation({ name: name, latitude: lat, longitude: lon, elevation: elev })) {
+      return { name: name, latitude: lat, longitude: lon, elevation: elev };
+    }
+
+    setDefaultBtn.addEventListener("click", function () {
+      const loc = formLocation();
+      if (!loc) return;
+      if (E.Settings.setDefaultLocation(loc)) {
         refreshDefaultLabels();
-        defaultNote.textContent = "Default location set to " + name + ". Reset now returns here.";
+        defaultNote.textContent = "Default is now " + loc.name + ". Reset returns here.";
       } else {
-        defaultNote.textContent = "Could not save the default (browser storage is unavailable).";
+        defaultNote.textContent = "Couldn't save - browser storage unavailable.";
       }
     });
 
@@ -712,12 +737,9 @@
 
     // Returns true on success (and closes), false if validation failed (stays open).
     function saveAndClose() {
-      const lat = parseFloat(latInput.value);
-      const lon = parseFloat(lonInput.value);
-      const elev = parseFloat(elevInput.value);
-      if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return false; }
-      if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return false; }
-      if (!isFinite(elev) || elev < 0) { elevInput.focus(); return false; }
+      const loc = formLocation();
+      if (!loc) return false;
+      const lat = loc.latitude, lon = loc.longitude, elev = loc.elevation;
 
       const sunriseEdge = (document.querySelector('input[name="sunriseEdge"]:checked') || {}).value || "upper-limb";
 
@@ -731,6 +753,14 @@
         layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);
+      if (locationLocked) {
+        // The first location entered becomes the default, and the rest of the app unlocks.
+        E.Settings.setDefaultLocation(loc);
+        locationLocked = false;
+        applyLock();
+        refreshDefaultLabels();
+        defaultNote.textContent = "Default is now " + loc.name + ". Reset returns here.";
+      }
       E.Dial.setLayerOrder(settings.layerOrder);
       activeRingOrder = visibleRingOrder();
       currentRingIndex = 0;
@@ -741,6 +771,15 @@
     }
 
     saveBtn.addEventListener("click", saveAndClose);
+
+    refreshDefaultLabels();
+    applyLock();
+    if (locationLocked) {
+      placeNote.textContent = "Choose where you are to start the clock.";
+      defaultNote.textContent = "Your first saved location becomes the default.";
+      open();
+      placeInput.focus();
+    }
     // The × at the top behaves like Save, not Cancel: per the project owner,
     // closing via the corner button should keep whatever's in the form, the
     // same as clicking Save - only the bottom Cancel button discards.
