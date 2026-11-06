@@ -163,7 +163,8 @@
       note.className = "settings-note";
       section.appendChild(note);
     }
-    note.textContent = "Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring even when your phone is locked or this app is closed. Open the app now and then so the schedule stays topped up.";    const button = document.createElement("button");
+    note.textContent = "Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring even when your phone is locked or this app is closed. Open the app now and then so the schedule stays topped up.";
+    const button = document.createElement("button");
     button.type = "button";
     button.id = "alarm-reliable";
     button.textContent = "Make alarms reliable…";
