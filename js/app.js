@@ -818,6 +818,48 @@
     closeBtn.addEventListener("click", saveAndClose);
   }
 
+  // Full screen view: hides every button and widget, leaving only the clock.
+  function wireFullView() {
+    const btn = document.getElementById("btn-fullview");
+    const label = btn.querySelector(".fv-text");
+    const body = document.body;
+    let idleTimer = null;
+    function wake() {
+      body.classList.remove("fv-idle");
+      clearTimeout(idleTimer);
+      if (body.classList.contains("fullview")) idleTimer = setTimeout(function () { body.classList.add("fv-idle"); }, 4000);
+    }
+    function setFull(on) {
+      body.classList.toggle("fullview", on);
+      label.textContent = on ? "Show all buttons" : "Full screen";
+      btn.title = on ? "Bring back all the buttons" : "Hide all buttons and show only the clock";
+      wake();
+      if (on) {
+        const el = document.documentElement;
+        try { if (!document.fullscreenElement && el.requestFullscreen) { const p = el.requestFullscreen(); if (p && p.catch) p.catch(function () {}); } } catch (e) { /* not allowed */ }
+      } else {
+        try { if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (e) { /* ignore */ }
+      }
+    }
+    btn.addEventListener("click", function () { setFull(!body.classList.contains("fullview")); });
+    // Leaving browser full screen (e.g. with Esc) also leaves this view.
+    document.addEventListener("fullscreenchange", function () {
+      if (!document.fullscreenElement && body.classList.contains("fullview")) setFull(false);
+    });
+    // Ways back with no button on screen: Esc, F, or a double tap/click on the clock.
+    window.addEventListener("keydown", function (e) {
+      if (!body.classList.contains("fullview")) return;
+      if (e.key === "Escape" || e.key === "f" || e.key === "F") setFull(false);
+    });
+    document.getElementById("dial").addEventListener("dblclick", function () {
+      if (body.classList.contains("fullview")) setFull(false);
+    });
+    // Any movement or touch shows the (fading) button for a few seconds.
+    ["pointermove", "pointerdown"].forEach(function (t) {
+      window.addEventListener(t, function () { if (body.classList.contains("fullview")) wake(); }, { passive: true });
+    });
+  }
+
   async function main() {
     data = await fetch("js/data/panchanga-data.json", { cache: "no-store" }).then(function (r) { return r.json(); });
 
@@ -829,6 +871,7 @@
     startControlSync();
     wireDayControls();
     wireSettingsPanel();
+    wireFullView();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.
     let alarmsOk = false;
     try {

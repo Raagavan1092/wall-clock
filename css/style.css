@@ -577,6 +577,43 @@ html, body {
 }
 #time-slider:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; border-radius: 6px; }
 
+.tc-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+#btn-fullview {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px 6px 10px;
+  background: var(--glass);
+  color: var(--gold-hi);
+  border: 1px solid var(--ring-stroke);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+#btn-fullview:hover { background: rgba(42, 33, 19, 0.9); }
+#btn-fullview svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Full screen view: only the clock stays; the one button left floats at the top right
+   and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
+body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
+body.fullview .tc-row, body.fullview #time-scrub, body.fullview #next-alarm, body.fullview #clock-buttons,
+body.fullview #settings-panel { display: none !important; }
+body.fullview #btn-fullview {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 20;
+  transition: opacity 0.6s;
+}
+body.fullview #btn-fullview svg { display: none; }
+body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
+@media (orientation: landscape) {
+  body.fullview #stage { --dial: min(calc(100vw - 16px), calc(100vh - 16px), calc(100dvh - 16px)); grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
+  body.fullview #dial { grid-row: 1; }
+}
+
 #next-alarm {
   align-self: flex-end;
   display: inline-flex;
