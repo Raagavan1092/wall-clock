@@ -170,6 +170,15 @@
     button.textContent = "Make alarms reliable…";
     button.addEventListener("click", function () { safe(function () { Native.openSetup(); }); });
     note.parentNode.insertBefore(button, note);
+    // Older installs of the app have no updater; only newer ones offer the button.
+    if (typeof Native.openUpdate === "function") {
+      const upd = document.createElement("button");
+      upd.type = "button";
+      upd.id = "app-update";
+      upd.textContent = "Check for updates…";
+      upd.addEventListener("click", function () { safe(function () { Native.openUpdate(); }); });
+      note.parentNode.insertBefore(upd, note);
+    }
   }
 
   Alarms.onChange(function () { schedule(); });

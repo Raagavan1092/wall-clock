@@ -53,6 +53,12 @@ class AlarmBridge(private val ctx: Context) {
         ctx.startActivity(Intent(ctx, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
+    /** Opens "Check for updates" (latest GitHub release, download and install). */
+    @JavascriptInterface
+    fun openUpdate() {
+        ctx.startActivity(Intent(ctx, UpdateActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
     companion object {
         private const val TAG = "VedicAlarms"
     }

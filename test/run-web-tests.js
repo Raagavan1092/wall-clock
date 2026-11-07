@@ -71,6 +71,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         trackEnd: () => { calls.track.push(["end"]); },
         clearTrack: () => { calls.cleared++; },
         openSetup: () => { calls.setup++; },
+        openUpdate: () => { calls.update = (calls.update || 0) + 1; },
       };
     });
     await page.goto(base + "/index.html");
@@ -80,6 +81,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("bridge: Settings shows the app note and the checklist button", await page.evaluate(() => !!document.getElementById("alarm-reliable") && /locked/.test(document.querySelector("#alarm-section .settings-note").textContent)));
     await page.evaluate(() => document.getElementById("alarm-reliable").click());
     ok("bridge: the button opens the native checklist", await page.evaluate(() => window.__calls.setup === 1));
+    await page.evaluate(() => document.getElementById("app-update").click());
+    ok("bridge: Check for updates opens the native updater", await page.evaluate(() => window.__calls.update === 1));
 
     const n0 = await page.evaluate(() => window.__calls.sync.length);
     await page.evaluate(() => {
