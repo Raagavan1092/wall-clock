@@ -71,7 +71,6 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         trackEnd: () => { calls.track.push(["end"]); },
         clearTrack: () => { calls.cleared++; },
         openSetup: () => { calls.setup++; },
-        setLockClock: json => { (calls.lock = calls.lock || []).push(JSON.parse(json)); },
       };
     });
     await page.goto(base + "/index.html");
@@ -80,8 +79,6 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("bridge: syncs once on open even with no alarms", await page.evaluate(() => window.__calls.sync[0].rings.length === 0 && window.__calls.sync[0].alarmCount === 0));
     ok("bridge: Settings shows the app note and the checklist button", await page.evaluate(() => !!document.getElementById("alarm-reliable") && /locked/.test(document.querySelector("#alarm-section .settings-note").textContent)));
     await page.evaluate(() => document.getElementById("alarm-reliable").click());
-    await page.waitForFunction(() => (window.__calls.lock || []).length >= 1, null, { timeout: 15000 });
-    ok("bridge: lock-screen status has sunrise, tithi and nakshatra", await page.evaluate(() => { const l = window.__calls.lock[0], n = Date.now(); return l.sunriseMs <= n && n < l.nextSunriseMs && l.tithi.length > 0 && l.nakshatra.length > 0 && l.tithiEndMs > n && l.nakshatraEndMs > n; }));
     ok("bridge: the button opens the native checklist", await page.evaluate(() => window.__calls.setup === 1));
 
     const n0 = await page.evaluate(() => window.__calls.sync.length);

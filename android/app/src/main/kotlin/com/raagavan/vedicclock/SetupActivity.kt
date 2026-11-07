@@ -79,20 +79,6 @@ class SetupActivity : Activity() {
         })
 
         col.addView(CheckBox(this).apply {
-            text = "Show the clock over the lock screen when it is open (pair with keep screen on)"
-            setTextColor(CENTRE)
-            isChecked = Store.prefs(this@SetupActivity).getBoolean(LockClock.PREF_SHOW_LOCKED, false)
-            setOnCheckedChangeListener { _, on -> Store.prefs(this@SetupActivity).edit().putBoolean(LockClock.PREF_SHOW_LOCKED, on).apply() }
-        })
-
-        col.addView(CheckBox(this).apply {
-            text = "Show ghati, tithi and nakshatra in a lock-screen notification (open the app once after turning on)"
-            setTextColor(CENTRE)
-            isChecked = LockClock.enabled(this@SetupActivity)
-            setOnCheckedChangeListener { _, on -> LockClock.setEnabled(this@SetupActivity, on) }
-        })
-
-        col.addView(CheckBox(this).apply {
             text = "Update the clock from the web when online (restart the app to apply)"
             setTextColor(CENTRE)
             isChecked = Store.prefs(this@SetupActivity).getBoolean(WebSource.PREF_WEB_UPDATES, true)
