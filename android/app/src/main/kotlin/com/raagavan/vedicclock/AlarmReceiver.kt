@@ -13,12 +13,17 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         Log.i("VedicAlarms", "AlarmReceiver: $action")
+        if (action == ClockWidgets.ACTION_REFRESH) {
+            ClockWidgets.updateAll(context)
+            return
+        }
         if (action == AlarmScheduler.ACTION_HORIZON) {
             Notifier.checkHorizon(context)
             AlarmScheduler.reschedule(context)
             return
         }
         // Every other action: ring what is due (a ring missed by under 5 minutes still rings), then chain to the next.
+        ClockWidgets.updateAll(context) // also re-arms the widgets' refresh after a restart or update
         val ring = AlarmScheduler.processAndReschedule(context)
         if (ring != null) RingService.start(context, ring)
     }

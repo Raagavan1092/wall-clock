@@ -49,16 +49,19 @@
   <h2>Settings</h2>
 
   <section id="alarm-section">
-    <h3>Alarms</h3>
+    <details>
+    <summary><h3>Alarms</h3></summary>
     <button id="alarm-set" type="button" class="primary-action">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a1 1 0 0 1 1 1v.7a6 6 0 0 1 5 5.9v3.2l1.6 2.6a.9.9 0 0 1-.8 1.4H5.2a.9.9 0 0 1-.8-1.4L6 13.8V10.8a6 6 0 0 1 5-5.9v-.7a1 1 0 0 1 1-1Z"/><path d="M9.6 19.2a2.5 2.5 0 0 0 4.8 0"/></svg>
       Set Alarm
     </button>
     <ul id="alarm-list" class="alarm-list"></ul>
+    </details>
   </section>
 
   <section>
-    <h3>Location</h3>
+    <details>
+    <summary><h3>Location</h3></summary>
     <label for="set-place">Choose a place in India</label>
     <div class="place-combo">
       <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search for a district or town" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -72,41 +75,52 @@
       <button id="set-location-default" type="button">Set as default</button>
       <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
     </div>
-    <p class="settings-note" id="set-default-note">Set as default saves instantly. Reset returns to it.</p>
+    <p class="settings-note" id="set-default-note">Set as default saves instantly. Reset returns to it. Both are inactive while the location is the default.</p>
+    </details>
   </section>
 
   <section>
-    <h3>Ayanāṃśa</h3>
+    <details>
+    <summary><h3>Ayanāṃśa</h3></summary>
     <select id="set-ayanamsa">
       <option value="lahiri">Lahiri (Citrapakṣa)</option>
       <option value="raman">Raman</option>
       <option value="krishnamurti">Krishnamurti (KP)</option>
     </select>
     <p class="settings-note">Raman and KP are approximate; true Citrapakṣa isn't implemented.</p>
+    </details>
   </section>
 
   <section>
-    <h3>Sunrise definition</h3>
+    <details>
+    <summary><h3>Sunrise definition</h3></summary>
     <label><input type="radio" name="sunriseEdge" value="upper-limb"> Upper limb, with refraction (default)</label>
     <label><input type="radio" name="sunriseEdge" value="disc-centre"> Disc centre, geometric (no refraction)</label>
+    </details>
   </section>
 
   <section>
-    <h3>Switchable ring order</h3>
+    <details>
+    <summary><h3>Switchable ring order</h3></summary>
     <p class="settings-note">Switch display order; untick to hide. Good/bad times share one fixed ring.</p>
     <ul id="set-ring-order" class="reorder-list"></ul>
+    </details>
   </section>
 
   <section>
-    <h3>Marker lines</h3>
+    <details>
+    <summary><h3>Marker lines</h3></summary>
     <div id="set-markers"></div>
     <p class="settings-note">Moonrise/moonset and Saṅkrānti show only on days they occur.</p>
+    </details>
   </section>
 
   <section>
-    <h3>Defaults</h3>
+    <details>
+    <summary><h3>Defaults</h3></summary>
     <button id="settings-reset" type="button">Reset to defaults</button>
-    <p class="settings-note">Restores all settings above. Nothing changes until you Save.</p>
+    <p class="settings-note">Restores all settings above except the location (use Reset to the default location for that). Nothing changes until you Save.</p>
+    </details>
   </section>
 
   <div class="settings-actions">

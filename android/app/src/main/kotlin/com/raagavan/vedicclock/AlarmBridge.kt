@@ -53,6 +53,33 @@ class AlarmBridge(private val ctx: Context) {
         ctx.startActivity(Intent(ctx, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
+    /** The next days of tithi, nakshatra and sunrises, for the widgets (see ClockWidgets). */
+    @JavascriptInterface
+    fun setWidgetData(json: String) {
+        try {
+            ClockWidgets.setStatus(ctx, json)
+        } catch (e: Exception) {
+            Log.e(TAG, "Bad widget data from the page", e)
+        }
+    }
+
+    /** The phone-only Display options shown in the page's Settings. */
+    @JavascriptInterface
+    fun getDisplayPrefs(): String {
+        val p = Store.prefs(ctx)
+        return """{"keepOn":${p.getBoolean(MainActivity.PREF_KEEP_ON, false)},"webUpdates":${p.getBoolean(WebSource.PREF_WEB_UPDATES, true)}}"""
+    }
+
+    @JavascriptInterface
+    fun setDisplayPref(key: String, on: Boolean) {
+        val pref = when (key) {
+            "keepOn" -> MainActivity.PREF_KEEP_ON
+            "webUpdates" -> WebSource.PREF_WEB_UPDATES
+            else -> return
+        }
+        Store.prefs(ctx).edit().putBoolean(pref, on).apply()
+    }
+
     /** Opens "Check for updates" (latest GitHub release, download and install). */
     @JavascriptInterface
     fun openUpdate() {

@@ -89,5 +89,44 @@
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- Home screen and lock screen widget (where the phone offers lock screen widgets) -->
+        <receiver
+            android:name=".TimeWidget"
+            android:exported="true"
+            android:label="@string/widget_time_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_time_info" />
+        </receiver>
+
+        <!-- Home screen and lock screen widget (where the phone offers lock screen widgets) -->
+        <receiver
+            android:name=".TithiWidget"
+            android:exported="true"
+            android:label="@string/widget_tithi_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_tithi_info" />
+        </receiver>
+
+        <!-- Home screen and lock screen widget (where the phone offers lock screen widgets) -->
+        <receiver
+            android:name=".NakshatraWidget"
+            android:exported="true"
+            android:label="@string/widget_nakshatra_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_nakshatra_info" />
+        </receiver>
     </application>
 </manifest>

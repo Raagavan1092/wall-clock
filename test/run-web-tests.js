@@ -71,6 +71,9 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         trackEnd: () => { calls.track.push(["end"]); },
         clearTrack: () => { calls.cleared++; },
         openSetup: () => { calls.setup++; },
+        getDisplayPrefs: () => JSON.stringify({ keepOn: false, webUpdates: true }),
+        setDisplayPref: (k, v) => { (calls.display = calls.display || {})[k] = v; },
+        setWidgetData: json => { (calls.widgets = calls.widgets || []).push(JSON.parse(json)); },
         openUpdate: () => { calls.update = (calls.update || 0) + 1; },
       };
     });
@@ -78,7 +81,16 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForFunction(() => window.__calls.sync.length >= 1, null, { timeout: 15000 });
     ok("bridge: syncs once on open even with no alarms", await page.evaluate(() => window.__calls.sync[0].rings.length === 0 && window.__calls.sync[0].alarmCount === 0));
-    ok("bridge: Settings shows the app note and the checklist button", await page.evaluate(() => !!document.getElementById("alarm-reliable") && /locked/.test(document.querySelector("#alarm-section .settings-note").textContent)));
+    ok("bridge: no alarm note; checklist button, Display section and updates last", await page.evaluate(() => !!document.getElementById("alarm-reliable") && !document.querySelector("#alarm-section .settings-note") &&
+      !!document.querySelector("#display-section") && document.querySelector(".settings-actions").previousElementSibling.id === "update-section"));
+    await page.waitForFunction(() => window.__calls.widgets && window.__calls.widgets.length >= 1, null, { timeout: 15000 });
+    ok("bridge: widget data has sunrises, tithis and nakshatras that end in the future", await page.evaluate(() => {
+      const w = window.__calls.widgets[0], now = Date.now();
+      return w.sunrises.length === 4 && w.tithis.length >= 3 && w.nakshatras.length >= 3 && w.tithis[0].e > now && w.nakshatras[0].e > now &&
+        w.tithis.every((t, i) => t.n && (i === 0 || t.e > w.tithis[i - 1].e)) && w.nakshatras.every(n => n.n);
+    }));
+    await page.evaluate(() => { document.querySelector("#display-section input").click(); });
+    ok("bridge: Display options reach the app", await page.evaluate(() => window.__calls.display && window.__calls.display.keepOn === true));
     await page.evaluate(() => document.getElementById("alarm-reliable").click());
     ok("bridge: the button opens the native checklist", await page.evaluate(() => window.__calls.setup === 1));
     await page.evaluate(() => document.getElementById("app-update").click());
@@ -143,9 +155,10 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.click("#settings-toggle");
     ok("Set as default is inactive while the location equals the default, active once it differs", await page.evaluate(() => {
       const btn = document.getElementById("set-location-default"), lat = document.getElementById("set-lat");
-      const before = btn.disabled;
+      const rst = document.getElementById("set-location-reset");
+      const before = btn.disabled && rst.disabled;
       lat.value = "13.4"; lat.dispatchEvent(new Event("input"));
-      const mid = btn.disabled;
+      const mid = btn.disabled || rst.disabled;
       lat.value = document.getElementById("set-lat").defaultValue || lat.value;
       return before === true && mid === false && /Custom/.test(document.getElementById("set-current-name").textContent);
     }));

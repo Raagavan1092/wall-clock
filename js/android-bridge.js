@@ -153,32 +153,109 @@
 
   // ---- Settings wording ---------------------------------------------------------
 
+  // A settings section in the page's own style: a dropdown (<details>) with a heading.
+  function makeSection(id, title) {
+    const section = document.createElement("section");
+    section.id = id;
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    const h3 = document.createElement("h3");
+    h3.textContent = title;
+    summary.appendChild(h3);
+    details.appendChild(summary);
+    section.appendChild(details);
+    return { section: section, body: details };
+  }
+
   function wireSettings() {
-    const section = document.getElementById("alarm-section");
-    if (!section) return;
-    // The web page has no alarm note; the app adds its own (phone-locked behaviour).
-    let note = section.querySelector(".settings-note");
-    if (!note) {
-      note = document.createElement("p");
-      note.className = "settings-note";
-      section.appendChild(note);
-    }
-    note.textContent = "Alarms are saved as soon as you set them (no need to press Save) and follow real time, even while the dial shows another day. They ring even when your phone is locked or this app is closed. Open the app now and then so the schedule stays topped up.";
+    const alarms = document.getElementById("alarm-section");
+    const actions = document.querySelector("#settings-panel .settings-actions");
+    if (!alarms || !actions) return;
+    const panel = actions.parentNode;
+    const alarmBody = alarms.querySelector("details") || alarms;
     const button = document.createElement("button");
     button.type = "button";
     button.id = "alarm-reliable";
     button.textContent = "Make alarms reliable…";
     button.addEventListener("click", function () { safe(function () { Native.openSetup(); }); });
-    note.parentNode.insertBefore(button, note);
-    // Older installs of the app have no updater; only newer ones offer the button.
+    alarmBody.appendChild(button);
+
+    // Display: phone-only options (they used to sit inside "Make alarms reliable"). They apply at once.
+    if (typeof Native.getDisplayPrefs === "function") {
+      const prefs = safe(function () { return JSON.parse(Native.getDisplayPrefs() || "{}"); }, {});
+      const d = makeSection("display-section", "Display");
+      [["keepOn", "Keep the screen on while the clock is open"],
+       ["webUpdates", "Update the clock from the web when online (restart the app to apply)"]].forEach(function (o) {
+        const label = document.createElement("label");
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = !!prefs[o[0]];
+        box.addEventListener("change", function () { safe(function () { Native.setDisplayPref(o[0], box.checked); }); });
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(" " + o[1]));
+        d.body.appendChild(label);
+      });
+      panel.insertBefore(d.section, actions);
+    }
+
+    // Check for updates: the very last section, just above Save and Cancel. Older installs have no updater.
     if (typeof Native.openUpdate === "function") {
+      const u = makeSection("update-section", "App updates");
       const upd = document.createElement("button");
       upd.type = "button";
       upd.id = "app-update";
       upd.textContent = "Check for updates…";
       upd.addEventListener("click", function () { safe(function () { Native.openUpdate(); }); });
-      note.parentNode.insertBefore(upd, note);
+      u.body.appendChild(upd);
+      panel.insertBefore(u.section, actions);
     }
+  }
+
+  // ---- widgets: the next few days of tithi, nakshatra and sunrises --------------------
+
+  // Each name holds until its end time; the app picks what holds at the moment, so the widgets stay
+  // right with the app closed. Worked out from the real time (not the day shown on the dial).
+  let widgetKey = "", widgetAt = 0, widgetFirstEnd = 0, widgetSettings = null, lastWidget = "";
+  // The same tithi shows up once per day it spans, with end times that differ by a few ms: merge.
+  function add(list, name, end) {
+    const last = list[list.length - 1];
+    if (last && last.n === name) last.e = Math.max(last.e, end); else list.push({ n: name, e: end });
+  }
+  function pushWidgets(ctx) {
+    if (typeof Native.setWidgetData !== "function" || !ctx) return;
+    const E = VedicEngine, now = new Date(), settings = ctx.getSettings(), data = ctx.getData();
+    if (!data) return;
+    const stale = settings !== widgetSettings || now.getTime() - widgetAt > 6 * 3600 * 1000 || now.getTime() >= widgetFirstEnd;
+    if (stale) {
+      widgetSettings = settings;
+      const sunrises = [], tithis = [], naks = [];
+      let t = now;
+      for (let d = 0; d < 4; d++) {
+        const snap = E.Panchanga.compute(t, settings);
+        sunrises.push(snap.anchors.governingSunrise.getTime());
+        snap.tithiSequence.forEach(function (e) {
+          add(tithis, E.RingAdapter.tithiNameAt(snap, data, e.segStart), e.endTime.getTime());
+        });
+        snap.nakshatraSequence.forEach(function (e) {
+          add(naks, data.nakshatra.names[e.index], e.endTime.getTime());
+        });
+        t = new Date(snap.anchors.nextSunrise.getTime() + 1000);
+      }
+      // Today's sequences start at sunrise: drop what has already ended.
+      [tithis, naks].forEach(function (l) { while (l.length > 1 && l[0].e <= now.getTime()) l.shift(); });
+      widgetAt = now.getTime();
+      widgetFirstEnd = Math.min(tithis[0].e, naks[0].e);
+      widgetKey = JSON.stringify({ sunrises: sunrises, tithis: tithis, nakshatras: naks });
+    }
+    if (widgetKey !== lastWidget) { lastWidget = widgetKey; safe(function () { Native.setWidgetData(widgetKey); }); }
+  }
+
+  // Called once by the page: at start, every minute (cheap unless something expired) and on return.
+  function startWidgets(ctx) {
+    function go() { safe(function () { pushWidgets(ctx); }); }
+    go();
+    setInterval(go, 60 * 1000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) go(); });
   }
 
   Alarms.onChange(function () { schedule(); });
@@ -189,5 +266,5 @@
   document.addEventListener("visibilitychange", function () { if (!document.hidden) schedule(300); });
   setInterval(function () { schedule(0); }, 15 * 60 * 1000);
 
-  VedicEngine.AndroidBridge = { sync: sync, buildPayload: buildPayload, applyRang: applyRang, sendTrack: sendTrack, clearTrack: function () { safe(function () { Native.clearTrack(); }); } };
+  VedicEngine.AndroidBridge = { startWidgets: startWidgets, sync: sync, buildPayload: buildPayload, applyRang: applyRang, sendTrack: sendTrack, clearTrack: function () { safe(function () { Native.clearTrack(); }); } };
 })(typeof window !== "undefined" ? window : globalThis);

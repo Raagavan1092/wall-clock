@@ -548,11 +548,13 @@
 
     // Fills the form from `from` (the saved settings, or the defaults for
     // Reset to defaults); nothing is committed until Save.
-    function populateForm(from) {
+    function populateForm(from, keepLocation) {
       placeInput.value = "";
-      latInput.value = from.location.latitude;
-      lonInput.value = from.location.longitude;
-      elevInput.value = from.location.elevation;
+      if (!keepLocation) {
+        latInput.value = from.location.latitude;
+        lonInput.value = from.location.longitude;
+        elevInput.value = from.location.elevation;
+      }
       ayanamsaSelect.value = from.ayanamsa;
       Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
         radio.checked = radio.value === from.sunriseEdge;
@@ -574,6 +576,8 @@
       panel.querySelectorAll("section").forEach(function (sec) {
         const lock = locationLocked && sec !== locationSection;
         sec.classList.toggle("locked", lock);
+        const det = sec.querySelector("details");
+        if (det && locationLocked) det.open = sec === locationSection; // the first visit starts on Location
         if (lock) sec.setAttribute("inert", ""); else sec.removeAttribute("inert");
       });
       if (locationLocked) stage.setAttribute("inert", ""); else stage.removeAttribute("inert");
@@ -600,7 +604,7 @@
     });
     cancelBtn.addEventListener("click", close);
     document.getElementById("settings-reset").addEventListener("click", function () {
-      populateForm(E.Settings.defaults());
+      populateForm(E.Settings.defaults(), true); // the location has its own reset button
       refreshLocationState();
     });
 
@@ -717,6 +721,7 @@
         currentName.textContent = "Not chosen yet";
         currentCoords.textContent = "";
         setDefaultBtn.disabled = true;
+        resetLocationBtn.disabled = locationLocked;
         return;
       }
       currentName.textContent = nameFor(lat, lon);
@@ -724,6 +729,7 @@
       const d = E.Settings.defaultLocation();
       const same = Math.abs(lat - d.latitude) < 1e-4 && Math.abs(lon - d.longitude) < 1e-4 && isFinite(elev) && Math.abs(elev - d.elevation) < 0.5;
       setDefaultBtn.disabled = locationLocked || same || !isFinite(elev) || elev < 0;
+      resetLocationBtn.disabled = locationLocked || same;
     }
     [latInput, lonInput, elevInput].forEach(function (el) { el.addEventListener("input", refreshLocationState); });
 
@@ -904,6 +910,10 @@
     // update fetched from the site), the app falls back to the copy bundled in the APK.
     if (alarmsOk && window.AndroidAlarms && E.AndroidBridge) {
       try { window.AndroidAlarms.booted(); } catch (err) { /* an older app without booted() */ }
+      E.AndroidBridge.startWidgets({
+        getSettings: function () { return settings; },
+        getData: function () { return data; },
+      });
     }
 
     render();
