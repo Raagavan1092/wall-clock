@@ -260,6 +260,15 @@
   check("markRang: an always-alarm moves on past that ring", A.get(up.id).enabled && A.get(up.id).armedAfter > aw && upc2[0].fireAt > upc[0].fireAt, upc2.map(g => g.fireAt).join());
   check("markRang: unknown alarm is ignored", A.markRang("nope", first, first) === false);
 
+  // --- skipNext: off for the coming ring only ---------------------------------------------
+  const skipAl = A.add({ events: ["sun:rise"], mode: "start", repeat: "always" });
+  const before = await A.upcoming(skipAl.id, 3);
+  check("skipNext: reports a ring was skipped", (await A.skipNext(skipAl.id)) === true);
+  const after = await A.upcoming(skipAl.id, 2);
+  check("skipNext: the next ring is gone, the alarm stays on and carries on", A.get(skipAl.id).enabled && after[0].fireAt === before[1].fireAt && A.get(skipAl.id).skipped === before[0].fireAt, after.map(g => g.fireAt).join());
+  A.setEnabled(skipAl.id, false);
+  check("skipNext: nothing to skip on an alarm that is off", (await A.skipNext(skipAl.id)) === false);
+
   localStorage.removeItem(KEY);
   const s = document.getElementById("summary");
   s.textContent = failed ? failed + " of " + total + " FAILED" : "All " + total + " checks passed";

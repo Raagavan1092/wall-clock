@@ -198,16 +198,15 @@
       panel.insertBefore(d.section, actions);
     }
 
-    // Check for updates: the very last section, just above Save and Cancel. Older installs have no updater.
+    // Check for updates: a plain button at the very end, just above Save and Cancel (no section of its own).
+    // Older installs have no updater.
     if (typeof Native.openUpdate === "function") {
-      const u = makeSection("update-section", "App updates");
       const upd = document.createElement("button");
       upd.type = "button";
       upd.id = "app-update";
       upd.textContent = "Check for updates…";
       upd.addEventListener("click", function () { safe(function () { Native.openUpdate(); }); });
-      u.body.appendChild(upd);
-      panel.insertBefore(u.section, actions);
+      panel.insertBefore(upd, actions);
     }
   }
 

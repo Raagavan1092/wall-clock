@@ -82,7 +82,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.waitForFunction(() => window.__calls.sync.length >= 1, null, { timeout: 15000 });
     ok("bridge: syncs once on open even with no alarms", await page.evaluate(() => window.__calls.sync[0].rings.length === 0 && window.__calls.sync[0].alarmCount === 0));
     ok("bridge: no alarm note; checklist button, Display section and updates last", await page.evaluate(() => !!document.getElementById("alarm-reliable") && !document.querySelector("#alarm-section .settings-note") &&
-      !!document.querySelector("#display-section") && document.querySelector(".settings-actions").previousElementSibling.id === "update-section"));
+      !!document.querySelector("#display-section") && document.querySelector(".settings-actions").previousElementSibling.id === "app-update" && !document.getElementById("update-section")));
     await page.waitForFunction(() => window.__calls.widgets && window.__calls.widgets.length >= 1, null, { timeout: 15000 });
     ok("bridge: widget data has sunrises, tithis and nakshatras that end in the future", await page.evaluate(() => {
       const w = window.__calls.widgets[0], now = Date.now();

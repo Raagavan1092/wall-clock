@@ -320,6 +320,7 @@
       enabled: d.enabled !== false,
       armedAfter: isFinite(d.armedAfter) ? d.armedAfter : Date.now(),
       lastRang: isFinite(d.lastRang) ? d.lastRang : null,
+      skipped: isFinite(d.skipped) ? d.skipped : null, // the ring "Skip next" passed over (display only)
       createdAt: isFinite(d.createdAt) ? d.createdAt : Date.now(),
     };
   }
@@ -474,6 +475,21 @@
     emitChange();
   }
 
+  // Turns the alarm off for its next ring only: it carries on after that one. Resolves true if a ring
+  // was skipped. The ring counts as passed (armedAfter), so a native host drops it on the next sync.
+  async function skipNext(id) {
+    const a = find(id);
+    if (!a || !a.enabled) return false;
+    const groups = await upcoming(id, 1);
+    if (!groups.length || !find(id) || !a.enabled) return false;
+    a.skipped = groups[0].fireAt;
+    a.armedAfter = Math.max(a.armedAfter, groups[0].fireAt + BATCH_MS);
+    persist();
+    schedule(a);
+    emitChange();
+    return true;
+  }
+
   // The next `count` times the draft would ring, from now: Promise of
   // [{ fire, id, start, end, detail }].
   function preview(draft, count) {
@@ -594,7 +610,7 @@
   }
 
   VedicEngine.Alarms = {
-    init, tick, add, update, remove, setEnabled, preview, list, onChange, onRing, upcoming, markRang, settingsKey,
+    init, tick, add, update, remove, setEnabled, skipNext, preview, list, onChange, onRing, upcoming, markRang, settingsKey,
     catalog: function () { return getCatalog().groups; },
     catalogItem: function (id) { return getCatalog().byId.get(id); },
     get: function (id) { const a = find(id); return a ? serialize(a) : null; },

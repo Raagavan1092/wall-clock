@@ -40,6 +40,7 @@
     play: '<path d="M8.5 5.8v12.4l10-6.2z"/>',
     stop: '<rect x="7" y="7" width="10" height="10" rx="1.8"/>',
     music: '<path d="M9 17.5V6.5l9-2v11"/><circle cx="6.8" cy="17.6" r="2.2"/><circle cx="15.8" cy="15.6" r="2.2"/>',
+    skip: '<path d="M5 6.5l8 5.5-8 5.5z"/><path d="M17.5 6v12"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   };
   function icon(name, cls) {
@@ -357,6 +358,10 @@
       else if (a.next === null) nextText = "Not due in the next 2 months";
       else nextText = "Next: " + fmtWhen(a.next.fireAt, now) + " · in " + span(a.next.fireAt - now);
 
+      if (a.enabled && a.skipped != null && a.skipped < a.armedAfter && a.skipped > now) nextText += " · skipped " + fmtWhen(a.skipped, now);
+      // "Skip next": off for the coming ring only (a repeating alarm that is due somewhere ahead).
+      const canSkip = a.enabled && a.repeat === "always" && a.next;
+
       const toggle = h("button", {
         type: "button", class: "alarm-switch", role: "switch", "aria-checked": String(a.enabled),
         "aria-label": (a.enabled ? "Turn off " : "Turn on ") + a.title,
@@ -369,6 +374,7 @@
           h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : a.custom ? "every day" : "every time") }),
           h("span", { class: "alarm-row-next", text: nextText })),
         h("div", { class: "alarm-row-actions" },
+        canSkip ? h("button", { type: "button", class: "alarm-icon-btn alarm-skip", "aria-label": "Skip the next ring of " + a.title, title: "Skip next ring only", onclick: function () { Alarms.skipNext(a.id); } }, icon("skip")) : null,
         h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Edit " + a.title, title: "Edit", onclick: function (e) { openDialog(a.id, e.currentTarget); } }, icon("edit")),
         h("button", { type: "button", class: "alarm-icon-btn danger", "aria-label": "Delete " + a.title, title: "Delete", onclick: function () { Alarms.remove(a.id); } }, icon("trash")))));
     });

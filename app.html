@@ -62,6 +62,7 @@
   <section>
     <details>
     <summary><h3>Location</h3></summary>
+    <p class="settings-note" id="set-default-note">Set as default saves instantly. Reset returns to it. Both are inactive while the location is the default.</p>
     <label for="set-place">Choose a place in India</label>
     <div class="place-combo">
       <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search for a district or town" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -75,19 +76,18 @@
       <button id="set-location-default" type="button">Set as default</button>
       <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
     </div>
-    <p class="settings-note" id="set-default-note">Set as default saves instantly. Reset returns to it. Both are inactive while the location is the default.</p>
     </details>
   </section>
 
   <section>
     <details>
     <summary><h3>Ayanāṃśa</h3></summary>
+    <p class="settings-note">Raman and KP are approximate; true Citrapakṣa isn't implemented.</p>
     <select id="set-ayanamsa">
       <option value="lahiri">Lahiri (Citrapakṣa)</option>
       <option value="raman">Raman</option>
       <option value="krishnamurti">Krishnamurti (KP)</option>
     </select>
-    <p class="settings-note">Raman and KP are approximate; true Citrapakṣa isn't implemented.</p>
     </details>
   </section>
 
@@ -110,16 +110,16 @@
   <section>
     <details>
     <summary><h3>Marker lines</h3></summary>
-    <div id="set-markers"></div>
     <p class="settings-note">Moonrise/moonset and Saṅkrānti show only on days they occur.</p>
+    <div id="set-markers"></div>
     </details>
   </section>
 
   <section>
     <details>
     <summary><h3>Defaults</h3></summary>
-    <button id="settings-reset" type="button">Reset to defaults</button>
     <p class="settings-note">Restores all settings above except the location (use Reset to the default location for that). Nothing changes until you Save.</p>
+    <button id="settings-reset" type="button">Reset to defaults</button>
     </details>
   </section>
 
