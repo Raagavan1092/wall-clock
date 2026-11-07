@@ -114,6 +114,11 @@ class MainActivity : Activity() {
         web.onResume()
         if (Store.prefs(this).getBoolean(PREF_KEEP_ON, false)) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Optionally the clock shows over the lock screen (a bedside clock); the screen is not unlocked.
+        val overLock = Store.prefs(this).getBoolean(LockClock.PREF_SHOW_LOCKED, false)
+        if (Build.VERSION.SDK_INT >= 27) setShowWhenLocked(overLock)
+        else if (overLock) @Suppress("DEPRECATION") window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+        else @Suppress("DEPRECATION") window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
         // A wall clock: full screen. Swipe from an edge to see the system bars.
         if (Build.VERSION.SDK_INT >= 30) {
             window.setDecorFitsSystemWindows(false)

@@ -47,6 +47,16 @@ class AlarmBridge(private val ctx: Context) {
     @JavascriptInterface
     fun clearTrack() = Store.trackClear(ctx)
 
+    /** Today's panchanga for the lock-screen notification (see LockClock). */
+    @JavascriptInterface
+    fun setLockClock(json: String) {
+        try {
+            LockClock.setStatus(ctx, json)
+        } catch (e: Exception) {
+            Log.e(TAG, "Bad lock clock status from the page", e)
+        }
+    }
+
     /** Opens the "Make alarms reliable" checklist. */
     @JavascriptInterface
     fun openSetup() {

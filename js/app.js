@@ -908,6 +908,10 @@
     // update fetched from the site), the app falls back to the copy bundled in the APK.
     if (alarmsOk && window.AndroidAlarms && E.AndroidBridge) {
       try { window.AndroidAlarms.booted(); } catch (err) { /* an older app without booted() */ }
+      E.AndroidBridge.startLockClock({
+        getSettings: function () { return settings; },
+        getData: function () { return data; },
+      });
     }
 
     render();

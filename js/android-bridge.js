@@ -172,6 +172,43 @@
     note.parentNode.insertBefore(button, note);
   }
 
+  // ---- the lock-screen notification -----------------------------------------------
+
+  // Today's tithi and nakshatra (always for the real time, not the day shown on the dial) for the
+  // app's lock-screen notification. The app counts the ghati itself from sunrise.
+  let lockSnap = null, lockSettings = null, lastLock = "";
+  function pushLockClock(ctx) {
+    if (typeof Native.setLockClock !== "function" || !ctx) return;
+    const E = VedicEngine, now = new Date();
+    const settings = ctx.getSettings(), data = ctx.getData();
+    if (!data) return;
+    if (settings !== lockSettings) { lockSettings = settings; lockSnap = null; } // Settings were saved
+    if (!lockSnap || now < lockSnap.anchors.governingSunrise || now >= lockSnap.anchors.nextSunrise ||
+        now >= lockSnap.tithi.endTime || now >= lockSnap.nakshatra.endTime) {
+      lockSnap = E.Panchanga.compute(now, settings);
+    }
+    const snap = lockSnap;
+    const vara = (data.vara.names && data.vara.names[snap.varaIndex]) || "";
+    const json = JSON.stringify({
+      sunriseMs: snap.anchors.governingSunrise.getTime(),
+      nextSunriseMs: snap.anchors.nextSunrise.getTime(),
+      vara: vara,
+      tithi: E.RingAdapter.tithiNameAt(snap, data, now),
+      tithiEndMs: snap.tithi.endTime.getTime(),
+      nakshatra: data.nakshatra.names[snap.nakshatra.index],
+      nakshatraEndMs: snap.nakshatra.endTime.getTime(),
+    });
+    if (json !== lastLock) { lastLock = json; safe(function () { Native.setLockClock(json); }); }
+  }
+
+  // Called once by the page: recomputes at start, every minute, and when the settings may have changed.
+  function startLockClock(ctx) {
+    function go() { safe(function () { pushLockClock(ctx); }); }
+    go();
+    setInterval(go, 60 * 1000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) go(); });
+  }
+
   Alarms.onChange(function () { schedule(); });
   wireSettings();
   // With no alarms the engine never reports a change; still tell the app once.
@@ -180,5 +217,5 @@
   document.addEventListener("visibilitychange", function () { if (!document.hidden) schedule(300); });
   setInterval(function () { schedule(0); }, 15 * 60 * 1000);
 
-  VedicEngine.AndroidBridge = { sync: sync, buildPayload: buildPayload, applyRang: applyRang, sendTrack: sendTrack, clearTrack: function () { safe(function () { Native.clearTrack(); }); } };
+  VedicEngine.AndroidBridge = { sync: sync, buildPayload: buildPayload, applyRang: applyRang, sendTrack: sendTrack, startLockClock: startLockClock, clearTrack: function () { safe(function () { Native.clearTrack(); }); } };
 })(typeof window !== "undefined" ? window : globalThis);

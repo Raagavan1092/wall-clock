@@ -17,6 +17,7 @@ object Notifier {
     const val CHANNEL_RING = "ring"
     const val CHANNEL_RING_FALLBACK = "ring_fallback"
     const val CHANNEL_INFO = "info"
+    const val CHANNEL_CLOCK = "clock"
     const val ID_RING = 1001
     const val ID_NOTICE = 1002
     const val ID_HORIZON = 1003
@@ -46,6 +47,11 @@ object Notifier {
         })
         nm.createNotificationChannel(NotificationChannel(CHANNEL_INFO, "Alarm notes", NotificationManager.IMPORTANCE_DEFAULT).apply {
             description = "Alarms that rang, and a reminder when the schedule is about to run out."
+        })
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_CLOCK, "Clock on lock screen", NotificationManager.IMPORTANCE_LOW).apply {
+            description = "A quiet notification with the ghati and today's tithi and nakshatra."
+            setShowBadge(false)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         })
     }
 
