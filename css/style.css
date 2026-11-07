@@ -608,6 +608,8 @@ body.fullview #btn-fullview {
   transition: opacity 0.6s;
 }
 body.fullview #btn-fullview svg { display: none; }
+#btn-fullview.fv-inline { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+#btn-fullview.fv-inline .fv-text { display: none; }
 body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 @media (orientation: landscape) {
   body.fullview #stage { --dial: min(calc(100vw - 16px), calc(100vh - 16px), calc(100dvh - 16px)); grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }

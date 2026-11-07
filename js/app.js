@@ -842,6 +842,22 @@
       }
     }
     btn.addEventListener("click", function () { setFull(!body.classList.contains("fullview")); });
+    // In landscape with no alarm chip, the button sits left of the day navigator (icon only);
+    // otherwise it lives beside the chip. In full screen view it always floats at the top right.
+    const chip = document.getElementById("next-alarm");
+    const row = document.querySelector("#top-controls .tc-row");
+    const foot = document.querySelector("#top-controls .tc-foot");
+    const land = window.matchMedia("(orientation: landscape)");
+    function place() {
+      const inline = land.matches && chip.hidden && !body.classList.contains("fullview");
+      btn.classList.toggle("fv-inline", inline);
+      if (inline) { if (btn.parentNode !== row) row.insertBefore(btn, row.firstChild); }
+      else if (btn.parentNode !== foot) foot.insertBefore(btn, chip);
+    }
+    new MutationObserver(place).observe(chip, { attributes: true, attributeFilter: ["hidden"] });
+    new MutationObserver(place).observe(body, { attributes: true, attributeFilter: ["class"] });
+    if (land.addEventListener) land.addEventListener("change", place); else land.addListener(place);
+    place();
     // Leaving browser full screen (e.g. with Esc) also leaves this view.
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement && body.classList.contains("fullview")) setFull(false);
