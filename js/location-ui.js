@@ -225,8 +225,6 @@
       const date = el("text", { x: 232, y: 130, fill: "#b3a586", "font-size": 13, "text-anchor": "middle" });
       arc.appendChild(time);
       arc.appendChild(date);
-      const c12 = sr < 12 && ss > 12 ? onArc(12, ARC.r + 26) : { x: g.cx };
-      nowBtn.style.left = (c12.x / 464 * 100).toFixed(2) + "%";
       sunEls = { g: g, sr: sr, ss: ss, onArc: onArc, glow: glow, sun: sun, hm: hm, sec: sec, date: date, srT: srT, ssT: ssT };
     }
 
