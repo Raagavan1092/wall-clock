@@ -339,13 +339,12 @@
     setInterval(function () { syncDayControls(); }, 1000);
   }
 
-  // ---- Yesterday / Today / Tomorrow, the time slider and Now ---------------
-  // They sit beside the settings gear. Live is the default: the slider
-  // follows the real time. Moving the slider, or pressing a day button, holds
-  // the clock at that moment (it does not drift on) until Now is pressed.
-  // The day buttons change only the date: the clock time on show stays the
-  // same. The slider scrubs the Vedic day on show - sunrise at the left, the
-  // next sunrise at the right - its track coloured like the Day / Night ring.
+  // ---- Day and time controls -----------------------------------------------
+  // They live in the Location & time widget (location-ui.js): Previous / Next /
+  // Pick date / Now, and dragging the sun along the arc. Live is the default.
+  // Moving off it holds the clock at that moment (it does not drift on) until
+  // Now is pressed. The day buttons change only the date: the clock time on
+  // show stays the same.
 
   function syncTimeUi() {
     syncDayControls();
@@ -399,75 +398,14 @@
     goToDay(picked - istDayNumber(Date.now()));
   }
 
-  let scrubbing = false;
   let locationUi = null;
   let syncDayControls = function () { /* set by wireDayControls */ };
 
   function wireDayControls() {
-    const prevBtn = document.getElementById("day-prev");
-    const todayBtn = document.getElementById("day-today");
-    const nextBtn = document.getElementById("day-next");
-    const slider = document.getElementById("time-slider");
-    const scrub = document.getElementById("time-scrub");
-    const readout = document.getElementById("scrub-readout");
-    const nowBtn = document.getElementById("scrub-now");
-    const sunriseLabel = document.getElementById("scrub-sunrise");
-    const sunsetLabel = document.getElementById("scrub-sunset");
-
-    prevBtn.addEventListener("click", function () { goToDay(shownDayOffset() - 1); });
-    nextBtn.addEventListener("click", function () { goToDay(shownDayOffset() + 1); });
-    todayBtn.addEventListener("click", function () { goToDay(0); });
-    nowBtn.addEventListener("click", goLive);
-
-    // The date button: a transparent native date field laid over it, so a
-    // tap opens the system date dialog. Picking a date goes to that day at
-    // the clock time on show (like the day buttons).
-    const picker = document.getElementById("date-pick-input");
-    picker.addEventListener("change", function () { goToDateString(picker.value); });
-
     syncDayControls = function () {
       if (!cachedSnapshot) return;
-      const a = cachedSnapshot.anchors;
-      const now = getNow();
-      const sunrise = a.governingSunrise.getTime();
-
-      // Which day is on show, against the real today.
-      const offset = shownDayOffset();
-      todayBtn.classList.toggle("on", offset === 0);
-      todayBtn.setAttribute("aria-pressed", String(offset === 0));
-      // The picker opens on the date on show.
-      const shownIst = new Date(now.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
-      if (picker.value !== shownIst && document.activeElement !== picker) picker.value = shownIst;
-      const live = isLive();
-      nowBtn.classList.toggle("is-live", live);
-      nowBtn.setAttribute("aria-pressed", String(live));
-
-      // Slider: one step per minute across this Vedic day (the last step
-      // stays just short of the next sunrise, which would be the next day).
-      const max = Math.max(1, Math.floor((a.nextSunrise.getTime() - sunrise) / 60000) - 1);
-      if (slider.max !== String(max)) slider.max = String(max);
-      const dayFrac = (a.sunsetToday.getTime() - sunrise) / (a.nextSunrise.getTime() - sunrise);
-      scrub.style.setProperty("--day-frac", (dayFrac * 100).toFixed(2) + "%");
-      sunriseLabel.textContent = "\u2600\u2191 " + fmtTime(a.governingSunrise);
-      sunsetLabel.textContent = "\u2600\u2193 " + fmtTime(a.sunsetToday);
-      readout.textContent = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short" }) + " \u00b7 " + fmtTime(now);
-      if (!scrubbing) {
-        slider.value = String(Math.max(0, Math.min(max, Math.floor((now.getTime() - sunrise) / 60000))));
-      }
-      slider.setAttribute("aria-valuetext", readout.textContent);
       if (locationUi) locationUi.update();
     };
-
-    slider.addEventListener("input", function () {
-      if (!cachedSnapshot) return;
-      setManualTime(new Date(cachedSnapshot.anchors.governingSunrise.getTime() + Number(slider.value) * 60000));
-    });
-    ["pointerdown", "touchstart"].forEach(function (type) {
-      slider.addEventListener(type, function () { scrubbing = true; }, { passive: true });
-    });
-    ["pointerup", "pointercancel", "touchend", "touchcancel", "blur", "change"].forEach(function (type) {
-      slider.addEventListener(type, function () { scrubbing = false; });
-    });
   }
 
   function wireSettingsPanel() {

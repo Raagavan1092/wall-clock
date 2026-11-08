@@ -399,164 +399,7 @@ html, body {
   align-items: stretch;
   gap: 8px;
 }
-.tc-row { display: flex; align-items: center; gap: 8px; }
-
-#day-buttons {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--glass);
-  border: 1px solid var(--ring-stroke);
-  border-radius: 999px;
-  backdrop-filter: blur(8px);
-}
-#day-buttons button {
-  flex: 1;
-  min-width: 0;
-  height: 36px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-#day-buttons button:hover:not(:disabled) { color: var(--ink); background: rgba(201, 168, 92, 0.14); }
-#day-buttons button:disabled { opacity: 0.35; cursor: default; }
-#day-buttons button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
-#day-prev, #day-next { flex: 1.7; }
-#day-buttons button { white-space: nowrap; font-size: 12.5px; padding: 0 4px; }
-
-#day-buttons button.on {
-  background: var(--gold-fill);
-  color: #1a1208;
-  font-weight: 700;
-  box-shadow: 0 2px 10px rgba(201, 168, 92, 0.3);
-}
-
-#time-scrub {
-  padding: 8px 14px 9px;
-  background: var(--glass);
-  border: 1px solid var(--ring-stroke);
-  border-radius: 16px;
-  backdrop-filter: blur(8px);
-  --day-frac: 50%;
-}
-.scrub-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-#scrub-readout {
-  color: var(--gold-hi);
-  font-size: 15px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-/* Sunrise at the left; sunset starts where the slider turns black (day -> night). */
-.scrub-ends {
-  position: relative;
-  height: 17px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-#scrub-sunrise { position: absolute; left: 0; top: 0; white-space: nowrap; }
-#scrub-sunset {
-  position: absolute; top: 0; white-space: nowrap;
-  left: min(var(--day-frac), calc(100% - 68px));
-}
-/* Now: lit gold when the clock has been moved off live time (an invitation to
-   return), quiet with a green dot while it is live. */
-#scrub-now {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 28px;
-  padding: 0 14px 0 11px;
-  border: 1px solid #e8c878;
-  border-radius: 999px;
-  background: var(--gold-fill);
-  color: #1a1208;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(201, 168, 92, 0.3);
-}
-.scrub-actions { display: flex; align-items: center; gap: 8px; }
-/* The date button: bright fluorescent amber so it stands out from the muted
-   controls; a transparent date field over it opens the system date dialog. */
-#date-pick {
-  position: relative;
-  flex: none;
-  width: 34px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: #ffd400;
-  color: #1a1400;
-  box-shadow: 0 0 0 1px #fff3a0, 0 0 12px rgba(255, 212, 0, 0.6);
-  cursor: pointer;
-  overflow: hidden;
-}
-#date-pick:hover { background: #ffe433; }
-#date-pick:focus-within { outline: 2px solid #fff; outline-offset: 2px; }
-#date-pick svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-#date-pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0; }
-#date-pick input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
-#scrub-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #7a6636; }
-#scrub-now.is-live { background: transparent; border-color: var(--ring-stroke); color: var(--muted); box-shadow: none; font-weight: 600; }
-#scrub-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
-#scrub-now:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
-#time-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
-  width: 100%;
-  height: 22px;
-  margin: 4px 0 0;
-  background: transparent;
-  cursor: pointer;
-  touch-action: pan-y;
-}
-/* The track is coloured like the Day / Night ring: amber from sunrise to
-   sunset, black from sunset to the next sunrise. */
-#time-slider::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(201, 168, 92, 0.45);
-  background: linear-gradient(to right, var(--daynight-day) 0 var(--day-frac), var(--daynight-night) var(--day-frac) 100%);
-}
-#time-slider::-moz-range-track {
-  height: 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(201, 168, 92, 0.45);
-  background: linear-gradient(to right, var(--daynight-day) 0 var(--day-frac), var(--daynight-night) var(--day-frac) 100%);
-}
-#time-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  margin-top: -7px;
-  border-radius: 50%;
-  background: #fff3cf;
-  border: 3px solid var(--hand);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-#time-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff3cf;
-  border: 3px solid var(--hand);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-#time-slider:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; border-radius: 6px; }
+.tc-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 
 .tc-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 #btn-fullview {
@@ -579,7 +422,7 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
-body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview #time-scrub, body.fullview #next-alarm, body.fullview #clock-buttons,
+body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview #next-alarm, body.fullview #clock-buttons,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
   position: fixed;
@@ -634,19 +477,13 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   #dial { grid-column: 1; grid-row: 1 / span 2; align-self: center; justify-self: center; order: 0; margin: 0; width: var(--dial); height: var(--dial); max-width: none; flex: none; }
   #top-controls { grid-column: 2; grid-row: 1; order: 0; justify-self: end; width: min(100% - 8px, 444px); }
   #clock-buttons { grid-column: 2; grid-row: 2; order: 0; justify-self: end; width: min(100% - 8px, 444px); }
-  #day-buttons button { font-size: 11.5px; padding: 0 2px; }
-  #day-prev, #day-next { flex: 1.6; }
-  #day-today { flex: 0.8; }
 }
 
 @media (max-height: 520px) {
   #top-controls { gap: 5px; }
-  #day-buttons button { height: 30px; font-size: 11px; }
   .cb { min-height: 44px; font-size: 15px; }
   .cb-small { font-size: 12px; }
   #clock-buttons { gap: 6px; }
-  #time-scrub { padding: 5px 12px 6px; }
-  .scrub-ends { display: none; }
 }
 
 .ai {
@@ -1017,15 +854,6 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 .al-date-input { height: 40px; padding: 0 10px; border: 1px solid var(--ring-stroke); border-radius: 12px; background: rgba(255, 255, 255, 0.04); color: var(--gold-hi); font: inherit; color-scheme: dark; }
 .al-date-row[hidden], .al-link[hidden] { display: none; }
 
-/* Narrow portrait screens: the icon button takes room from the day navigator, so tighten its text. */
-@media (max-width: 420px) {
-  .tc-row { gap: 5px; }
-  #day-buttons { gap: 0; padding: 3px 2px; }
-  #day-buttons button { font-size: 10.5px; padding: 0 1px; }
-  #day-prev, #day-next { flex: 1.8; }
-  #day-today { flex: 0.7; }
-}
-
 /* ======================================================================
    Location & time widget (pin button, second row) and Change location dialog
    ====================================================================== */
@@ -1075,7 +903,6 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 }
 #loc-change svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
-body.loc-on #time-scrub { display: none; }
 #loc-arc:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; border-radius: 10px; }
 #loc-arc { display: block; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; width: 100%; height: auto; margin: 6px 0 2px; font-family: inherit; font-variant-numeric: tabular-nums; }
 .lw-nav { display: flex; align-items: center; gap: 6px; }

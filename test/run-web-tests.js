@@ -156,9 +156,9 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name)));
 
     // the pin button brings the widget into the second row
-    ok("widget: on by default, standing in for the slider row", await page.evaluate(() => !document.getElementById("loc-widget").hidden && getComputedStyle(document.getElementById("time-scrub")).display === "none"));
+    ok("widget: on by default; the old day navigator and slider row are gone", await page.evaluate(() => !document.getElementById("loc-widget").hidden && !document.getElementById("time-scrub") && !document.getElementById("day-buttons") && !document.getElementById("time-slider")));
     await page.click("#loc-toggle");
-    ok("widget: the pin turns it off and the slider row returns", await page.evaluate(() => document.getElementById("loc-widget").hidden && getComputedStyle(document.getElementById("time-scrub")).display !== "none"));
+    ok("widget: the pin turns it off, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !document.getElementById("btn-switch-time").hidden));
     await page.click("#loc-toggle");
     await page.waitForTimeout(1200);
     ok("widget: dragging the sun snaps to a whole hour", await (async () => {
@@ -167,8 +167,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       await page.mouse.down();
       await page.mouse.move(box.x + box.width * 0.52, box.y + box.height * 0.21);
       await page.mouse.up();
-      const t = await page.evaluate(() => document.getElementById("scrub-readout").textContent);
-      return /· \d\d:00$/.test(t);
+      const t = await page.evaluate(() => document.getElementById("loc-arc").getAttribute("aria-valuetext"));
+      return /^\d\d:00$/.test(t);
     })());
     await page.click("#loc-now");
     ok("widget: shows in the second row, under the top row, with place, time and arc", await page.evaluate(() => {
@@ -230,9 +230,6 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
-    ok("slider shows sunrise (up) and sunset (down) only", await page.evaluate(() =>
-      /\u2191 \d\d:\d\d/.test(document.getElementById("scrub-sunrise").textContent) && /\u2193 \d\d:\d\d/.test(document.getElementById("scrub-sunset").textContent) &&
-      !document.getElementById("scrub-ghati") && !document.getElementById("scrub-next")));
     ok("second visit: no prompt, stays unlocked, widget stays on", await page.evaluate(() =>
       document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && !document.getElementById("loc-widget").hidden));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));

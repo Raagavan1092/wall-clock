@@ -10,11 +10,6 @@
   <svg id="dial"></svg>
   <div id="top-controls">
     <div class="tc-row">
-      <div id="day-buttons" role="group" aria-label="Day shown on the clock">
-        <button type="button" id="day-prev" aria-label="Previous day">&#8249; Previous</button>
-        <button type="button" id="day-today">Today</button>
-        <button type="button" id="day-next" aria-label="Next day">Next &#8250;</button>
-      </div>
       <button type="button" id="loc-toggle" aria-label="Location and time" aria-controls="loc-widget" aria-pressed="false" title="Location and time">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
       </button>
@@ -50,23 +45,6 @@
         <button type="button" id="loc-now" title="Back to live time"><span class="live-dot"></span>Now</button>
       </div>
     </section>
-    <div id="time-scrub">
-      <div class="scrub-top">
-        <output id="scrub-readout" for="time-slider">--</output>
-        <span class="scrub-actions">
-          <label id="date-pick" title="Pick a date">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-            <input type="date" id="date-pick-input" aria-label="Pick a date">
-          </label>
-          <button type="button" id="scrub-now" title="Back to live time"><span class="live-dot"></span>Now</button>
-        </span>
-      </div>
-      <input type="range" id="time-slider" min="0" max="1439" step="1" value="0" aria-label="Time of day, sunrise to sunrise">
-      <div class="scrub-ends">
-        <span id="scrub-sunrise" title="Sunrise">&#9728;&#8593; --:--</span>
-        <span id="scrub-sunset" title="Sunset">&#9728;&#8595; --:--</span>
-      </div>
-    </div>
     <div class="tc-foot">
       <button type="button" id="btn-fullview" title="Hide all buttons and show only the clock">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
