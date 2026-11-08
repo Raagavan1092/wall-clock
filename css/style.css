@@ -60,12 +60,13 @@ html, body {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
+  height: min(100dvh, 100svh);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  padding: max(8px, env(safe-area-inset-top)) env(safe-area-inset-right) max(8px, env(safe-area-inset-bottom)) env(safe-area-inset-left);
+  padding: max(8px, env(safe-area-inset-top)) env(safe-area-inset-right) max(24px, calc(env(safe-area-inset-bottom) + 12px)) env(safe-area-inset-left);
 }
 
 /* The dial sits in a square wrapper so the two ring buttons can hug its bottom corners. */
@@ -97,7 +98,7 @@ html, body {
   position: absolute;
   bottom: 0;
   width: 34cqw;
-  height: 34cqw;
+  height: 24cqw;
   padding: 0;
   border: 0;
   background: none;
