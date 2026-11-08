@@ -402,12 +402,12 @@
     else goToDay(days);
   }
 
-  // Goes to a "YYYY-MM-DD" date (IST), at the clock time on show.
+  // Goes to a "YYYY-MM-DD" date (IST), at that day's sunrise.
   function goToDateString(value) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     if (!m) return;
     const picked = Date.UTC(+m[1], +m[2] - 1, +m[3]) / DAY_MS;
-    goToDay(picked - istDayNumber(Date.now()));
+    goToSunrise(picked - istDayNumber(Date.now()));
   }
 
   let locationUi = null;
