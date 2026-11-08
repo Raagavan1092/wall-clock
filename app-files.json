@@ -11,6 +11,7 @@
     "js/engine/ayanamsa.js",
     "js/engine/sunrise.js",
     "js/engine/sidereal.js",
+    "js/engine/surya-siddhanta.js",
     "js/engine/elongation.js",
     "js/engine/tithi.js",
     "js/engine/nakshatra.js",
