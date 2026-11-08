@@ -29,7 +29,7 @@ Then visit <http://localhost:8000/>.
 | --- | --- |
 | `index.html` | Tiny shell that loads everything listed in `app-files.json` |
 | `app.html`, `css/` | The app's markup and styles |
-| `js/engine/` | Panchanga calculations (sunrise, tithi, nakshatra, ghati, ...) |
+| `js/engine/` | Panchanga calculations (sunrise, tithi, nakshatra, ghati, ...); `surya-siddhanta.js` = classical SS planet positions with an empty bīja table (not yet wired to the UI) |
 | `js/render/` | Dial drawing |
 | `js/alarms.js`, `alarm-ui.js`, `tunes.js` | Alarm engine, UI and sounds |
 | `js/vendor/` | The bundled [Astronomy Engine](https://github.com/cosinekitty/astronomy) library |

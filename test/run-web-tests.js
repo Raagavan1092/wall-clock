@@ -50,6 +50,58 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.close();
   }
 
+  // 4. Surya Siddhanta engine: sanity against the modern ephemeris (loose bounds that
+  //    catch a wrong constant/epoch/sign, which show up as tens of degrees), plus bija wiring.
+  //    SS itself drifts from the real sky; Venus/Mercury/Mars are worst near conjunction,
+  //    where the epicycle geometry multiplies a small phase error (Venus up to ~28 deg).
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    const r = await page.evaluate(() => {
+      const V = window.VedicEngine, A = window.Astronomy, SS = V.SuryaSiddhanta;
+      const AY0 = (85885.53 + 24.2) / 3600;
+      const sw = d => ((d + 540) % 360) - 180;
+      const modern = (b, d) => {
+        if (b === "sun") return V.Util.normDeg(A.SunPosition(d).elon - V.Ayanamsa.lahiri(d));
+        if (b === "moon") return V.Util.normDeg(A.EclipticGeoMoon(d).lon - V.Ayanamsa.lahiri(d));
+        if (b === "rahu") { const T = (d.getTime() / 86400000 + 2440587.5 - 2451545) / 36525; return V.Util.normDeg(125.04452 - 1934.136261 * T - V.Ayanamsa.lahiri(d)); }
+        return V.Util.normDeg(A.Ecliptic(A.GeoVector(b[0].toUpperCase() + b.slice(1), d, true)).elon - AY0);
+      };
+      const bounds = { sun: 6, moon: 5, rahu: 6, jupiter: 9, saturn: 9, venus: 32, mercury: 18, mars: 30 };
+      const dates = [];
+      for (let y = 2025; y <= 2027; y++) for (let m = 0; m < 12; m += 2) dates.push(new Date(Date.UTC(y, m, 10, 6)));
+      const worst = {};
+      Object.keys(bounds).forEach(b => { worst[b] = 0; dates.forEach(d => { worst[b] = Math.max(worst[b], Math.abs(sw(SS.trueLongitude(b, d) - modern(b, d)))); }); });
+      const d0 = new Date(Date.UTC(2026, 5, 1));
+      const empty = Object.keys(SS.bija.table).length === 0;
+      const base0 = SS.trueLongitude("sun", d0), marsBase = SS.trueLongitude("mars", d0);
+      SS.bija.set("sun", { epochYear: 2000, constantArcmin: 30, arcminPerYear: 0 });
+      SS.bija.set("mars", { epochYear: 2000, constantArcmin: 30, arcminPerYear: 0 });
+      const shifted = sw(SS.trueLongitude("sun", d0) - base0);
+      const marsMoved = Math.abs(sw(SS.trueLongitude("mars", d0) - marsBase)) > 0.05;
+      const noBija = sw(SS.trueLongitude("sun", d0, { applyBija: false }) - base0);
+      SS.bija.clear();
+      const all = SS.positions(d0);
+      const exact = Math.abs(sw(SS.trueLongitude("moon", d0, { exactSine: true }) - SS.trueLongitude("moon", d0)));
+      return { worst, bounds, empty, shifted, noBija, restored: SS.trueLongitude("sun", d0) === base0, marsMoved,
+        keys: Object.keys(all).sort().join(","), ketu: sw(all.ketu - all.rahu - 180), exact };
+    });
+    Object.keys(r.bounds).forEach(b => ok("SS " + b + " within " + r.bounds[b] + " deg of modern", r.worst[b] <= r.bounds[b], r.worst[b].toFixed(1) + " deg"));
+    ok("SS bija table starts empty", r.empty);
+    ok("SS bija entry shifts the Sun by ~0.5 deg for 30 arcmin", Math.abs(r.shifted - 0.5) < 0.05, r.shifted.toFixed(3));
+    ok("SS bija on a star-planet moves it too", r.marsMoved);
+    ok("SS applyBija:false ignores the table", Math.abs(r.noBija) < 1e-9);
+    ok("SS bija.clear() restores pure SS", r.restored);
+    ok("SS positions() covers every graha", r.keys === "jupiter,ketu,mars,mercury,moon,rahu,saturn,sun,venus", r.keys);
+    ok("SS ketu is 180 deg from rahu", Math.abs(r.ketu) < 1e-9);
+    ok("SS table sine vs exact sine agree within 0.3 deg (moon)", r.exact < 0.3, r.exact.toFixed(3));
+    ok("SS: no page errors", errors.length === 0, errors.join("; "));
+    await page.close();
+  }
+
   // 3. bridge against a fake native side
   {
     const ctx = await browser.newContext();
