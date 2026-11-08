@@ -161,15 +161,18 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("widget: the pin turns it off, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !document.getElementById("btn-switch-time").hidden));
     await page.click("#loc-toggle");
     await page.waitForTimeout(1200);
-    ok("widget: dragging the sun snaps to a whole hour", await (async () => {
+    {
       const box = await page.locator("#loc-arc").boundingBox();
-      await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.2);
-      await page.mouse.down();
-      await page.mouse.move(box.x + box.width * 0.52, box.y + box.height * 0.21);
-      await page.mouse.up();
-      const t = await page.evaluate(() => document.getElementById("loc-arc").getAttribute("aria-valuetext"));
-      return /^\d\d:00$/.test(t);
-    })());
+      const at = async (vx, vy) => {
+        await page.mouse.move(box.x + vx * box.width / 464, box.y + vy * box.height / 204);
+        await page.mouse.down(); await page.mouse.up();
+        return page.evaluate(() => document.getElementById("loc-arc").getAttribute("aria-valuetext"));
+      };
+      const tickX = await page.evaluate(() => +Array.from(document.querySelectorAll("#loc-arc line")).filter(l => l.getAttribute("stroke") === "#6f80a8")[1].getAttribute("x1"));
+      const times = [await at(tickX + 1, 170), await at(tickX + 7, 170), await at(tickX + 10, 170)];
+      ok("widget: dragging sticks to an hour tick when close to it", /^\d\d:00$/.test(times[0]), times.join(" "));
+      ok("widget: away from the ticks any minute can be picked", times.slice(1).some(t => !/:00$/.test(t)), times.join(" "));
+    }
     await page.click("#loc-now");
     ok("widget: shows in the second row, under the top row, with place, time and arc", await page.evaluate(() => {
       const w = document.getElementById("loc-widget"), row = document.querySelector("#top-controls .tc-row");

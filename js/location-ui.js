@@ -236,20 +236,27 @@
     arc.setAttribute("role", "slider");
     arc.setAttribute("aria-valuemin", "0");
     arc.setAttribute("aria-valuemax", "24");
+    // The time under the pointer, to the minute. Within a few pixels of an hour
+    // tick it sticks to that tick; anywhere else any minute can be picked.
+    const SNAP_PX = 3;
     function hourAt(clientX, clientY) {
       const S = sunEls;
       if (!S) return null;
       const r = arc.getBoundingClientRect();
       const x = (clientX - r.left) * 464 / r.width, y = (clientY - r.top) * 204 / r.height;
-      let h;
-      if (x <= S.g.srX) h = (x - ARC.left) / S.g.k;
-      else if (x >= S.g.ssX) h = S.ss + (x - S.g.ssX) / S.g.k;
+      let h, pxPerHour;
+      if (x <= S.g.srX) { h = (x - ARC.left) / S.g.k; pxPerHour = S.g.k; }
+      else if (x >= S.g.ssX) { h = S.ss + (x - S.g.ssX) / S.g.k; pxPerHour = S.g.k; }
       else {
         const dx = x - S.g.cx, dy = ARC.base - y;
         const th = dy < 0 ? (dx < 0 ? Math.PI : 0) : Math.atan2(dy, dx);
         h = S.sr + (1 - th / Math.PI) * (S.ss - S.sr);
+        pxPerHour = Math.PI * ARC.r / (S.ss - S.sr);
       }
-      return Math.max(0, Math.min(24, Math.round(h)));
+      h = Math.max(0, Math.min(24, h));
+      const tick = Math.round(h);
+      if (Math.abs(h - tick) * pxPerHour <= SNAP_PX) return tick;
+      return Math.round(h * 60) / 60;
     }
     let dragging = false, lastHour = null;
     function dragTo(e) {
@@ -277,6 +284,7 @@
       let t;
       if (k === "Home") t = 0;
       else if (k === "End") t = 24;
+      else if (e.shiftKey) t = Math.round(h * 60) / 60 + ((k === "ArrowLeft" || k === "ArrowDown") ? -1 : 1) / 60;
       else if (k === "ArrowLeft" || k === "ArrowDown") t = Math.ceil(h - 1e-9) - 1;
       else t = Math.floor(h + 1e-9) + 1;
       api.setTimeOfDay(Math.max(0, Math.min(24, t)));
@@ -318,7 +326,7 @@
       S.ssT.textContent = ssD ? hhmm(ssD) + " ↓" : "";
       arc.setAttribute("aria-valuenow", String(Math.round(h * 100) / 100));
       arc.setAttribute("aria-valuetext", t.slice(0, 5));
-      const label = "Time of day, drag or use arrow keys to move by the hour. Day from sunrise " + (srD ? hhmm(srD) : "") + " to sunset " + (ssD ? hhmm(ssD) : "") + ". Now " + t.slice(0, 5) + ".";
+      const label = "Time of day: drag, or use arrow keys (Shift for minutes). Day from sunrise " + (srD ? hhmm(srD) : "") + " to sunset " + (ssD ? hhmm(ssD) : "") + ". Now " + t.slice(0, 5) + ".";
       if (label !== lastLabel) { lastLabel = label; arc.setAttribute("aria-label", label); }
 
       const live = api.isLive();
