@@ -124,7 +124,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-size: clamp(12px, 3.8cqw, 24px);
+  font-size: clamp(15px, 3.8cqw, 20px);
   line-height: 1.15;
   font-weight: 600;
   pointer-events: auto;
