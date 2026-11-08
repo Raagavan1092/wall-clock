@@ -72,13 +72,19 @@ html, body {
 /* The dial sits in a square wrapper so the two ring buttons can hug its bottom corners. */
 #dial-wrap {
   order: 2;
-  position: relative;
-  margin: auto 0;
-  flex: 0 1 100vw;
+  flex: 1 1 0;
   min-height: 0;
-  width: auto;
-  max-width: 100%;
-  aspect-ratio: 1 / 1;
+  width: 100%;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  container-type: size;
+}
+/* The square the dial lives in: as large as the room left allows, never bigger than the screen is wide. */
+#dial-box {
+  position: relative;
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
   container-type: inline-size;
 }
 #dial {
@@ -1030,3 +1036,10 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 #alarm-section button { font: inherit; cursor: pointer; }
 #alarm-section #alarm-reliable { background: transparent; color: var(--muted); border: 1px solid var(--ring-stroke); border-radius: 999px; padding: 6px 12px; font-size: 12px; }
 .tc-plain { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+/* Portrait on a short screen (e.g. with the Location widget open): the clock keeps a usable size and the page scrolls, rather than the clock shrinking to nothing or being cut off. */
+@media (orientation: portrait) {
+  #stage { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+  #dial-wrap { min-height: min(100vw, 230px); }
+  body.fullview #dial-wrap { min-height: 0; }
+}
