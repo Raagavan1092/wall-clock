@@ -189,9 +189,7 @@
       arc.appendChild(el("line", { x1: ARC.left, y1: base, x2: f1(g.srX), y2: base, stroke: "#4b5b80", "stroke-width": 5, "stroke-linecap": "round" }));
       arc.appendChild(el("line", { x1: f1(g.ssX), y1: base, x2: ARC.right, y2: base, stroke: "#4b5b80", "stroke-width": 5, "stroke-linecap": "round" }));
       arc.appendChild(el("line", { x1: f1(g.srX), y1: base, x2: f1(g.ssX), y2: base, stroke: "#3a3020", "stroke-width": 1, "stroke-dasharray": "3 5" }));
-      arc.appendChild(el("path", { d: "M" + f1(g.srX) + " " + base + " A" + R + " " + R + " 0 0 1 " + f1(g.ssX) + " " + base, fill: "none", stroke: "#3a3020", "stroke-width": 6, "stroke-linecap": "round" }));
-      const prog = el("path", { d: "", fill: "none", stroke: "#f2b01e", "stroke-width": 6, "stroke-linecap": "round" });
-      arc.appendChild(prog);
+      arc.appendChild(el("path", { d: "M" + f1(g.srX) + " " + base + " A" + R + " " + R + " 0 0 1 " + f1(g.ssX) + " " + base, fill: "none", stroke: "#f2b01e", "stroke-width": 6, "stroke-linecap": "round" }));
       const onArc = function (h, rad) {
         const th = Math.PI * (1 - (h - sr) / (ss - sr));
         return { x: g.cx + rad * Math.cos(th), y: base - rad * Math.sin(th) };
@@ -228,7 +226,9 @@
       const date = el("text", { x: 232, y: 130, fill: "#b3a586", "font-size": 13, "text-anchor": "middle" });
       arc.appendChild(time);
       arc.appendChild(date);
-      sunEls = { g: g, sr: sr, ss: ss, onArc: onArc, prog: prog, glow: glow, sun: sun, hm: hm, sec: sec, date: date, srT: srT, ssT: ssT };
+      const c12 = sr < 12 && ss > 12 ? onArc(12, ARC.r + 26) : { x: g.cx };
+      nowBtn.style.left = (c12.x / 464 * 100).toFixed(2) + "%";
+      sunEls = { g: g, sr: sr, ss: ss, onArc: onArc, glow: glow, sun: sun, hm: hm, sec: sec, date: date, srT: srT, ssT: ssT };
     }
 
     // ---- drag the sun (or use the arrow keys): it snaps to the hour ticks
@@ -308,14 +308,12 @@
       if (key !== arcKey || !sunEls) { arcKey = key; buildArc(sr, ss); }
 
       const h = istHours(now), S = sunEls, base = ARC.base;
-      let pos, progD = "";
+      let pos;
       if (h >= sr && h <= ss) {
         pos = S.onArc(h, ARC.r);
-        progD = "M" + f1(S.g.srX) + " " + base + " A" + ARC.r + " " + ARC.r + " 0 0 1 " + f1(pos.x) + " " + f1(pos.y);
       } else {
         pos = { x: h < sr ? ARC.left + h * S.g.k : S.g.ssX + (h - ss) * S.g.k, y: base };
       }
-      S.prog.setAttribute("d", progD);
       [S.glow, S.sun].forEach(function (c) { c.setAttribute("cx", f1(pos.x)); c.setAttribute("cy", f1(pos.y)); });
       const t = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
       S.hm.textContent = t.slice(0, 5);

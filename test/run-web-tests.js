@@ -185,6 +185,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       return ids.join() === "btn-fullview,loc-toggle,settings-toggle";
     }));
     await page.click("#loc-next");
+    await page.waitForTimeout(400);
+    ok("widget: Next goes to the next day's sunrise (Ghaṭī 0 · Pala 0)", await page.evaluate(() => /Ghaṭī 0 · Pala 0/.test(document.getElementById("dial").textContent)));
     ok("widget: Next moves the clock one day on, Now returns to live", await page.evaluate(async () => {
       const off = document.getElementById("loc-now").classList.contains("is-live");
       document.getElementById("loc-now").click();

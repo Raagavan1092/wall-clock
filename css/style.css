@@ -912,21 +912,22 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 #loc-change svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
 #loc-arc:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; border-radius: 10px; }
+.lw-arcwrap { position: relative; padding-top: 34px; }
 #loc-arc { display: block; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; width: 100%; height: auto; margin: 6px 0 2px; font-family: inherit; font-variant-numeric: tabular-nums; }
-.lw-nav { display: flex; align-items: center; gap: 6px; }
+.lw-nav { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .lw-nav button, #loc-datebtn {
   flex: none; height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid #3a3020;
   background: transparent; color: var(--ink); font: inherit; font-size: 13.5px; cursor: pointer;
 }
 #loc-datebtn {
-  position: relative; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 7px;
+  position: relative; flex: none; display: flex; align-items: center; justify-content: center; gap: 7px;
   background: #1d1912; overflow: hidden;
 }
 #loc-datebtn svg { width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
 #loc-datebtn span { white-space: nowrap; pointer-events: none; }
 #loc-datebtn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0; }
 #loc-datebtn input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
-#loc-now { display: inline-flex; align-items: center; gap: 7px; border-color: #e8c77a; background: #e8c77a; color: #1a1408; font-weight: 600; }
+#loc-now { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; border: 1px solid #e8c77a; font: inherit; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; border-color: #e8c77a; background: #e8c77a; color: #1a1408; font-weight: 600; }
 #loc-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1f7a3d; }
 #loc-now.is-live { background: transparent; border-color: #3a3020; color: var(--muted); }
 #loc-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }

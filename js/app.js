@@ -394,6 +394,14 @@
     setManualTime(sameTimeOnDay(days));
   }
 
+  // Goes to sunrise on the day `days` from today (IST): ghaṭī 0, pala 0.
+  function goToSunrise(days) {
+    const noon = new Date((istDayNumber(Date.now()) + days) * DAY_MS - IST_OFFSET_MS + 12 * 3600000);
+    const sunrise = E.Sunrise.sunriseAtOrBefore(settings.location, noon, settings.sunriseEdge);
+    if (sunrise instanceof Date && !isNaN(sunrise.getTime())) setManualTime(new Date(sunrise.getTime() + 1500)); // a moment past it, so rounding cannot land before sunrise
+    else goToDay(days);
+  }
+
   // Goes to a "YYYY-MM-DD" date (IST), at the clock time on show.
   function goToDateString(value) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -559,7 +567,7 @@
       getAnchors: function () { return cachedSnapshot ? cachedSnapshot.anchors : null; },
       isLive: isLive,
       goLive: goLive,
-      shiftDay: function (delta) { goToDay(shownDayOffset() + delta); },
+      shiftDay: function (delta) { goToSunrise(shownDayOffset() + delta); },
       pickDate: goToDateString,
       // Holds the clock at `hours` (0-24, IST) on the date on show.
       setTimeOfDay: function (hours) {

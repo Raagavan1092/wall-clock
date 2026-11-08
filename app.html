@@ -32,7 +32,10 @@
           Change location&hellip;
         </button>
       </div>
-      <svg id="loc-arc" viewBox="0 14 464 190" role="img" aria-label="Day arc"></svg>
+      <div class="lw-arcwrap">
+        <button type="button" id="loc-now" title="Back to live time"><span class="live-dot"></span>Now</button>
+        <svg id="loc-arc" viewBox="0 14 464 190" role="img" aria-label="Day arc"></svg>
+      </div>
       <div class="lw-nav">
         <button type="button" id="loc-prev" aria-label="Previous day">Previous</button>
         <label id="loc-datebtn" title="Pick a date">
@@ -41,7 +44,6 @@
           <input type="date" id="loc-date-input" aria-label="Pick a date">
         </label>
         <button type="button" id="loc-next" aria-label="Next day">Next</button>
-        <button type="button" id="loc-now" title="Back to live time"><span class="live-dot"></span>Now</button>
       </div>
     </section>
     <div class="tc-foot">
