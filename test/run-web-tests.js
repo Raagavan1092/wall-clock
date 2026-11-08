@@ -164,12 +164,12 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     {
       const box = await page.locator("#loc-arc").boundingBox();
       const at = async (vx, vy) => {
-        await page.mouse.move(box.x + vx * box.width / 464, box.y + vy * box.height / 204);
+        await page.mouse.move(box.x + vx * box.width / 464, box.y + (vy - 14) * box.height / 190);
         await page.mouse.down(); await page.mouse.up();
         return page.evaluate(() => document.getElementById("loc-arc").getAttribute("aria-valuetext"));
       };
       const tickX = await page.evaluate(() => +Array.from(document.querySelectorAll("#loc-arc line")).filter(l => l.getAttribute("stroke") === "#6f80a8")[1].getAttribute("x1"));
-      const times = [await at(tickX + 1, 170), await at(tickX + 7, 170), await at(tickX + 10, 170)];
+      const times = [await at(tickX + 0.2, 170), await at(tickX + 7, 170), await at(tickX + 10, 170)];
       ok("widget: dragging sticks to an hour tick when close to it", /^\d\d:00$/.test(times[0]), times.join(" "));
       ok("widget: away from the ticks any minute can be picked", times.slice(1).some(t => !/:00$/.test(t)), times.join(" "));
     }

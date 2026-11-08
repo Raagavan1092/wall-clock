@@ -393,7 +393,7 @@ html, body {
   flex: none;
   position: relative;
   z-index: 5;
-  width: min(440px, calc(100vw - 12px));
+  width: min(520px, calc(100vw - 12px));
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -465,9 +465,9 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
    is centred in the rest of the width, the screen's height at most. */
 @media (orientation: landscape) {
   #stage {
-    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 460px)));
+    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 540px)));
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 460px;
+    grid-template-columns: minmax(0, 1fr) 540px;
     grid-template-rows: auto 1fr;
     align-items: start;
     justify-items: center;
@@ -475,8 +475,8 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
     padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) env(safe-area-inset-left);
   }
   #dial { grid-column: 1; grid-row: 1 / span 2; align-self: center; justify-self: center; order: 0; margin: 0; width: var(--dial); height: var(--dial); max-width: none; flex: none; }
-  #top-controls { grid-column: 2; grid-row: 1; order: 0; justify-self: end; width: min(100% - 8px, 444px); }
-  #clock-buttons { grid-column: 2; grid-row: 2; order: 0; justify-self: end; width: min(100% - 8px, 444px); }
+  #top-controls { grid-column: 2; grid-row: 1; order: 0; justify-self: end; width: min(100% - 8px, 524px); }
+  #clock-buttons { grid-column: 2; grid-row: 2; order: 0; justify-self: end; width: min(100% - 8px, 524px); }
 }
 
 @media (max-height: 520px) {

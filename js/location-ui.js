@@ -60,7 +60,7 @@
   // ---- the sky arc -------------------------------------------------------
   // Day from sunrise to sunset as an arc, the night as a line either side, hours
   // 0-24 ticked along the whole thing. Same drawing as the design's E artboard.
-  const ARC = { r: 140, base: 170, left: 10, right: 452 };
+  const ARC = { r: 120, base: 170, left: 10, right: 452 };
   function arcGeometry(sr, ss) {
     const k = (ARC.right - ARC.left - 2 * ARC.r) / (sr + 24 - ss);
     const srX = ARC.left + sr * k, cx = srX + ARC.r, ssX = cx + ARC.r;
@@ -236,26 +236,25 @@
     arc.setAttribute("role", "slider");
     arc.setAttribute("aria-valuemin", "0");
     arc.setAttribute("aria-valuemax", "24");
-    // The time under the pointer, to the minute. Within a few pixels of an hour
-    // tick it sticks to that tick; anywhere else any minute can be picked.
-    const SNAP_PX = 3;
+    // The time under the pointer, to the minute. Within 3 minutes of an hour tick
+    // (day or night alike) it sticks to that tick; anywhere else any minute can be picked.
+    const SNAP_MIN = 3;
     function hourAt(clientX, clientY) {
       const S = sunEls;
       if (!S) return null;
       const r = arc.getBoundingClientRect();
-      const x = (clientX - r.left) * 464 / r.width, y = (clientY - r.top) * 204 / r.height;
-      let h, pxPerHour;
-      if (x <= S.g.srX) { h = (x - ARC.left) / S.g.k; pxPerHour = S.g.k; }
-      else if (x >= S.g.ssX) { h = S.ss + (x - S.g.ssX) / S.g.k; pxPerHour = S.g.k; }
+      const x = (clientX - r.left) * 464 / r.width, y = 14 + (clientY - r.top) * 190 / r.height;
+      let h;
+      if (x <= S.g.srX) { h = (x - ARC.left) / S.g.k; }
+      else if (x >= S.g.ssX) { h = S.ss + (x - S.g.ssX) / S.g.k; }
       else {
         const dx = x - S.g.cx, dy = ARC.base - y;
         const th = dy < 0 ? (dx < 0 ? Math.PI : 0) : Math.atan2(dy, dx);
         h = S.sr + (1 - th / Math.PI) * (S.ss - S.sr);
-        pxPerHour = Math.PI * ARC.r / (S.ss - S.sr);
       }
       h = Math.max(0, Math.min(24, h));
       const tick = Math.round(h);
-      if (Math.abs(h - tick) * pxPerHour <= SNAP_PX) return tick;
+      if (Math.abs(h - tick) * 60 <= SNAP_MIN) return tick;
       return Math.round(h * 60) / 60;
     }
     let dragging = false, lastHour = null;
