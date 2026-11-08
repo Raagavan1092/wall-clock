@@ -381,13 +381,18 @@
     palaHandGroup.appendChild(el("line", { x1: CX, y1: CY, x2: CX, y2: CY - R.palaHand, class: "pala-hand-line" }));
     handGroup.appendChild(el("line", { x1: CX, y1: CY, x2: CX, y2: CY - R.hand, class: "hand-line" }));
     handGroup.appendChild(el("circle", { cx: CX, cy: CY, r: R.hub, class: "hand-hub" }));
+    // The centre text, then the "switch time convention" button under it, then
+    // the hands on top of both (so they are never hidden by the readout).
+    const centreGroup = el("g", { class: "centre-text" });
+    svg.appendChild(centreGroup);
+    const switchGroup = el("g", { id: "btn-switch-time", class: "centre-switch", role: "button", tabindex: "0", "aria-label": "Switch time convention" });
+    switchGroup.appendChild(el("rect", { x: CX - 150, y: -22, width: 300, height: 44, rx: 22 }));
+    switchGroup.appendChild(el("text", { x: CX, y: 0, "text-anchor": "middle", "dominant-baseline": "central" })).textContent = "Switch time convention";
+    svg.appendChild(switchGroup);
     svg.appendChild(palaHandGroup);
     svg.appendChild(handGroup);
 
-    const centreGroup = el("g", { class: "centre-text" });
-    svg.appendChild(centreGroup);
-
-    return { goodBadRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, handGroup, palaHandGroup };
+    return { goodBadRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, switchGroup, handGroup, palaHandGroup };
   }
 
   // geom: { rInner, rOuter, fontSize: number | (span)=>number, minSpanForLabel?,
@@ -759,11 +764,13 @@
   // Text may reach a little past the plate's edge (into the empty space
   // before the day/night ring) but no further than this radius.
   const CENTRE_REACH = 236;
-  function setCentreText(centreGroup, lines) {
+  function setCentreText(centreGroup, lines, switchGroup) {
     while (centreGroup.firstChild) centreGroup.removeChild(centreGroup.firstChild);
     const heights = lines.map(function (line) { return CENTRE_LINE_HEIGHT[line.emphasis] || CENTRE_LINE_HEIGHT_DEFAULT; });
     const total = heights.reduce(function (a, b) { return a + b; }, 0);
     let y = CY + R.centreTextY - total / 2;
+    // The switch button sits just below the last line of text.
+    if (switchGroup) switchGroup.setAttribute("transform", "translate(0 " + (y + total + 34).toFixed(1) + ")");
     lines.forEach(function (line, i) {
       const lineY = y + heights[i] / 2;
       y += heights[i];

@@ -148,9 +148,17 @@ html, body {
 .label-path { fill: none; stroke: none; }
 .curved-label { font-weight: 500; }
 
-.hand-line { stroke: var(--hand); stroke-width: 5; stroke-linecap: round; }
-.hand-hub { fill: var(--hub); }
-.pala-hand-line { stroke: var(--centre-ghati); stroke-width: 2.5; stroke-linecap: round; opacity: 0.85; }
+/* The hands are drawn above the centre text: brighter, with a dark halo so they read over it. */
+.hand, .pala-hand { filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.85)); pointer-events: none; }
+.hand-line { stroke: #ff5a47; stroke-width: 6; stroke-linecap: round; }
+.hand-hub { fill: #ff5a47; }
+.pala-hand-line { stroke: #ffe9a6; stroke-width: 3; stroke-linecap: round; }
+.centre-switch { cursor: pointer; }
+.centre-switch rect { fill: #1d1912; stroke: var(--ring-stroke); stroke-width: 1.5; }
+.centre-switch text { fill: var(--centre-ghati); font-size: 22px; font-weight: 600; pointer-events: none; }
+.centre-switch:hover rect { fill: #2a2314; }
+.centre-switch:focus-visible { outline: none; }
+.centre-switch:focus-visible rect { stroke: var(--gold-hi); stroke-width: 3; }
 .centre-plate { fill: var(--dial-bg); }
 
 /* The buttons under (portrait) or left of (landscape) the clock. */
@@ -163,7 +171,7 @@ html, body {
   gap: 8px;
 }
 #clock-buttons > .cb { grid-column: span 3; }
-#clock-buttons > #btn-switch-time, #clock-buttons > #btn-prev-display, #clock-buttons > #btn-next-display { grid-column: span 2; }
+#clock-buttons > #btn-prev-display, #clock-buttons > #btn-next-display { grid-column: span 3; }
 .cb {
   display: flex;
   align-items: center;

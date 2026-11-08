@@ -226,7 +226,7 @@
     // 24 min) or, in hour mode, a minute hand (one turn per IST hour).
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
-    E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow));
+    E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow), dialHandles.switchGroup);
     updateSwitchLabel();
     if (changed || !controlsSynced) { controlsSynced = true; syncDayControls(); }
   }
@@ -295,7 +295,11 @@
       document.getElementById("btn-show-good").setAttribute("aria-checked", String(show.good));
       document.getElementById("btn-show-bad").setAttribute("aria-checked", String(show.bad));
     }
-    document.getElementById("btn-switch-time").addEventListener("click", toggleTimeMode);
+    const switchBtn = document.getElementById("btn-switch-time");
+    switchBtn.addEventListener("click", toggleTimeMode);
+    switchBtn.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTimeMode(); }
+    });
     document.getElementById("btn-next-display").addEventListener("click", function () { cycleRing(1); });
     document.getElementById("btn-prev-display").addEventListener("click", function () { cycleRing(-1); });
     document.getElementById("btn-show-good").addEventListener("click", function () { setShown("good", !show.good); });
@@ -309,7 +313,7 @@
       const target = e.target;
       if (target && target.closest) {
         if (target.closest("input, select, textarea, [role=slider], [role=dialog], [role=alertdialog]")) return;
-        if (e.key === " " && target.closest("button")) return;
+        if (e.key === " " && target.closest("button, [role=button]")) return;
       }
       if (e.key === "ArrowRight" || e.key === " ") cycleRing(1);
       else if (e.key === "ArrowLeft") cycleRing(-1);

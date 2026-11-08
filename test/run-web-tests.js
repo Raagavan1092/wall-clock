@@ -158,7 +158,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     // the pin button brings the widget into the second row
     ok("widget: on by default; the old day navigator and slider row are gone", await page.evaluate(() => !document.getElementById("loc-widget").hidden && !document.getElementById("time-scrub") && !document.getElementById("day-buttons") && !document.getElementById("time-slider")));
     await page.click("#loc-toggle");
-    ok("widget: the pin turns it off, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !document.getElementById("btn-switch-time").hidden));
+    ok("widget: the pin turns it off, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !!document.getElementById("btn-prev-display")));
     await page.click("#loc-toggle");
     await page.waitForTimeout(1200);
     {
