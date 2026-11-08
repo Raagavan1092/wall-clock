@@ -32,6 +32,7 @@ Then visit <http://localhost:8000/>.
 | `js/engine/` | Panchanga calculations (sunrise, tithi, nakshatra, ghati, ...) |
 | `js/render/` | Dial drawing |
 | `js/alarms.js`, `alarm-ui.js`, `tunes.js` | Alarm engine, UI and sounds |
+| `js/location-ui.js` | Location & time widget (pin button) and the Change location dialog |
 | `js/vendor/` | The bundled [Astronomy Engine](https://github.com/cosinekitty/astronomy) library |
 | `android/` | Android app (WebView plus native alarms); see [`android/README.md`](android/README.md) |
 | `test/` | Web tests |

@@ -11,12 +11,45 @@
   <div id="top-controls">
     <div class="tc-row">
       <div id="day-buttons" role="group" aria-label="Day shown on the clock">
-        <button type="button" id="day-prev" aria-label="Previous day">&#8249; Previous day</button>
+        <button type="button" id="day-prev" aria-label="Previous day">&#8249; Previous</button>
         <button type="button" id="day-today">Today</button>
-        <button type="button" id="day-next" aria-label="Next day">Next day &#8250;</button>
+        <button type="button" id="day-next" aria-label="Next day">Next &#8250;</button>
       </div>
+      <button type="button" id="loc-toggle" aria-label="Location and time" aria-controls="loc-widget" aria-pressed="false" title="Location and time">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+      </button>
       <button id="settings-toggle" aria-label="Settings">&#9881;</button>
     </div>
+    <section id="loc-widget" aria-label="Location and time" hidden>
+      <div class="lw-top">
+        <button type="button" id="loc-chip" aria-haspopup="menu" aria-expanded="false" aria-controls="loc-menu">
+          <svg class="lw-pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          <span id="loc-chip-name">-</span>
+          <svg class="lw-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <span class="lw-coords"><span id="loc-coords">--</span><br>IST &middot; UTC+05:30</span>
+      </div>
+      <div id="loc-menu" role="menu" aria-label="Choose a place" hidden>
+        <div class="lm-title" id="loc-recent-title">RECENT</div>
+        <div id="loc-recent" role="group" aria-labelledby="loc-recent-title"></div>
+        <div class="lm-sep"></div>
+        <button type="button" role="menuitem" id="loc-change">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
+          Change location&hellip;
+        </button>
+      </div>
+      <svg id="loc-arc" viewBox="0 0 464 204" role="img" aria-label="Day arc"></svg>
+      <div class="lw-nav">
+        <button type="button" id="loc-prev" aria-label="Previous day">Previous</button>
+        <label id="loc-datebtn" title="Pick a date">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+          <span>Pick date</span>
+          <input type="date" id="loc-date-input" aria-label="Pick a date">
+        </label>
+        <button type="button" id="loc-next" aria-label="Next day">Next</button>
+        <button type="button" id="loc-now" title="Back to live time"><span class="live-dot"></span>Now</button>
+      </div>
+    </section>
     <div id="time-scrub">
       <div class="scrub-top">
         <output id="scrub-readout" for="time-slider">--</output>
@@ -61,26 +94,6 @@
 
   <section>
     <details>
-    <summary><h3>Location</h3></summary>
-    <p class="settings-note" id="set-default-note">Set as default saves instantly. Reset returns to it. Both are inactive while the location is the default.</p>
-    <label for="set-place">Choose a place in India</label>
-    <div class="place-combo">
-      <input type="text" id="set-place" role="combobox" aria-expanded="false" aria-controls="set-place-results" aria-autocomplete="list" placeholder="Search for a district or town" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <ul id="set-place-results" class="place-results hidden" role="listbox"></ul>
-    </div>
-    <p class="current-loc" id="set-current"><span class="cl-tag">Current location</span> <strong id="set-current-name">-</strong> <span id="set-current-coords"></span></p>
-    <label>Latitude <input type="number" id="set-lat" step="0.0001"></label>
-    <label>Longitude <input type="number" id="set-lon" step="0.0001"></label>
-    <label>Elevation (m) <input type="number" id="set-elev" step="1"></label>
-    <div class="location-actions">
-      <button id="set-location-default" type="button">Set as default</button>
-      <button id="set-location-reset" type="button">Reset to Śṛṅgeri</button>
-    </div>
-    </details>
-  </section>
-
-  <section>
-    <details>
     <summary><h3>Ayanāṃśa</h3></summary>
     <p class="settings-note">Raman and KP are approximate; true Citrapakṣa isn't implemented.</p>
     <select id="set-ayanamsa">
@@ -118,7 +131,7 @@
   <section>
     <details>
     <summary><h3>Defaults</h3></summary>
-    <p class="settings-note">Restores all settings above except the location (use Reset to the default location for that). Nothing changes until you Save.</p>
+    <p class="settings-note">Restores all settings above. The location is changed from the pin button on the clock screen. Nothing changes until you Save.</p>
     <button id="settings-reset" type="button">Reset to defaults</button>
     </details>
   </section>
@@ -126,5 +139,50 @@
   <div class="settings-actions">
     <button id="settings-save" type="button">Save</button>
     <button id="settings-cancel" type="button">Cancel</button>
+  </div>
+</div>
+
+<div id="loc-dialog" class="hidden">
+  <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="loc-title">
+    <div class="ld-head">
+      <h2 id="loc-title">Change location</h2>
+      <button type="button" id="loc-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="ld-body">
+      <p class="ld-note" id="loc-note" role="status" aria-live="polite"></p>
+      <div class="ld-searchwrap">
+        <label class="ld-search" for="loc-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
+          <input type="text" id="loc-search" role="combobox" aria-expanded="false" aria-controls="loc-results" aria-autocomplete="list" placeholder="Search a district or town in India" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button type="button" id="loc-geo" title="Use this device's location">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>
+            My location
+          </button>
+        </label>
+        <ul id="loc-results" role="listbox" aria-label="Search results" hidden></ul>
+      </div>
+      <div class="ld-label">SELECTED</div>
+      <div class="ld-current" id="loc-current">
+        <span class="ldc-name" id="loc-current-name">-</span>
+        <span class="ldc-sub" id="loc-current-sub"></span>
+      </div>
+      <div class="ld-label">DETAILS</div>
+      <div class="ld-grid">
+        <label>Latitude<input type="number" id="loc-lat" step="0.0001" inputmode="decimal"></label>
+        <label>Longitude<input type="number" id="loc-lon" step="0.0001" inputmode="decimal"></label>
+        <label>Altitude (m)<input type="number" id="loc-elev" step="1" inputmode="decimal"></label>
+        <label>Time zone<input type="text" id="loc-tz" value="IST &middot; +05:30" readonly></label>
+      </div>
+    </div>
+    <div class="ld-foot">
+      <div class="ld-foot-left">
+        <button type="button" id="loc-default">Set as default</button>
+        <button type="button" id="loc-reset">Reset to Śṛṅgeri</button>
+      </div>
+      <button type="button" id="loc-cancel">Cancel</button>
+      <button type="button" id="loc-apply" class="ld-primary">Apply</button>
+    </div>
   </div>
 </div>

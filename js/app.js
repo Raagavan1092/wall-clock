@@ -391,7 +391,16 @@
     setManualTime(sameTimeOnDay(days));
   }
 
+  // Goes to a "YYYY-MM-DD" date (IST), at the clock time on show.
+  function goToDateString(value) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!m) return;
+    const picked = Date.UTC(+m[1], +m[2] - 1, +m[3]) / DAY_MS;
+    goToDay(picked - istDayNumber(Date.now()));
+  }
+
   let scrubbing = false;
+  let locationUi = null;
   let syncDayControls = function () { /* set by wireDayControls */ };
 
   function wireDayControls() {
@@ -414,12 +423,7 @@
     // tap opens the system date dialog. Picking a date goes to that day at
     // the clock time on show (like the day buttons).
     const picker = document.getElementById("date-pick-input");
-    picker.addEventListener("change", function () {
-      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(picker.value);
-      if (!m) return;
-      const picked = Date.UTC(+m[1], +m[2] - 1, +m[3]) / DAY_MS;
-      goToDay(picked - istDayNumber(Date.now()));
-    });
+    picker.addEventListener("change", function () { goToDateString(picker.value); });
 
     syncDayControls = function () {
       if (!cachedSnapshot) return;
@@ -451,6 +455,7 @@
         slider.value = String(Math.max(0, Math.min(max, Math.floor((now.getTime() - sunrise) / 60000))));
       }
       slider.setAttribute("aria-valuetext", readout.textContent);
+      if (locationUi) locationUi.update();
     };
 
     slider.addEventListener("input", function () {
@@ -468,10 +473,6 @@
   function wireSettingsPanel() {
     const toggleBtn = document.getElementById("settings-toggle");
     const panel = document.getElementById("settings-panel");
-    const latInput = document.getElementById("set-lat");
-    const lonInput = document.getElementById("set-lon");
-    const elevInput = document.getElementById("set-elev");
-    const resetLocationBtn = document.getElementById("set-location-reset");
     const ayanamsaSelect = document.getElementById("set-ayanamsa");
     const ringOrderList = document.getElementById("set-ring-order");
     const saveBtn = document.getElementById("settings-save");
@@ -547,14 +548,9 @@
     }
 
     // Fills the form from `from` (the saved settings, or the defaults for
-    // Reset to defaults); nothing is committed until Save.
-    function populateForm(from, keepLocation) {
-      placeInput.value = "";
-      if (!keepLocation) {
-        latInput.value = from.location.latitude;
-        lonInput.value = from.location.longitude;
-        elevInput.value = from.location.elevation;
-      }
+    // Reset to defaults); nothing is committed until Save. The location is not
+    // part of this form: it is changed from the pin button on the clock screen.
+    function populateForm(from) {
       ayanamsaSelect.value = from.ayanamsa;
       Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
         radio.checked = radio.value === from.sunriseEdge;
@@ -566,34 +562,9 @@
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
 
-    // First visit: only Location (and Save) work until a location is saved; that first
-    // location becomes the default automatically. Everything else is inert and dimmed.
-    let locationLocked = E.Settings.needsLocation();
-    const stage = document.getElementById("stage");
-    const lockedButtons = [closeBtn, cancelBtn, document.getElementById("settings-reset"), resetLocationBtn, document.getElementById("set-location-default")];
-    function applyLock() {
-      const locationSection = document.getElementById("set-place").closest("section");
-      panel.querySelectorAll("section").forEach(function (sec) {
-        const lock = locationLocked && sec !== locationSection;
-        sec.classList.toggle("locked", lock);
-        const det = sec.querySelector("details");
-        if (det && locationLocked) det.open = sec === locationSection; // the first visit starts on Location
-        if (lock) sec.setAttribute("inert", ""); else sec.removeAttribute("inert");
-      });
-      if (locationLocked) stage.setAttribute("inert", ""); else stage.removeAttribute("inert");
-      lockedButtons.forEach(function (b) { b.disabled = locationLocked; });
-      refreshLocationState();
-    }
-
     function open() {
       populateForm(settings);
-      if (locationLocked) {
-        latInput.value = "";
-        lonInput.value = "";
-        elevInput.value = "";
-      }
       panel.classList.remove("hidden");
-      refreshLocationState();
     }
     function close() {
       panel.classList.add("hidden");
@@ -604,186 +575,15 @@
     });
     cancelBtn.addEventListener("click", close);
     document.getElementById("settings-reset").addEventListener("click", function () {
-      populateForm(E.Settings.defaults(), true); // the location has its own reset button
-      refreshLocationState();
+      populateForm(E.Settings.defaults());
     });
 
-    // ---- Location: searchable place picker (themed dropdown), default location
-    const placeInput = document.getElementById("set-place");
-    const placeResults = document.getElementById("set-place-results");
-    const setDefaultBtn = document.getElementById("set-location-default");
-    const defaultNote = document.getElementById("set-default-note");
-    const fmtCoords = function (lat, lon) { return lat + "°N, " + lon + "°E"; };
-    let shown = [];      // places currently listed
-    let activeIdx = -1;  // highlighted row
-
-    function hideResults() {
-      placeResults.classList.add("hidden");
-      placeInput.setAttribute("aria-expanded", "false");
-      placeInput.removeAttribute("aria-activedescendant");
-      activeIdx = -1;
-    }
-    function setActive(i) {
-      const rows = placeResults.querySelectorAll("li[data-i]");
-      if (!rows.length) return;
-      activeIdx = (i + rows.length) % rows.length;
-      rows.forEach(function (li, k) {
-        li.classList.toggle("active", k === activeIdx);
-        li.setAttribute("aria-selected", k === activeIdx ? "true" : "false");
-      });
-      const li = rows[activeIdx];
-      placeInput.setAttribute("aria-activedescendant", li.id);
-      li.scrollIntoView({ block: "nearest" });
-    }
-    function showResults() {
-      const q = placeInput.value;
-      placeResults.textContent = "";
-      shown = E.IndiaPlaces.search(q, 12);
-      if (!q.trim()) { hideResults(); return; }
-      if (!shown.length) {
-        const li = document.createElement("li");
-        li.className = "empty";
-        li.textContent = "No match - try another spelling";
-        placeResults.appendChild(li);
-      }
-      shown.forEach(function (p, i) {
-        const li = document.createElement("li");
-        li.id = "set-place-opt-" + i;
-        li.setAttribute("role", "option");
-        li.dataset.i = i;
-        const main = document.createElement("span");
-        main.className = "pr-main";
-        const name = document.createElement("span");
-        name.className = "pr-name";
-        name.textContent = p.name;
-        const sub = document.createElement("span");
-        sub.className = "pr-sub";
-        sub.textContent = (p.kind === "district" ? "District" : p.district ? "Town in " + p.district + " district" : "Town") + " · " + p.state;
-        main.appendChild(name);
-        main.appendChild(sub);
-        const meta = document.createElement("span");
-        meta.className = "pr-meta";
-        meta.textContent = p.elevation + " m";
-        li.appendChild(main);
-        li.appendChild(meta);
-        // mousedown (not click) so it runs before the input loses focus
-        li.addEventListener("mousedown", function (ev) { ev.preventDefault(); choose(p); });
-        placeResults.appendChild(li);
-      });
-      placeResults.classList.remove("hidden");
-      placeInput.setAttribute("aria-expanded", "true");
-      if (shown.length) setActive(0);
-    }
-    function choose(p) {
-      latInput.value = p.latitude;
-      lonInput.value = p.longitude;
-      elevInput.value = p.elevation;
-      placeInput.value = "";   // the "Current location" label shows what was chosen
-      hideResults();
-      refreshLocationState();
-    }
-    placeInput.addEventListener("input", showResults);
-    placeInput.addEventListener("focus", function () { if (placeInput.value.trim()) showResults(); });
-    placeInput.addEventListener("blur", function () {
-      hideResults();
-      // A full name typed or pasted without picking from the list still counts.
-      const p = E.IndiaPlaces.find(placeInput.value);
-      if (p) choose(p);
-    });
-    placeInput.addEventListener("keydown", function (ev) {
-      const open = !placeResults.classList.contains("hidden");
-      if (ev.key === "ArrowDown") { ev.preventDefault(); if (!open) showResults(); else setActive(activeIdx + 1); }
-      else if (ev.key === "ArrowUp") { ev.preventDefault(); if (open) setActive(activeIdx - 1); }
-      else if (ev.key === "Enter") {
-        if (open && shown[activeIdx]) { ev.preventDefault(); choose(shown[activeIdx]); }
-      } else if (ev.key === "Escape" && open) { ev.stopPropagation(); hideResults(); }
-    });
-
-    // "Current location" label under the search box, and Set as default only when the
-    // location in the form differs from the default.
-    const currentName = document.getElementById("set-current-name");
-    const currentCoords = document.getElementById("set-current-coords");
-    function placeAt(lat, lon) {
-      const near = function (a, b) { return Math.abs(a - b) < 1e-4; };
-      return E.IndiaPlaces.PLACES.filter(function (q) { return near(q.latitude, lat) && near(q.longitude, lon); })[0] || null;
-    }
-    function nameFor(lat, lon) {
-      const near = function (a, b) { return Math.abs(a - b) < 1e-4; };
-      const p = placeAt(lat, lon);
-      if (p) return p.label;
-      const d = E.Settings.defaultLocation();
-      return near(d.latitude, lat) && near(d.longitude, lon) ? d.name : "Custom location";
-    }
-    function refreshLocationState() {
-      const lat = parseFloat(latInput.value), lon = parseFloat(lonInput.value), elev = parseFloat(elevInput.value);
-      const valid = isFinite(lat) && Math.abs(lat) <= 90 && isFinite(lon) && Math.abs(lon) <= 180;
-      if (!valid) {
-        currentName.textContent = "Not chosen yet";
-        currentCoords.textContent = "";
-        setDefaultBtn.disabled = true;
-        resetLocationBtn.disabled = locationLocked;
-        return;
-      }
-      currentName.textContent = nameFor(lat, lon);
-      currentCoords.textContent = "\u00b7 " + fmtCoords(lat, lon) + (isFinite(elev) ? ", " + elev + " m" : "");
-      const d = E.Settings.defaultLocation();
-      const same = Math.abs(lat - d.latitude) < 1e-4 && Math.abs(lon - d.longitude) < 1e-4 && isFinite(elev) && Math.abs(elev - d.elevation) < 0.5;
-      setDefaultBtn.disabled = locationLocked || same || !isFinite(elev) || elev < 0;
-      resetLocationBtn.disabled = locationLocked || same;
-    }
-    [latInput, lonInput, elevInput].forEach(function (el) { el.addEventListener("input", refreshLocationState); });
-
-    function refreshDefaultLabels() {
-      const d = E.Settings.defaultLocation();
-      resetLocationBtn.textContent = locationLocked ? "Reset to default" : "Reset to " + d.name;
-      resetLocationBtn.title = fmtCoords(d.latitude, d.longitude) + ", " + d.elevation + " m";
-    }
-    // The form's location as { name, latitude, longitude, elevation }, or null (focusing the bad field).
-    // Named after the chosen place when the fields still hold its coordinates.
-    function formLocation() {
-      const lat = parseFloat(latInput.value);
-      const lon = parseFloat(lonInput.value);
-      const elev = parseFloat(elevInput.value);
-      if (!isFinite(lat) || lat < -90 || lat > 90) { latInput.focus(); return null; }
-      if (!isFinite(lon) || lon < -180 || lon > 180) { lonInput.focus(); return null; }
-      if (!isFinite(elev) || elev < 0) { elevInput.focus(); return null; }
-      const p = placeAt(lat, lon);
-      const name = p ? (p.kind === "district" ? p.name + " (district)" : p.name) : fmtCoords(lat, lon);
-      return { name: name, latitude: lat, longitude: lon, elevation: elev };
-    }
-
-    setDefaultBtn.addEventListener("click", function () {
-      const loc = formLocation();
-      if (!loc) return;
-      if (E.Settings.setDefaultLocation(loc)) {
-        refreshDefaultLabels();
-        refreshLocationState();
-        defaultNote.textContent = "Default is now " + loc.name + ". Reset returns here.";
-      } else {
-        defaultNote.textContent = "Couldn't save - browser storage unavailable.";
-      }
-    });
-
-    resetLocationBtn.addEventListener("click", function () {
-      placeInput.value = "";
-      hideResults();
-      const d = E.Settings.defaultLocation();
-      latInput.value = d.latitude;
-      lonInput.value = d.longitude;
-      elevInput.value = d.elevation;
-      refreshLocationState();
-    });
-
-    // Returns true on success (and closes), false if validation failed (stays open).
+    // Saves the form and closes. The location is kept as it is.
     function saveAndClose() {
-      const loc = formLocation();
-      if (!loc) return false;
-      const lat = loc.latitude, lon = loc.longitude, elev = loc.elevation;
-
       const sunriseEdge = (document.querySelector('input[name="sunriseEdge"]:checked') || {}).value || "upper-limb";
 
       settings = {
-        location: Object.assign({}, settings.location, { latitude: lat, longitude: lon, elevation: elev }),
+        location: settings.location,
         ayanamsa: ayanamsaSelect.value,
         sunriseEdge: sunriseEdge,
         ringOrder: workingRingOrder.slice(),
@@ -792,14 +592,6 @@
         layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);
-      if (locationLocked) {
-        // The first location entered becomes the default, and the rest of the app unlocks.
-        E.Settings.setDefaultLocation(loc);
-        locationLocked = false;
-        applyLock();
-        refreshDefaultLabels();
-        defaultNote.textContent = "Default is now " + loc.name + ". Reset returns here.";
-      }
       E.Dial.setLayerOrder(settings.layerOrder);
       activeRingOrder = visibleRingOrder();
       currentRingIndex = 0;
@@ -811,17 +603,32 @@
 
     saveBtn.addEventListener("click", saveAndClose);
 
-    refreshDefaultLabels();
-    applyLock();
-    if (locationLocked) {
-      defaultNote.textContent = "Your first saved location becomes the default.";
-      open();
-      placeInput.focus();
-    }
     // The × at the top behaves like Save, not Cancel: per the project owner,
     // closing via the corner button should keep whatever's in the form, the
     // same as clicking Save - only the bottom Cancel button discards.
     closeBtn.addEventListener("click", saveAndClose);
+  }
+
+  // The Location & time widget and its Change location dialog (location-ui.js).
+  function wireLocation() {
+    locationUi = E.LocationUI.init({
+      getSettings: function () { return settings; },
+      getNow: getNow,
+      getAnchors: function () { return cachedSnapshot ? cachedSnapshot.anchors : null; },
+      isLive: isLive,
+      goLive: goLive,
+      shiftDay: function (delta) { goToDay(shownDayOffset() + delta); },
+      pickDate: goToDateString,
+      // Applies a place at once: the clock is recomputed for it and it is remembered.
+      setLocation: function (loc) {
+        settings = Object.assign({}, settings, {
+          location: Object.assign({}, settings.location, { latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation }),
+        });
+        E.Settings.save(settings);
+        invalidateCache();
+        render();
+      },
+    });
   }
 
   // Full screen view: hides every button and widget, leaving only the clock.
@@ -889,6 +696,7 @@
     startControlSync();
     wireDayControls();
     wireSettingsPanel();
+    wireLocation();
     wireFullView();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.
     let alarmsOk = false;

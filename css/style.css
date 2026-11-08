@@ -249,7 +249,7 @@ html, body {
   fill: var(--centre-clock-secondary);
 }
 
-#settings-toggle {
+#settings-toggle, #loc-toggle {
   flex: none;
   width: 44px;
   height: 44px;
@@ -261,7 +261,11 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(8px);
 }
-#settings-toggle:hover { background: rgba(42, 33, 19, 0.9); }
+#settings-toggle:hover, #loc-toggle:hover { background: rgba(42, 33, 19, 0.9); }
+#loc-toggle { display: grid; place-items: center; padding: 0; }
+#loc-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#loc-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
+#settings-toggle:focus-visible, #loc-toggle:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
 
 #settings-panel {
   position: fixed;
@@ -321,36 +325,7 @@ html, body {
   padding: 5px 8px;
 }
 #settings-panel .settings-note code { background: #262019; padding: 0 4px; border: 1px solid #3a3022; border-radius: 3px; font-size: 11px; color: var(--numeral); }
-#settings-panel > section > details > label[for="set-place"] { margin-bottom: 3px; }
-.place-combo { position: relative; margin-bottom: 4px; }
-#settings-panel .place-combo input[type="text"] { margin-top: 0; }
-#settings-panel input[type="text"]:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201, 168, 92, 0.25); }
-.place-results {
-  position: absolute; left: 0; right: 0; top: 100%; z-index: 30;
-  list-style: none; margin: 2px 0 0; padding: 3px;
-  max-height: 260px; overflow-y: auto;
-  background: #1a1510; border: 1px solid var(--ring-stroke); border-radius: 6px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
-}
-.place-results.hidden { display: none; }
-.place-results li {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; color: var(--centre-text);
-}
-.place-results li .pr-main { min-width: 0; }
-.place-results li .pr-name { font-weight: 600; }
-.place-results li .pr-sub { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.place-results li .pr-meta { flex: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.place-results li.active, .place-results li:hover { background: #332817; }
-.place-results li.active .pr-name { color: var(--centre-ghati); }
-.place-results li.empty { cursor: default; color: var(--muted); font-style: italic; }
-.place-results li.empty:hover { background: transparent; }
-#settings-panel section.locked { opacity: 0.35; }
 #stage[inert] { opacity: 0.2; transition: opacity 0.3s; }
-#settings-panel .current-loc { margin: 8px 0 4px; font-size: 13px; line-height: 1.4; color: var(--muted); }
-#settings-panel .current-loc .cl-tag { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-#settings-panel .current-loc strong { color: var(--centre-ghati); font-weight: 700; }
-.location-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 #settings-panel .settings-note { font-size: 12px; color: #a89a78; margin: 6px 0 0; }
 #settings-panel button {
   background: #332817;
@@ -604,7 +579,7 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
-body.fullview .tc-row, body.fullview #time-scrub, body.fullview #next-alarm, body.fullview #clock-buttons,
+body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview #time-scrub, body.fullview #next-alarm, body.fullview #clock-buttons,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
   position: fixed;
@@ -1049,4 +1024,153 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   #day-buttons button { font-size: 10.5px; padding: 0 1px; }
   #day-prev, #day-next { flex: 1.8; }
   #day-today { flex: 0.7; }
+}
+
+/* ======================================================================
+   Location & time widget (pin button, second row) and Change location dialog
+   ====================================================================== */
+#loc-widget {
+  position: relative;
+  padding: 12px 14px 14px;
+  background: #16130e;
+  border: 1px solid #3a3020;
+  border-radius: 22px;
+  color: var(--ink);
+}
+#loc-widget[hidden] { display: none; }
+.lw-top { display: flex; align-items: center; gap: 8px; }
+#loc-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 62%;
+  height: 38px; padding: 0 12px 0 10px;
+  border-radius: 999px; border: 1px solid #3a3020; background: #1d1912; color: var(--ink);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+#loc-chip.open { border-color: #6b5733; background: #2a2314; }
+#loc-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#loc-chip svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#loc-chip svg.lw-chev { width: 14px; height: 14px; stroke: #a99a7c; }
+.lw-coords { flex: 1; min-width: 0; text-align: right; font-size: 11px; line-height: 1.45; color: #a99a7c; font-variant-numeric: tabular-nums; }
+#loc-chip:focus-visible, #loc-widget button:focus-visible, #loc-datebtn:focus-within { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+
+#loc-menu {
+  position: absolute; left: 12px; top: 54px; width: min(300px, calc(100% - 24px)); z-index: 6;
+  padding: 8px; display: flex; flex-direction: column; gap: 2px;
+  background: #1a160f; border: 1px solid #4a3d27; border-radius: 16px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+}
+#loc-menu[hidden] { display: none; }
+.lm-title { padding: 6px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #a99a7c; }
+.lm-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 0 10px;
+  border: 0; border-radius: 10px; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.lm-item:hover, .lm-item.sel { background: #2a2314; }
+.lm-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lm-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lm-sub { font-size: 12px; color: #a99a7c; font-variant-numeric: tabular-nums; }
+.lm-tick { flex: none; width: 18px; height: 18px; fill: none; stroke: #f2b01e; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.lm-sep { height: 1px; margin: 6px 4px; background: #2b2418; }
+#loc-change {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 0; border-radius: 10px;
+  background: #2a2314; color: #f2b01e; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+#loc-change svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+#loc-arc { display: block; width: 100%; height: auto; margin: 6px 0 2px; font-family: inherit; font-variant-numeric: tabular-nums; }
+.lw-nav { display: flex; align-items: center; gap: 6px; }
+.lw-nav button, #loc-datebtn {
+  flex: none; height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid #3a3020;
+  background: transparent; color: var(--ink); font: inherit; font-size: 13.5px; cursor: pointer;
+}
+#loc-datebtn {
+  position: relative; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: #1d1912; overflow: hidden;
+}
+#loc-datebtn svg { width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+#loc-datebtn span { white-space: nowrap; pointer-events: none; }
+#loc-datebtn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0; }
+#loc-datebtn input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+#loc-now { display: inline-flex; align-items: center; gap: 7px; border-color: #e8c77a; background: #e8c77a; color: #1a1408; font-weight: 600; }
+#loc-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1f7a3d; }
+#loc-now.is-live { background: transparent; border-color: #3a3020; color: var(--muted); }
+#loc-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
+.lw-nav button:hover:not(#loc-now) { background: rgba(201, 168, 92, 0.14); }
+
+/* Change location dialog */
+#loc-dialog {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  background: rgba(5, 4, 3, 0.72);
+}
+#loc-dialog.hidden { display: none; }
+.ld-card {
+  width: min(600px, 100%); max-height: 100%; display: flex; flex-direction: column;
+  background: #16130e; border: 1px solid #3a3020; border-radius: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  color: var(--ink); font-family: "Segoe UI", system-ui, sans-serif;
+}
+.ld-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #2b2418; }
+.ld-head h2 { margin: 0; flex: 1; font-size: 18px; font-weight: 600; }
+#loc-close {
+  width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
+  border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: #b3a586; cursor: pointer;
+}
+#loc-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#loc-close:disabled, #loc-cancel:disabled { opacity: 0.3; cursor: default; }
+.ld-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.ld-note { margin: 0; font-size: 13px; line-height: 1.4; color: #d9c58f; }
+.ld-note:empty { display: none; }
+.ld-searchwrap { position: relative; }
+.ld-search {
+  display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 6px 0 12px;
+  border-radius: 12px; background: #0f0d09; border: 1px solid #6b5733;
+}
+.ld-search:focus-within { border-color: var(--gold-hi); box-shadow: 0 0 0 2px rgba(255, 215, 122, 0.2); }
+.ld-search > svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #a99a7c; stroke-width: 2; stroke-linecap: round; }
+#loc-search { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; }
+#loc-geo {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px;
+  border: 0; border-radius: 8px; background: #2a2314; color: #f2b01e; font: inherit; font-size: 13px; cursor: pointer;
+}
+#loc-geo[hidden] { display: none; }
+#loc-geo:disabled { opacity: 0.5; cursor: default; }
+#loc-geo svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#loc-results {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 3; margin: 4px 0 0; padding: 4px; list-style: none;
+  max-height: 260px; overflow-y: auto; background: #0f0d09; border: 1px solid #4a3d27; border-radius: 12px; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+}
+#loc-results[hidden] { display: none; }
+#loc-results li {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 4px 10px;
+  border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+#loc-results li.active, #loc-results li:hover { background: #2a2314; }
+#loc-results li.empty { cursor: default; color: var(--muted); font-style: italic; }
+#loc-results li.empty:hover { background: transparent; }
+#loc-results .pr-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+#loc-results .pr-name { font-weight: 600; }
+#loc-results .pr-sub { font-size: 12px; color: #a99a7c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#loc-results .pr-meta { flex: none; font-size: 12px; color: #a99a7c; font-variant-numeric: tabular-nums; }
+.ld-label { margin-top: 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #a99a7c; }
+.ld-current { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: #1f1a11; border: 1px solid #4a3d27; }
+.ldc-name { font-size: 16px; font-weight: 600; color: var(--gold-hi); }
+.ldc-sub { font-size: 13px; color: #b3a586; }
+.ld-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ld-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #a99a7c; }
+.ld-grid input {
+  height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #3a3020; background: #0f0d09; color: var(--ink);
+  font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; color-scheme: dark;
+}
+.ld-grid input:focus { outline: 0; border-color: var(--gold-hi); box-shadow: 0 0 0 2px rgba(255, 215, 122, 0.2); }
+.ld-grid input[readonly] { color: #8f8168; }
+.ld-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 18px; border-top: 1px solid #2b2418; }
+.ld-foot-left { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.ld-foot button {
+  height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: var(--ink);
+  font: inherit; font-size: 14px; cursor: pointer;
+}
+.ld-foot button:disabled { opacity: 0.35; cursor: default; }
+.ld-foot button.ld-primary { padding: 0 22px; border-color: #f2b01e; background: #f2b01e; color: #1a1408; font-weight: 600; }
+.ld-foot button:focus-visible, #loc-close:focus-visible, #loc-geo:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .ld-foot-left { flex-basis: 100%; }
+  .ld-foot button#loc-cancel, .ld-foot button.ld-primary { flex: 1; }
 }

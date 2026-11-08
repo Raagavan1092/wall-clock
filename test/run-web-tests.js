@@ -129,49 +129,100 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await ctx.close();
   }
 
-  // 4. first visit: Location must be chosen first; that location becomes the default
+  // 4. first visit: the Change location dialog must be answered first; that location becomes the default
   {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
+    page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#settings-panel:not(.hidden)", { timeout: 20000 });
-    ok("first visit: Settings opens by itself, location fields empty", await page.evaluate(() => document.getElementById("set-lat").value === ""));
-    ok("first visit: default/reset/close buttons and the other sections are inactive", await page.evaluate(() =>
-      ["set-location-default", "set-location-reset", "settings-reset", "settings-close", "settings-cancel"].every(id => document.getElementById(id).disabled) &&
-      document.getElementById("stage").hasAttribute("inert") && document.querySelector("#alarm-section").hasAttribute("inert")));
-    await page.click("#settings-save");
-    ok("first visit: Save without a location is refused", await page.evaluate(() => !document.getElementById("settings-panel").classList.contains("hidden")));
-    await page.fill("#set-place", "banaras");
+    await page.waitForSelector("#loc-dialog:not(.hidden)", { timeout: 20000 });
+    ok("first visit: the Change location dialog opens by itself, fields empty", await page.evaluate(() => document.getElementById("loc-lat").value === ""));
+    ok("first visit: default/reset/close/cancel are inactive and the clock is inert", await page.evaluate(() =>
+      ["loc-default", "loc-reset", "loc-close", "loc-cancel"].every(id => document.getElementById(id).disabled) &&
+      document.getElementById("stage").hasAttribute("inert")));
+    await page.keyboard.press("Escape");
+    ok("first visit: Esc does not dismiss it", await page.evaluate(() => !document.getElementById("loc-dialog").classList.contains("hidden")));
+    await page.click("#loc-apply");
+    ok("first visit: Apply without a location is refused", await page.evaluate(() => !document.getElementById("loc-dialog").classList.contains("hidden")));
+    await page.fill("#loc-search", "banaras");
     await page.keyboard.press("Enter");
-    ok("search: 'banaras' fills Varanasi's coordinates", await page.evaluate(() => Math.abs(+document.getElementById("set-lat").value - 25.3) < 0.5 && +document.getElementById("set-elev").value > 50));
-    await page.click("#settings-save");
-    ok("first location is saved as the default and everything unlocks", await page.evaluate(() =>
-      !document.getElementById("stage").hasAttribute("inert") && document.getElementById("set-location-default").disabled &&
-      /Varanasi/.test(document.getElementById("set-current-name").textContent) &&
-      /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name) &&
-      /Reset to Varanasi/.test(document.getElementById("set-location-reset").textContent)));
-    await page.click("#settings-toggle");
-    ok("Set as default is inactive while the location equals the default, active once it differs", await page.evaluate(() => {
-      const btn = document.getElementById("set-location-default"), lat = document.getElementById("set-lat");
-      const rst = document.getElementById("set-location-reset");
-      const before = btn.disabled && rst.disabled;
-      lat.value = "13.4"; lat.dispatchEvent(new Event("input"));
-      const mid = btn.disabled || rst.disabled;
-      lat.value = document.getElementById("set-lat").defaultValue || lat.value;
-      return before === true && mid === false && /Custom/.test(document.getElementById("set-current-name").textContent);
+    ok("search: 'banaras' fills Varanasi's coordinates", await page.evaluate(() => Math.abs(+document.getElementById("loc-lat").value - 25.3) < 0.5 && +document.getElementById("loc-elev").value > 50));
+    await page.click("#loc-apply");
+    ok("first location is applied, saved as the default, and everything unlocks", await page.evaluate(() =>
+      document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") &&
+      Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 25.3) < 0.5 &&
+      /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name)));
+
+    // the pin button brings the widget into the second row
+    ok("widget: hidden until the pin button is pressed", await page.evaluate(() => document.getElementById("loc-widget").hidden && document.getElementById("loc-toggle").getAttribute("aria-pressed") === "false"));
+    await page.click("#loc-toggle");
+    await page.waitForTimeout(1200);
+    ok("widget: shows in the second row, under the top row, with place, time and arc", await page.evaluate(() => {
+      const w = document.getElementById("loc-widget"), row = document.querySelector("#top-controls .tc-row");
+      return !w.hidden && w.previousElementSibling === row && row.contains(document.getElementById("loc-toggle")) &&
+        /Varanasi/.test(document.getElementById("loc-chip-name").textContent) && /N .* E/.test(document.getElementById("loc-coords").textContent) &&
+        /\d\d:\d\d/.test(document.getElementById("loc-arc").textContent) && !!document.querySelector("#loc-arc circle");
     }));
-    await page.click("#set-location-default", { timeout: 3000 }).catch(() => {});
-    ok("pressing Set as default makes it the default and goes inactive again", await page.evaluate(() =>
-      document.getElementById("set-location-default").disabled && Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).latitude - 13.4) < 1e-6));
+    ok("widget: the pin sits beside Settings and Full screen in the top row", await page.evaluate(() => {
+      const ids = Array.from(document.querySelectorAll("#top-controls .tc-row > button")).map(b => b.id);
+      return ids.join() === "btn-fullview,loc-toggle,settings-toggle";
+    }));
+    await page.click("#loc-next");
+    ok("widget: Next moves the clock one day on, Now returns to live", await page.evaluate(async () => {
+      const off = document.getElementById("loc-now").classList.contains("is-live");
+      document.getElementById("loc-now").click();
+      await new Promise(r => setTimeout(r, 300));
+      return off === false && document.getElementById("loc-now").classList.contains("is-live");
+    }));
+
+    // place menu -> Change location dialog
+    await page.click("#loc-chip");
+    ok("menu: lists the current place as selected, plus Change location", await page.evaluate(() =>
+      !document.getElementById("loc-menu").hidden && document.querySelectorAll("#loc-recent [aria-checked=true]").length === 1 && !!document.getElementById("loc-change")));
+    await page.click("#loc-change");
+    ok("dialog: Set as default and Reset are inactive while the location equals the default", await page.evaluate(() =>
+      !document.getElementById("loc-dialog").classList.contains("hidden") && document.getElementById("loc-default").disabled && document.getElementById("loc-reset").disabled &&
+      /Reset to Varanasi/.test(document.getElementById("loc-reset").textContent) && !document.getElementById("loc-close").disabled));
+    ok("dialog: editing the latitude makes both active and the place a custom location", await page.evaluate(() => {
+      const lat = document.getElementById("loc-lat");
+      lat.value = "13.4"; lat.dispatchEvent(new Event("input"));
+      return !document.getElementById("loc-default").disabled && !document.getElementById("loc-reset").disabled && /Custom/.test(document.getElementById("loc-current-name").textContent);
+    }));
+    await page.click("#loc-reset");
+    ok("dialog: Reset puts the default back in the fields", await page.evaluate(() =>
+      Math.abs(+document.getElementById("loc-lat").value - 25.3) < 0.5 && document.getElementById("loc-default").disabled));
+    await page.evaluate(() => { const lat = document.getElementById("loc-lat"); lat.value = "13.4"; lat.dispatchEvent(new Event("input")); });
+    await page.click("#loc-default");
+    ok("dialog: Set as default saves at once and goes inactive again", await page.evaluate(() =>
+      document.getElementById("loc-default").disabled && Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).latitude - 13.4) < 1e-6));
+    await page.click("#loc-cancel");
+    ok("dialog: Cancel closes without applying", await page.evaluate(() =>
+      document.getElementById("loc-dialog").classList.contains("hidden") && Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 25.3) < 0.5));
+    await page.click("#loc-chip");
+    await page.click("#loc-change");
+    await page.click("#loc-reset");
+    await page.click("#loc-apply");
+    ok("dialog: Apply moves the clock there and the place joins the recent list", await page.evaluate(() =>
+      Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 25.3) > 1 &&
+      JSON.parse(localStorage.getItem("vedicWallClock.recentLocations.v1")).length === 2));
+
+    // Settings no longer has a Location section
+    await page.click("#settings-toggle");
+    ok("settings: the Location section is gone", await page.evaluate(() =>
+      !document.getElementById("set-lat") && !document.getElementById("set-place") && !Array.from(document.querySelectorAll("#settings-panel h3")).some(h => /Location/i.test(h.textContent))));
+    await page.click("#settings-save");
+    ok("settings: Save keeps the chosen location", await page.evaluate(() => Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 13.4) < 1e-6));
+
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
     ok("slider shows sunrise (up) and sunset (down) only", await page.evaluate(() =>
       /\u2191 \d\d:\d\d/.test(document.getElementById("scrub-sunrise").textContent) && /\u2193 \d\d:\d\d/.test(document.getElementById("scrub-sunset").textContent) &&
       !document.getElementById("scrub-ghati") && !document.getElementById("scrub-next")));
-    ok("second visit: no prompt, stays unlocked", await page.evaluate(() => document.getElementById("settings-panel").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert")));
+    ok("second visit: no prompt, stays unlocked, widget stays on", await page.evaluate(() =>
+      document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && !document.getElementById("loc-widget").hidden));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));
     await ctx.close();
   }
