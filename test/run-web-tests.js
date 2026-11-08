@@ -86,10 +86,38 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       SS.bija.clear();
       const all = SS.positions(d0);
       const exact = Math.abs(sw(SS.trueLongitude("moon", d0, { exactSine: true }) - SS.trueLongitude("moon", d0)));
-      return { worst, bounds, empty, shifted, noBija, restored: SS.trueLongitude("sun", d0) === base0, marsMoved,
+      // Burgess 1860 worked table: 1 Jan 1860, midnight at Ujjain (UT = 00:00 minus 75.76667/360 day).
+      const b60 = new Date(Date.UTC(1860, 0, 1) - 0.2104630 * 86400000);
+      const asec = (s, d, m, x) => s * 108000 + d * 3600 + m * 60 + x;   // arcseconds
+      const secOf = deg => deg * 3600;
+      const diff = (deg, target) => { let x = secOf(deg) - target; x = ((x + 648000) % 1296000) - 648000; return Math.abs(x); };
+      const el = n => SS.elements(n, b60);
+      const burgess = {
+        ahargana: SS.ahargana(b60),
+        sun: diff(el("sun").mean, asec(8, 17, 48, 7)),
+        mercury: diff(el("mercury").sighrocca, asec(4, 15, 13, 8)),
+        venus: diff(el("venus").sighrocca, asec(10, 21, 8, 59)),
+        mars: diff(el("mars").mean, asec(5, 24, 17, 36)),
+        jupiter: diff(el("jupiter").mean, asec(2, 26, 0, 7)),
+        saturn: diff(el("saturn").mean, asec(3, 20, 11, 13)),
+        node: diff(SS.meanLongitude("rahu", b60), asec(9, 24, 26, 4)),
+      };
+      // Same date with the historical bija (Bentley, as printed by Burgess), supplied here as test data only.
+      const bentley = { mercury: -16, venus: -12, jupiter: -8, saturn: 12 };
+      Object.keys(bentley).forEach(k => SS.bija.set(k, { revsPerMahayuga: bentley[k] }));
+      const burgessBija = {
+        mercury: diff(el("mercury").sighrocca, asec(4, 8, 36, 16)),
+        jupiter: diff(el("jupiter").mean, asec(2, 22, 41, 41)),
+        saturn: diff(el("saturn").mean, asec(3, 25, 8, 50)),
+      };
+      SS.bija.clear();
+      return { burgess, burgessBija, worst, bounds, empty, shifted, noBija, restored: SS.trueLongitude("sun", d0) === base0, marsMoved,
         keys: Object.keys(all).sort().join(","), ketu: sw(all.ketu - all.rahu - 180), exact };
     });
     Object.keys(r.bounds).forEach(b => ok("SS " + b + " within " + r.bounds[b] + " deg of modern", r.worst[b] <= r.bounds[b], r.worst[b].toFixed(1) + " deg"));
+    ok("SS ahargana for 1 Jan 1860 is Burgess's 1,811,945", Math.abs(r.burgess.ahargana - 1811945) < 1e-3, String(r.burgess.ahargana));
+    Object.keys(r.burgess).filter(k => k !== "ahargana").forEach(k => ok("SS mean place '" + k + "' = Burgess 1860 table (within 2 arcsec)", r.burgess[k] <= 2, r.burgess[k].toFixed(1) + '"'));
+    Object.keys(r.burgessBija).forEach(k => ok("SS bija revolution change '" + k + "' = Burgess bija column (within 2 arcsec)", r.burgessBija[k] <= 2, r.burgessBija[k].toFixed(1) + '"'));
     ok("SS bija table starts empty", r.empty);
     ok("SS bija entry shifts the Sun by ~0.5 deg for 30 arcmin", Math.abs(r.shifted - 0.5) < 0.05, r.shifted.toFixed(3));
     ok("SS bija on a star-planet moves it too", r.marsMoved);
