@@ -8,8 +8,8 @@
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const Elongation = VedicEngine.Elongation;
 
-  function current(date) {
-    const step = Elongation.currentStep(date, 12);
+  function current(date, method) {
+    const step = Elongation.currentStep(date, 12, method);
     const tithiNumber = step.index + 1; // 1..30
     const paksha = tithiNumber <= 15 ? "shukla" : "krishna";
     // Index within the paksha, 1..15 (15 = Purnima or Amavasya).

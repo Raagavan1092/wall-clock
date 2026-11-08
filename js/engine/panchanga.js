@@ -17,6 +17,9 @@
     },
     ayanamsa: "lahiri",
     sunriseEdge: "upper-limb", // "upper-limb" (default) or "disc-centre"
+    // Where the Sun and Moon positions come from: "drik" (modern ephemeris, default)
+    // or "ss-bentley" (classical Surya Siddhanta + historical bija). See sidereal.js.
+    method: "drik",
   };
 
   const SCALED_RING_DIVISIONS = {
@@ -33,6 +36,7 @@
       location: Object.assign({}, DEFAULT_SETTINGS.location, overrides.location),
       ayanamsa: overrides.ayanamsa || DEFAULT_SETTINGS.ayanamsa,
       sunriseEdge: overrides.sunriseEdge || DEFAULT_SETTINGS.sunriseEdge,
+      method: VedicEngine.Sidereal.METHODS.indexOf(overrides.method) !== -1 ? overrides.method : DEFAULT_SETTINGS.method,
     };
   }
 
@@ -59,13 +63,14 @@
     const ghati = Ghati.current(date, anchors);
     const varaIndex = Util.weekdayAtOffset(governingSunrise, location.utcOffsetMinutes);
 
-    const tithi = Tithi.current(date);
-    const nakshatra = Nakshatra.current(date, settings.ayanamsa);
+    const method = settings.method;
+    const tithi = Tithi.current(date, method);
+    const nakshatra = Nakshatra.current(date, settings.ayanamsa, method);
     // Pinned to governingSunrise, same as varaIndex - the Sun's nakshatra
     // moves so slowly (~13.4 days/nakshatra) that "for the whole Vedic day"
     // and "right now" are never meaningfully different, but pinning it here
     // keeps it consistent with vara for the Ravi Yoga ring.
-    const sunNakshatraIndex = Nakshatra.sunIndex(governingSunrise, settings.ayanamsa);
+    const sunNakshatraIndex = Nakshatra.sunIndex(governingSunrise, settings.ayanamsa, method);
 
     // Full sequence of values from sunrise to next sunrise, each clipped to
     // its true boundaries within that window (NOT forced to start at
@@ -89,15 +94,15 @@
       }
       return sequence;
     }
-    const tithiSequence = buildSequence(Tithi.current).map(function (entry) {
+    const tithiSequence = buildSequence(function (t) { return Tithi.current(t, method); }).map(function (entry) {
       // Amanta lunar month for this segment, computed from ITS OWN start
       // (not just "now") - correct even on the rare day a lunar-month
       // boundary (new moon) falls within the sunrise-to-sunrise window.
-      return Object.assign({}, entry, { amantaMasaRashiIndex: Masa.amantaMasaForDate(entry.segStart, settings.ayanamsa).rashiIndex });
+      return Object.assign({}, entry, { amantaMasaRashiIndex: Masa.amantaMasaForDate(entry.segStart, settings.ayanamsa, method).rashiIndex });
     });
-    const nakshatraSequence = buildSequence(function (t) { return Nakshatra.current(t, settings.ayanamsa); });
-    const yogaSequence = buildSequence(function (t) { return Yoga.current(t, settings.ayanamsa); });
-    const karanaSequence = buildSequence(Karana.current);
+    const nakshatraSequence = buildSequence(function (t) { return Nakshatra.current(t, settings.ayanamsa, method); });
+    const yogaSequence = buildSequence(function (t) { return Yoga.current(t, settings.ayanamsa, method); });
+    const karanaSequence = buildSequence(function (t) { return Karana.current(t, method); });
     const lagnaSequence = buildSequence(function (t) { return Lagna.current(t, location, settings.ayanamsa); });
 
     const scaledRings = {};
@@ -129,10 +134,10 @@
       yogaSequence,
       karanaSequence,
       lagnaSequence,
-      dayEvents: DayEvents.compute(anchors, location, settings.ayanamsa), // moonrise/moonset/saṅkrānti
+      dayEvents: DayEvents.compute(anchors, location, settings.ayanamsa, method), // moonrise/moonset/saṅkrānti
       sunNakshatraIndex,
-      yoga: Yoga.current(date, settings.ayanamsa),
-      karana: Karana.current(date),
+      yoga: Yoga.current(date, settings.ayanamsa, method),
+      karana: Karana.current(date, method),
       scaledRings, // { muhurta, prahara, kala, rahuYamaGulika, hora } -> { day: [...], night: [...] }
     };
   }

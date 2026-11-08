@@ -58,31 +58,31 @@
   // Moon's node starts at 180° and the apsides at their own offsets.
   // (The other traditional count, 1,972,944,000, was tried and puts the Moon ~80°
   // off the real sky; this one lands within a few degrees. See the tests.)
-  const KALI_FRACTION_NUM = 1811n;  // years-from-creation / 4,320,000 = 1811 / 4
-  const KALI_FRACTION_DEN = 4n;
+  const KALI_FRACTION_NUM = 1811;  // years-from-creation / 4,320,000 = 1811 / 4
+  const KALI_FRACTION_DEN = 4;
 
   // Civil days in a mahayuga (4,320,000 years).
-  const CIVIL_DAYS_PER_MAHAYUGA = 1577917828n;
+  const CIVIL_DAYS_PER_MAHAYUGA = 1577917828;
 
-  // ---- Revolutions per mahayuga (BigInt: exactness matters, products reach 1e17) ----
+  // ---- Revolutions per mahayuga (plain numbers are exact here: revs x whole days stays < 2^53) ----
   const REVS = {
-    sun: 4320000n,
-    moon: 57753336n,
-    mars: 2296832n,
-    mercurySighra: 17937060n,
-    jupiter: 364220n,
-    venusSighra: 7022376n,
-    saturn: 146568n,
+    sun: 4320000,
+    moon: 57753336,
+    mars: 2296832,
+    mercurySighra: 17937060,
+    jupiter: 364220,
+    venusSighra: 7022376,
+    saturn: 146568,
     // Apsides (mandocca): where each body's epicycle-of-the-centre is "farthest".
-    moonApogee: 488203n,
-    sunApogee: 387n,
-    marsApogee: 204n,
-    mercuryApogee: 368n,
-    jupiterApogee: 900n,
-    venusApogee: 535n,
-    saturnApogee: 39n,
+    moonApogee: 488203,
+    sunApogee: 387,
+    marsApogee: 204,
+    mercuryApogee: 368,
+    jupiterApogee: 900,
+    venusApogee: 535,
+    saturnApogee: 39,
     // Moon's ascending node (Rāhu) moves backwards.
-    moonNode: -232238n,
+    moonNode: -232238,
   };
 
   // ---- Epicycle circumferences, in degrees out of 360 ---------------------
@@ -162,8 +162,39 @@
     Object.keys(BIJA).forEach(function (k) { delete BIJA[k]; });
   }
 
-  function bijaDegrees(body, jd) {
-    const e = BIJA[body];
+  // Historical set printed by Burgess (attributed to Bentley, "Hindu Astronomy" p.179) as
+  // changes to the revolution counts per mahayuga. In use from about the 1500s. Sun, Moon
+  // and Mars are unchanged, so for the Sun and Moon the only effect is on the Moon's apsis.
+  // NOT the table of any particular present-day almanac.
+  const BIJA_PRESETS = {
+    bentley: {
+      mercury: { revsPerMahayuga: -16 },
+      venus: { revsPerMahayuga: -12 },
+      jupiter: { revsPerMahayuga: -8 },
+      saturn: { revsPerMahayuga: 12 },
+      moonApogee: { revsPerMahayuga: -4 },
+      rahu: { revsPerMahayuga: 4 },
+    },
+  };
+  Object.keys(BIJA_PRESETS).forEach(function (k) {
+    Object.keys(BIJA_PRESETS[k]).forEach(function (b) { Object.freeze(BIJA_PRESETS[k][b]); });
+    Object.freeze(BIJA_PRESETS[k]);
+  });
+
+  // The table in force for a call: opts.bija (a preset name or a table object) if given,
+  // else the global, user-editable BIJA table.
+  function tableFor(opts) {
+    const o = opts && opts.bija;
+    if (!o) return BIJA;
+    if (typeof o === "string") {
+      if (!BIJA_PRESETS[o]) throw new Error("Unknown bija preset '" + o + "'. Available: " + Object.keys(BIJA_PRESETS).join(", "));
+      return BIJA_PRESETS[o];
+    }
+    return o;
+  }
+
+  function bijaDegrees(body, jd, table) {
+    const e = (table || BIJA)[body];
     if (!e) return 0;
     if (typeof e === "function") return e(jd, { body: body });
     if (e.constantArcmin == null && e.arcminPerYear == null) return 0;
@@ -171,9 +202,9 @@
     return ((e.constantArcmin || 0) + (e.arcminPerYear || 0) * (year - (e.epochYear || 2000))) / 60;
   }
 
-  function bijaRevs(body) {
-    const e = BIJA[body];
-    return (e && typeof e === "object" && e.revsPerMahayuga) ? BigInt(e.revsPerMahayuga) : 0n;
+  function bijaRevs(body, table) {
+    const e = (table || BIJA)[body];
+    return (e && typeof e === "object" && e.revsPerMahayuga) ? +e.revsPerMahayuga : 0;
   }
 
   // ---- Mean positions ------------------------------------------------------
@@ -187,16 +218,15 @@
   // Longitude (degrees, [0,360)) of an element that makes `revs` revolutions per
   // mahayuga, `days` after the Kali epoch.
   function revolve(revs, days) {
+    const D = CIVIL_DAYS_PER_MAHAYUGA;
     // Position at the Kali epoch: frac(revs * 452.75), exactly.
-    const atEpoch = Number(((revs * KALI_FRACTION_NUM) % KALI_FRACTION_DEN + KALI_FRACTION_DEN) % KALI_FRACTION_DEN) / Number(KALI_FRACTION_DEN);
-    // Whole days exactly (BigInt), the fractional day in floating point.
+    const atEpoch = (((revs * KALI_FRACTION_NUM) % KALI_FRACTION_DEN) + KALI_FRACTION_DEN) % KALI_FRACTION_DEN / KALI_FRACTION_DEN;
+    // Whole days exactly, the fractional day separately (keeps full precision).
     const whole = Math.floor(days);
     const part = days - whole;
-    const D = CIVIL_DAYS_PER_MAHAYUGA;
-    const n = (revs * BigInt(whole)) % D;
-    const wholeFrac = Number((n + D) % D) / Number(D);
-    const partFrac = (Number(revs) * part / Number(D)) % 1;
-    return Util.normDeg(((atEpoch + wholeFrac + partFrac) % 1) * 360);
+    const wholeFrac = ((((revs * whole) % D) + D) % D) / D;
+    const partFrac = (revs * part / D) % 1;
+    return Util.normDeg((((atEpoch + wholeFrac + partFrac) % 1) + 1) % 1 * 360);
   }
 
   const BODIES = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn", "rahu"];
@@ -223,13 +253,14 @@
   function elements(body, date, opts) {
     checkBody(body);
     const useBija = !(opts && opts.applyBija === false);
+    const table = tableFor(opts);
     const days = ahargana(date);
     const jd = julianDayUTC(date);
     const el = ELEMENTS[body];
-    const bija = useBija ? bijaDegrees(body, jd) : 0;
+    const bija = useBija ? bijaDegrees(body, jd, table) : 0;
     // The text gives the node's count as a magnitude (retrograde), so +n there means
     // faster backward motion; our stored count is negative, hence the sign flip.
-    const dRevs = useBija ? (body === "rahu" ? -bijaRevs(body) : bijaRevs(body)) : 0n;
+    const dRevs = useBija ? (body === "rahu" ? -bijaRevs(body, table) : bijaRevs(body, table)) : 0;
     const out = { days: days, bija: bija };
     if (body === "mercury" || body === "venus") {
       // Mean = Sun's mean; the body's own motion is its sighrocca.
@@ -240,7 +271,7 @@
       if (el.sighrocca) out.sighrocca = revolve(el.sighrocca, days);
     }
     if (el.apogee) {
-      const apogeeRevs = body === "moon" && useBija ? el.apogee + bijaRevs("moonApogee") : el.apogee;
+      const apogeeRevs = body === "moon" && useBija ? el.apogee + bijaRevs("moonApogee", table) : el.apogee;
       out.apogee = revolve(apogeeRevs, days);
     }
     return out;
@@ -279,7 +310,8 @@
   // ---- True positions ------------------------------------------------------
   // Sidereal longitude in degrees [0,360) at `date`.
   // opts.exactSine: use Math.sin/asin instead of the SS sine table (default false).
-  // opts.applyBija: include the bīja table (default true; it is empty today).
+  // opts.applyBija: include bīja at all (default true; the global table is empty today).
+  // opts.bija: a preset name ("bentley") or a table object, used instead of the global table.
   function trueLongitude(body, date, opts) {
     opts = opts || {};
     const exact = !!opts.exactSine;
@@ -324,7 +356,7 @@
     meanLongitude: meanLongitude,
     trueLongitude: trueLongitude,
     positions: positions,
-    bija: { table: BIJA, set: setBija, clear: clearBija, degrees: bijaDegrees },
+    bija: { table: BIJA, set: setBija, clear: clearBija, degrees: bijaDegrees, presets: BIJA_PRESETS },
     _internals: { sinSS: sinSS, arcsinSS: arcsinSS, revolve: revolve, mandaEquation: mandaEquation, sighraEquation: sighraEquation },
   };
 })(typeof window !== "undefined" ? window : globalThis);

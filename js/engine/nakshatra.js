@@ -12,9 +12,9 @@
 
   const SPAN = 360 / 27;
 
-  function current(date, ayanamsaName) {
+  function current(date, ayanamsaName, method) {
     function siderealMoon(d) {
-      return Sidereal.siderealMoonLongitude(d, Ayanamsa.get(ayanamsaName, d));
+      return Sidereal.longitude("moon", d, ayanamsaName, method);
     }
 
     const lon = siderealMoon(date);
@@ -39,8 +39,8 @@
   // counting origin for Ravi Yoga. The Sun spends ~13.4 days per nakshatra,
   // so this is effectively constant across a single Vedic day; callers
   // compute it once (at governingSunrise) rather than per-segment.
-  function sunIndex(date, ayanamsaName) {
-    const lon = Sidereal.siderealSunLongitude(date, Ayanamsa.get(ayanamsaName, date));
+  function sunIndex(date, ayanamsaName, method) {
+    const lon = Sidereal.longitude("sun", date, ayanamsaName, method);
     return Math.floor(lon / SPAN);
   }
 

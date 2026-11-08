@@ -22,8 +22,8 @@
     return "movable:" + ((halfTithiIndex - 1) % 7);
   }
 
-  function current(date) {
-    const step = Elongation.currentStep(date, 6);
+  function current(date, method) {
+    const step = Elongation.currentStep(date, 6, method);
     return {
       number: step.index + 1, // 1..60
       key: keyForHalfTithiIndex(step.index),

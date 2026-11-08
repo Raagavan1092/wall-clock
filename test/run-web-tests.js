@@ -130,6 +130,62 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.close();
   }
 
+  // 5. Calculation method: Drik stays the default and unchanged; the Surya Siddhanta + bija
+  //    method gives a coherent snapshot a few hours from Drik, never a wild one.
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    const r = await page.evaluate(() => {
+      const E = window.VedicEngine;
+      const when = new Date(Date.UTC(2026, 5, 15, 6, 0, 0));
+      const loc = { latitude: 13.42, longitude: 75.25, elevation: 672, utcOffsetMinutes: 330 };
+      const plain = E.Panchanga.compute(when, { location: loc });
+      const drik = E.Panchanga.compute(when, { location: loc, method: "drik" });
+      const t0 = performance.now();
+      const ss = E.Panchanga.compute(when, { location: loc, method: "ss-bentley" });
+      const ms = performance.now() - t0;
+      const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
+      const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
+      const bad = E.Panchanga.mergeSettings({ method: "nonsense" }).method;
+      // Settings: persisted, and a bad saved value falls back to Drik.
+      const key = E.Settings.STORAGE_KEY;
+      const old = localStorage.getItem(key);
+      localStorage.setItem(key, JSON.stringify({ method: "ss-bentley" }));
+      const loadedSS = E.Settings.load().method;
+      localStorage.setItem(key, JSON.stringify({ method: "bogus" }));
+      const loadedBad = E.Settings.load().method;
+      if (old === null) localStorage.removeItem(key); else localStorage.setItem(key, old);
+      return {
+        defaultIsDrik: plain.settings.method === "drik" && E.Settings.defaults().method === "drik",
+        sameAsPlain: plain.tithi.endTime.getTime() === drik.tithi.endTime.getTime() && plain.nakshatra.endTime.getTime() === drik.nakshatra.endTime.getTime(),
+        tithiDiffH: hrs(ss.tithi.endTime, drik.tithi.endTime), tithiDiff: Math.abs(ss.tithi.number - drik.tithi.number),
+        nakDiff: Math.abs(ss.nakshatra.index - drik.nakshatra.index), nakEndH: hrs(ss.nakshatra.endTime, drik.nakshatra.endTime),
+        yogaEndH: hrs(ss.yoga.endTime, drik.yoga.endTime), karanaEndH: hrs(ss.karana.endTime, drik.karana.endTime),
+        covers: ss.tithi.startTime <= when && when < ss.tithi.endTime && ss.nakshatra.startTime <= when && when < ss.nakshatra.endTime,
+        seqs: seqOk(ss.tithiSequence) && seqOk(ss.nakshatraSequence) && seqOk(ss.yogaSequence) && seqOk(ss.karanaSequence),
+        masa: ss.tithiSequence[0].amantaMasaRashiIndex >= 0 && ss.tithiSequence[0].amantaMasaRashiIndex < 12,
+        sunriseSame: ss.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
+        ms, bad, loadedSS, loadedBad,
+      };
+    });
+    ok("method: Drik is the default and the setting default", r.defaultIsDrik);
+    ok("method: omitting it equals 'drik' exactly", r.sameAsPlain);
+    ok("method: SS tithi ends within 14 h of Drik, same or adjacent tithi", r.tithiDiffH < 14 && r.tithiDiff <= 1, r.tithiDiffH.toFixed(1) + " h");
+    ok("method: SS nakshatra within one of Drik, ends within 20 h", r.nakDiff <= 1 && r.nakEndH < 20, r.nakEndH.toFixed(1) + " h");
+    ok("method: SS yoga/karana end within 20 h of Drik", r.yogaEndH < 20 && r.karanaEndH < 20, r.yogaEndH.toFixed(1) + " / " + r.karanaEndH.toFixed(1) + " h");
+    ok("method: SS snapshot brackets 'now' and sequences are well-formed", r.covers && r.seqs);
+    ok("method: SS lunar month index is valid", r.masa);
+    ok("method: sunrise is unchanged by the method", r.sunriseSame);
+    ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
+    ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
+    ok("method: a saved choice is loaded back", r.loadedSS === "ss-bentley");
+    ok("method: no page errors", errors.length === 0, errors.join("; "));
+    await page.close();
+  }
+
   // 3. bridge against a fake native side
   {
     const ctx = await browser.newContext();

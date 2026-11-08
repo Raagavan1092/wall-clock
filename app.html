@@ -73,6 +73,16 @@
 
   <section>
     <details>
+    <summary><h3>Calculation method</h3></summary>
+    <p class="settings-note">Where the Sun and Moon positions (tithi, nakṣatra, yoga, karaṇa, saṅkrānti, month) come from. Sunrise, moonrise and lagna always use the modern ephemeris.</p>
+    <label><input type="radio" name="calcMethod" value="drik"> Drik: plain modern ephemeris (default)</label>
+    <label><input type="radio" name="calcMethod" value="ss-bentley"> Sūrya Siddhānta with bīja (historical, Bentley)</label>
+    <p class="settings-note">The Sūrya Siddhānta option computes the Sun and Moon by the classical formulas. It does not use the Ayanāṃśa below. Bentley's bīja leaves the Sun and Moon unchanged except for the Moon's apsis, so expect results close to pure Sūrya Siddhānta, a few degrees (hours of tithi time) from Drik. Not yet checked against a current almanac.</p>
+    </details>
+  </section>
+
+  <section>
+    <details>
     <summary><h3>Ayanāṃśa</h3></summary>
     <p class="settings-note">Raman and KP are approximate; true Citrapakṣa isn't implemented.</p>
     <select id="set-ayanamsa">

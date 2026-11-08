@@ -1,4 +1,4 @@
-// User-facing settings (location, ayanamsa, sunrise definition, ring order,
+// User-facing settings (location, calculation method, ayanamsa, sunrise definition, ring order,
 // hidden rings and marker lines, ring layer order),
 // persisted to localStorage. Separate from the debug time override (?t=/
 // ?debug=1 in app.js), which is a dev tool, not a kiosk-facing setting.
@@ -57,6 +57,7 @@
     return {
       location: (function () { const d = defaultLocation(); return { latitude: d.latitude, longitude: d.longitude, elevation: d.elevation }; })(),
       ayanamsa: base.ayanamsa,
+      method: base.method,
       sunriseEdge: base.sunriseEdge,
       ringOrder: VedicEngine.RingAdapter.RING_ORDER.slice(),
       // Keys of rings (switchable ones from RING_ORDER, or the always-on
@@ -104,6 +105,7 @@
     return {
       location: Object.assign({}, d.location, saved.location),
       ayanamsa: VedicEngine.Ayanamsa.registry[saved.ayanamsa] ? saved.ayanamsa : d.ayanamsa,
+      method: VedicEngine.Sidereal.METHODS.indexOf(saved.method) !== -1 ? saved.method : d.method,
       sunriseEdge: saved.sunriseEdge === "disc-centre" ? "disc-centre" : "upper-limb",
       ringOrder: sanitizeRingOrder(saved.ringOrder),
       // Only the switchable rings can be hidden; the always-on Good / Bad

@@ -13,7 +13,8 @@
 
   // Returns { index, startTime, endTime, progress } where index = floor(elongation / stepDeg),
   // in [0, 360/stepDeg), startTime/endTime bracket the current step, and progress in [0,1).
-  function currentStep(date, stepDeg) {
+  function currentStep(date, stepDeg, method) {
+    if (VedicEngine.Sidereal.isSuryaSiddhanta(method)) return currentStepFromFormula(date, stepDeg, method);
     const stepsPerCircle = 360 / stepDeg;
     const elong = Astronomy.MoonPhase(date);
     const index = Math.floor(elong / stepDeg);
@@ -33,6 +34,25 @@
     const totalMs = endTime.getTime() - startTime.getTime();
     const progress = totalMs > 0 ? (date.getTime() - startTime.getTime()) / totalMs : 0;
 
+    return { index, startTime, endTime, progress };
+  }
+
+  // Same result as above, for methods that define their own Sun and Moon positions
+  // (no library search available): find where the formula crosses each boundary.
+  function currentStepFromFormula(date, stepDeg, method) {
+    const Util = VedicEngine.Util, Sidereal = VedicEngine.Sidereal;
+    const stepsPerCircle = 360 / stepDeg;
+    const angle = function (d) { return Sidereal.elongation(d, method); };
+    const index = Math.floor(angle(date) / stepDeg);
+    const startDeg = index * stepDeg;
+    const endDeg = ((index + 1) % stepsPerCircle) * stepDeg;
+    const endTime = Util.findAngleCrossing(angle, date, endDeg, { direction: 1, stepMinutes: 20, maxDays: 2 });
+    const startTime = Util.findAngleCrossing(angle, new Date(date.getTime() + 1000), startDeg, { direction: -1, stepMinutes: 20, maxDays: 2 });
+    if (!endTime || !startTime) {
+      throw new Error("Failed to bracket the current elongation step within the search window.");
+    }
+    const totalMs = endTime.getTime() - startTime.getTime();
+    const progress = totalMs > 0 ? (date.getTime() - startTime.getTime()) / totalMs : 0;
     return { index, startTime, endTime, progress };
   }
 

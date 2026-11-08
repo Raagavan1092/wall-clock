@@ -24,10 +24,10 @@
   }
 
   // { moonrise: Date|null, moonset: Date|null, sankranti: { time, rashiIndex }|null }
-  function compute(anchors, location, ayanamsaName) {
+  function compute(anchors, location, ayanamsaName, method) {
     const start = anchors.governingSunrise, end = anchors.nextSunrise;
 
-    function sunAngle(d) { return Sidereal.siderealSunLongitude(d, Ayanamsa.get(ayanamsaName, d)); }
+    function sunAngle(d) { return Sidereal.longitude("sun", d, ayanamsaName, method); }
     const rashiAtStart = Math.floor(sunAngle(start) / 30);
     const rashiAtEnd = Math.floor(sunAngle(end) / 30);
     let sankranti = null;

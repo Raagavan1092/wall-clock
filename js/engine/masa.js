@@ -33,15 +33,22 @@
 
   // rashiIndex: 0=Mesha, 1=Vrishabha, ... 11=Meena. Callers resolve this to
   // a name via panchanga-data.json's amantaMasa.names (engine stays data-free).
-  function amantaMasaForDate(date, ayanamsaName) {
-    const nextNewMoon = Astronomy.SearchMoonPhase(0, date, 40);
-    if (!nextNewMoon) {
+  function amantaMasaForDate(date, ayanamsaName, method) {
+    let newMoonDate;
+    if (Sidereal.isSuryaSiddhanta(method)) {
+      // No library search for a formula-defined Moon: scan the elongation for its next zero.
+      newMoonDate = Util.findAngleCrossing(function (d) { return Sidereal.elongation(d, method); }, date, 0,
+        { direction: 1, stepMinutes: 360, maxDays: 40 });
+    } else {
+      const found = Astronomy.SearchMoonPhase(0, date, 40);
+      newMoonDate = found && found.date;
+    }
+    if (!newMoonDate) {
       throw new Error("Could not find an upcoming new moon within 40 days of " + date.toISOString());
     }
-    const ayanamsaDeg = Ayanamsa.get(ayanamsaName, nextNewMoon.date);
-    const sunSidereal = Sidereal.siderealSunLongitude(nextNewMoon.date, ayanamsaDeg);
+    const sunSidereal = Sidereal.longitude("sun", newMoonDate, ayanamsaName, method);
     const rashiIndex = Math.floor(Util.normDeg(sunSidereal) / 30);
-    return { rashiIndex, nextNewMoon: nextNewMoon.date };
+    return { rashiIndex, nextNewMoon: newMoonDate };
   }
 
   VedicEngine.Masa = { amantaMasaForDate };

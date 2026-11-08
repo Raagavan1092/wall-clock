@@ -502,6 +502,9 @@
     // part of this form: it is changed from the pin button on the clock screen.
     function populateForm(from) {
       ayanamsaSelect.value = from.ayanamsa;
+      Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
+        radio.checked = radio.value === from.method;
+      });
       Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
         radio.checked = radio.value === from.sunriseEdge;
       });
@@ -531,10 +534,12 @@
     // Saves the form and closes. The location is kept as it is.
     function saveAndClose() {
       const sunriseEdge = (document.querySelector('input[name="sunriseEdge"]:checked') || {}).value || "upper-limb";
+      const method = (document.querySelector('input[name="calcMethod"]:checked') || {}).value || "drik";
 
       settings = {
         location: settings.location,
         ayanamsa: ayanamsaSelect.value,
+        method: method,
         sunriseEdge: sunriseEdge,
         ringOrder: workingRingOrder.slice(),
         hiddenRings: workingHiddenRings.slice(),

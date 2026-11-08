@@ -12,10 +12,9 @@
 
   const SPAN = 360 / 27;
 
-  function current(date, ayanamsaName) {
+  function current(date, ayanamsaName, method) {
     function yogaAngle(d) {
-      const ay = Ayanamsa.get(ayanamsaName, d);
-      return Util.normDeg(Sidereal.siderealSunLongitude(d, ay) + Sidereal.siderealMoonLongitude(d, ay));
+      return Util.normDeg(Sidereal.longitude("sun", d, ayanamsaName, method) + Sidereal.longitude("moon", d, ayanamsaName, method));
     }
 
     const value = yogaAngle(date);
