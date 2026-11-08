@@ -1,16 +1,14 @@
 <!-- The clock's markup. Loaded into index.html by its boot script (see app-files.json). -->
 <div id="stage">
-  <div id="clock-buttons" role="group" aria-label="Clock display">
-    <button type="button" id="btn-prev-display" class="cb cb-small">Previous</button>
-    <button type="button" id="btn-next-display" class="cb cb-small">Next</button>
-    <button type="button" id="btn-show-good" class="cb cb-toggle" role="checkbox" aria-checked="true">Show good times</button>
-    <button type="button" id="btn-show-bad" class="cb cb-toggle" role="checkbox" aria-checked="true">Show bad times</button>
+  <div id="dial-wrap">
+    <svg id="dial"></svg>
+    <button type="button" id="btn-prev-display" class="rc-corner rc-prev"><svg class="rc-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M100 100A154.4 154.4 0 0 1 0 0V100Z"/></svg><span class="rc-label"><span class="rc-dir">Previous ring</span><span class="rc-name"></span></span></button>
+    <button type="button" id="btn-next-display" class="rc-corner rc-next"><svg class="rc-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 100A154.4 154.4 0 0 0 100 0V100Z"/></svg><span class="rc-label"><span class="rc-dir">Next ring</span><span class="rc-name"></span></span></button>
   </div>
-  <svg id="dial"></svg>
   <div id="top-controls">
     <div class="tc-row">
       <button type="button" id="loc-toggle" aria-label="Location and time" aria-controls="loc-widget" aria-pressed="false" title="Location and time">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/></svg>
       </button>
       <button id="settings-toggle" aria-label="Settings">&#9881;</button>
     </div>
@@ -21,6 +19,7 @@
           <span id="loc-chip-name">-</span>
           <svg class="lw-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
+        <button type="button" id="loc-now" title="Back to live time"><span class="live-dot"></span>Now</button>
         <span class="lw-coords"><span id="loc-coords">--</span><br>IST &middot; UTC+05:30</span>
       </div>
       <div id="loc-menu" role="menu" aria-label="Choose a place" hidden>
@@ -33,17 +32,16 @@
         </button>
       </div>
       <div class="lw-arcwrap">
-        <button type="button" id="loc-now" title="Back to live time"><span class="live-dot"></span>Now</button>
         <svg id="loc-arc" viewBox="0 14 464 190" role="img" aria-label="Day arc"></svg>
       </div>
       <div class="lw-nav">
-        <button type="button" id="loc-prev" aria-label="Previous day">Previous</button>
+        <button type="button" id="loc-prev" aria-label="Previous day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Previous Day</button>
         <label id="loc-datebtn" title="Pick a date">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
           <span>Pick date</span>
           <input type="date" id="loc-date-input" aria-label="Pick a date">
         </label>
-        <button type="button" id="loc-next" aria-label="Next day">Next</button>
+        <button type="button" id="loc-next" aria-label="Next day">Next Day<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
     </section>
     <div class="tc-foot">
@@ -51,6 +49,8 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
         <span class="fv-text">Full screen</span>
       </button>
+      <button type="button" id="btn-show-good" class="tc-chip tc-toggle" role="checkbox" aria-checked="true">Good times</button>
+      <button type="button" id="btn-show-bad" class="tc-chip tc-toggle" role="checkbox" aria-checked="true">Bad times</button>
       <button type="button" id="next-alarm" hidden></button>
     </div>
   </div>
@@ -120,7 +120,7 @@
   <section>
     <details>
     <summary><h3>Defaults</h3></summary>
-    <p class="settings-note">Restores all settings above. The location is changed from the pin button on the clock screen. Nothing changes until you Save.</p>
+    <p class="settings-note">Restores all settings above. The location is changed from the clock button on the clock screen. Nothing changes until you Save.</p>
     <button id="settings-reset" type="button">Reset to defaults</button>
     </details>
   </section>

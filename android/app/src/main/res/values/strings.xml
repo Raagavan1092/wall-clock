@@ -1,9 +1,5 @@
 <resources>
     <string name="app_name">Vedic Wall Clock</string>
-    <string name="widget_time_desc">Ghaṭī and pala, the time and the date</string>
-    <string name="widget_tithi_desc">The tithi now and when the next one starts</string>
-    <string name="widget_nakshatra_desc">The nakṣatra now and when the next one starts</string>
-    <string name="widget_time_label">Vedic clock: time</string>
-    <string name="widget_tithi_label">Vedic clock: tithi</string>
-    <string name="widget_nakshatra_label">Vedic clock: nakṣatra</string>
+    <string name="widget_clock_desc">The clock face: ghaṭī hand, ghaṭī, pala and the time</string>
+    <string name="widget_clock_label">Vedic clock: clock face</string>
 </resources>

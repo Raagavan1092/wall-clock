@@ -232,7 +232,7 @@
   }
   let controlsSynced = false;
 
-  // "Next (<ring>)" / "Previous (<ring>)" on the display buttons.
+  // "Next ring (<ring>)" / "Previous ring (<ring>)" on the corner buttons by the dial.
   let lastSwitchLabel = null;
   function updateSwitchLabel() {
     const n = activeRingOrder.length;
@@ -244,8 +244,8 @@
     const key = prev + "|" + next;
     if (key === lastSwitchLabel) return;
     lastSwitchLabel = key;
-    document.getElementById("btn-next-display").textContent = next ? "Next (" + next + ")" : "Next";
-    document.getElementById("btn-prev-display").textContent = prev ? "Previous (" + prev + ")" : "Previous";
+    document.querySelector("#btn-next-display .rc-name").textContent = next ? "(" + next + ")" : "";
+    document.querySelector("#btn-prev-display .rc-name").textContent = prev ? "(" + prev + ")" : "";
   }
 
   const IST_OFFSET_MS = 5.5 * 3600 * 1000;

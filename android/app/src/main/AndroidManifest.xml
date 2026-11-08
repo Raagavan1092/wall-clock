@@ -90,43 +90,18 @@
             </intent-filter>
         </receiver>
 
-        <!-- Home screen and lock screen widget (where the phone offers lock screen widgets) -->
+        <!-- The clock face as a widget, for the home screen and the lock screen (where the phone offers lock screen widgets) -->
         <receiver
-            android:name=".TimeWidget"
+            android:name=".ClockFaceWidget"
             android:exported="true"
-            android:label="@string/widget_time_label">
+            android:label="@string/widget_clock_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.appwidget.action.APPWIDGET_OPTIONS_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_time_info" />
-        </receiver>
-
-        <!-- Home screen and lock screen widget (where the phone offers lock screen widgets) -->
-        <receiver
-            android:name=".TithiWidget"
-            android:exported="true"
-            android:label="@string/widget_tithi_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_tithi_info" />
-        </receiver>
-
-        <!-- Home screen and lock screen widget (where the phone offers lock screen widgets) -->
-        <receiver
-            android:name=".NakshatraWidget"
-            android:exported="true"
-            android:label="@string/widget_nakshatra_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_nakshatra_info" />
+                android:resource="@xml/widget_clock_info" />
         </receiver>
     </application>
 </manifest>
