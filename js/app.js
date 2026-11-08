@@ -308,7 +308,7 @@
       // focused button is that button's click, not a ring switch.
       const target = e.target;
       if (target && target.closest) {
-        if (target.closest("input, select, textarea, [role=dialog], [role=alertdialog]")) return;
+        if (target.closest("input, select, textarea, [role=slider], [role=dialog], [role=alertdialog]")) return;
         if (e.key === " " && target.closest("button")) return;
       }
       if (e.key === "ArrowRight" || e.key === " ") cycleRing(1);
@@ -619,6 +619,11 @@
       goLive: goLive,
       shiftDay: function (delta) { goToDay(shownDayOffset() + delta); },
       pickDate: goToDateString,
+      // Holds the clock at `hours` (0-24, IST) on the date on show.
+      setTimeOfDay: function (hours) {
+        const dayStart = istDayNumber(getNow().getTime()) * DAY_MS - IST_OFFSET_MS;
+        setManualTime(new Date(dayStart + Math.min(hours, 24 - 1 / 60) * 3600000));
+      },
       // Applies a place at once: the clock is recomputed for it and it is remembered.
       setLocation: function (loc) {
         settings = Object.assign({}, settings, {

@@ -393,7 +393,7 @@ html, body {
   flex: none;
   position: relative;
   z-index: 5;
-  width: min(360px, calc(100vw - 24px));
+  width: min(440px, calc(100vw - 12px));
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -622,9 +622,9 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
    is centred in the rest of the width, the screen's height at most. */
 @media (orientation: landscape) {
   #stage {
-    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 360px)));
+    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 460px)));
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) 460px;
     grid-template-rows: auto 1fr;
     align-items: start;
     justify-items: center;
@@ -632,8 +632,8 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
     padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) env(safe-area-inset-left);
   }
   #dial { grid-column: 1; grid-row: 1 / span 2; align-self: center; justify-self: center; order: 0; margin: 0; width: var(--dial); height: var(--dial); max-width: none; flex: none; }
-  #top-controls { grid-column: 2; grid-row: 1; order: 0; justify-self: end; width: min(100% - 8px, 352px); }
-  #clock-buttons { grid-column: 2; grid-row: 2; order: 0; justify-self: end; width: min(100% - 8px, 352px); }
+  #top-controls { grid-column: 2; grid-row: 1; order: 0; justify-self: end; width: min(100% - 8px, 444px); }
+  #clock-buttons { grid-column: 2; grid-row: 2; order: 0; justify-self: end; width: min(100% - 8px, 444px); }
   #day-buttons button { font-size: 11.5px; padding: 0 2px; }
   #day-prev, #day-next { flex: 1.6; }
   #day-today { flex: 0.8; }
@@ -1075,7 +1075,9 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 }
 #loc-change svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
-#loc-arc { display: block; width: 100%; height: auto; margin: 6px 0 2px; font-family: inherit; font-variant-numeric: tabular-nums; }
+body.loc-on #time-scrub { display: none; }
+#loc-arc:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; border-radius: 10px; }
+#loc-arc { display: block; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; width: 100%; height: auto; margin: 6px 0 2px; font-family: inherit; font-variant-numeric: tabular-nums; }
 .lw-nav { display: flex; align-items: center; gap: 6px; }
 .lw-nav button, #loc-datebtn {
   flex: none; height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid #3a3020;

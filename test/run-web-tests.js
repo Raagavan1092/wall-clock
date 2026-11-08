@@ -156,9 +156,21 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name)));
 
     // the pin button brings the widget into the second row
-    ok("widget: hidden until the pin button is pressed", await page.evaluate(() => document.getElementById("loc-widget").hidden && document.getElementById("loc-toggle").getAttribute("aria-pressed") === "false"));
+    ok("widget: on by default, standing in for the slider row", await page.evaluate(() => !document.getElementById("loc-widget").hidden && getComputedStyle(document.getElementById("time-scrub")).display === "none"));
+    await page.click("#loc-toggle");
+    ok("widget: the pin turns it off and the slider row returns", await page.evaluate(() => document.getElementById("loc-widget").hidden && getComputedStyle(document.getElementById("time-scrub")).display !== "none"));
     await page.click("#loc-toggle");
     await page.waitForTimeout(1200);
+    ok("widget: dragging the sun snaps to a whole hour", await (async () => {
+      const box = await page.locator("#loc-arc").boundingBox();
+      await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.52, box.y + box.height * 0.21);
+      await page.mouse.up();
+      const t = await page.evaluate(() => document.getElementById("scrub-readout").textContent);
+      return /· \d\d:00$/.test(t);
+    })());
+    await page.click("#loc-now");
     ok("widget: shows in the second row, under the top row, with place, time and arc", await page.evaluate(() => {
       const w = document.getElementById("loc-widget"), row = document.querySelector("#top-controls .tc-row");
       return !w.hidden && w.previousElementSibling === row && row.contains(document.getElementById("loc-toggle")) &&

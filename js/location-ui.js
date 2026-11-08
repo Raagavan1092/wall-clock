@@ -94,14 +94,16 @@
     let locked = E.Settings.needsLocation();
 
     // ================= widget =================
-    let shown = false;
-    try { shown = localStorage.getItem(SHOWN_KEY) === "1"; } catch (e) { /* storage unavailable */ }
+    // On unless switched off: the widget stands in for the time slider row.
+    let shown = true;
+    try { shown = localStorage.getItem(SHOWN_KEY) !== "0"; } catch (e) { /* storage unavailable */ }
 
     function setShown(on, persist) {
       shown = on;
       widget.hidden = !on;
       toggle.setAttribute("aria-pressed", String(on));
       toggle.classList.toggle("on", on);
+      document.body.classList.toggle("loc-on", on);
       if (!on) closeMenu();
       if (persist) { try { localStorage.setItem(SHOWN_KEY, on ? "1" : "0"); } catch (e) { /* storage unavailable */ } }
       if (on) update();
@@ -229,6 +231,57 @@
       sunEls = { g: g, sr: sr, ss: ss, onArc: onArc, prog: prog, glow: glow, sun: sun, hm: hm, sec: sec, date: date, srT: srT, ssT: ssT };
     }
 
+    // ---- drag the sun (or use the arrow keys): it snaps to the hour ticks
+    arc.setAttribute("tabindex", "0");
+    arc.setAttribute("role", "slider");
+    arc.setAttribute("aria-valuemin", "0");
+    arc.setAttribute("aria-valuemax", "24");
+    function hourAt(clientX, clientY) {
+      const S = sunEls;
+      if (!S) return null;
+      const r = arc.getBoundingClientRect();
+      const x = (clientX - r.left) * 464 / r.width, y = (clientY - r.top) * 204 / r.height;
+      let h;
+      if (x <= S.g.srX) h = (x - ARC.left) / S.g.k;
+      else if (x >= S.g.ssX) h = S.ss + (x - S.g.ssX) / S.g.k;
+      else {
+        const dx = x - S.g.cx, dy = ARC.base - y;
+        const th = dy < 0 ? (dx < 0 ? Math.PI : 0) : Math.atan2(dy, dx);
+        h = S.sr + (1 - th / Math.PI) * (S.ss - S.sr);
+      }
+      return Math.max(0, Math.min(24, Math.round(h)));
+    }
+    let dragging = false, lastHour = null;
+    function dragTo(e) {
+      const h = hourAt(e.clientX, e.clientY);
+      if (h == null || h === lastHour) return;
+      lastHour = h;
+      api.setTimeOfDay(h);
+    }
+    arc.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      dragging = true;
+      lastHour = null;
+      try { arc.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+      dragTo(e);
+    });
+    arc.addEventListener("pointermove", function (e) { if (dragging) dragTo(e); });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (t) {
+      arc.addEventListener(t, function () { dragging = false; });
+    });
+    arc.addEventListener("keydown", function (e) {
+      const k = e.key;
+      if (["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].indexOf(k) === -1) return;
+      e.preventDefault();
+      const h = istHours(api.getNow());
+      let t;
+      if (k === "Home") t = 0;
+      else if (k === "End") t = 24;
+      else if (k === "ArrowLeft" || k === "ArrowDown") t = Math.ceil(h - 1e-9) - 1;
+      else t = Math.floor(h + 1e-9) + 1;
+      api.setTimeOfDay(Math.max(0, Math.min(24, t)));
+    });
+
     let lastLabel = "";
     function update() {
       if (!shown) return;
@@ -263,7 +316,9 @@
       S.date.textContent = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", year: "numeric" });
       S.srT.textContent = srD ? "↑ " + hhmm(srD) : "";
       S.ssT.textContent = ssD ? hhmm(ssD) + " ↓" : "";
-      const label = "Day from sunrise " + (srD ? hhmm(srD) : "") + " to sunset " + (ssD ? hhmm(ssD) : "") + ". Now " + t.slice(0, 5) + ".";
+      arc.setAttribute("aria-valuenow", String(Math.round(h * 100) / 100));
+      arc.setAttribute("aria-valuetext", t.slice(0, 5));
+      const label = "Time of day, drag or use arrow keys to move by the hour. Day from sunrise " + (srD ? hhmm(srD) : "") + " to sunset " + (ssD ? hhmm(ssD) : "") + ". Now " + t.slice(0, 5) + ".";
       if (label !== lastLabel) { lastLabel = label; arc.setAttribute("aria-label", label); }
 
       const live = api.isLive();
