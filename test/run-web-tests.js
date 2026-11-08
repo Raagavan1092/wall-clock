@@ -310,15 +310,15 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       ok("widget: away from the ticks any minute can be picked", times.slice(1).some(t => !/:00$/.test(t)), times.join(" "));
     }
     await page.click("#loc-now");
-    ok("widget: shows in the second row, under the top row, with place, time and arc", await page.evaluate(() => {
+    ok("widget: shows under the top row and the plain buttons, with place, time and arc", await page.evaluate(() => {
       const w = document.getElementById("loc-widget"), row = document.querySelector("#top-controls .tc-row");
-      return !w.hidden && w.previousElementSibling === row && row.contains(document.getElementById("loc-toggle")) &&
+      return !w.hidden && w.previousElementSibling === document.querySelector("#top-controls .tc-plain") && row.nextElementSibling === document.getElementById("alarm-section") && row.contains(document.getElementById("loc-toggle")) &&
         /Varanasi/.test(document.getElementById("loc-chip-name").textContent) && /N .* E/.test(document.getElementById("loc-coords").textContent) &&
         /\d\d:\d\d/.test(document.getElementById("loc-arc").textContent) && !!document.querySelector("#loc-arc circle");
     }));
-    ok("widget: the pin sits beside Settings and Full screen in the top row", await page.evaluate(() => {
+    ok("widget: the clock button sits beside Alarms, Settings and Full screen in the top row", await page.evaluate(() => {
       const ids = Array.from(document.querySelectorAll("#top-controls .tc-row > button")).map(b => b.id);
-      return ids.join() === "btn-fullview,loc-toggle,settings-toggle";
+      return ids.join() === "btn-fullview,alarm-toggle,loc-toggle,settings-toggle";
     }));
     await page.click("#loc-next");
     await page.waitForTimeout(400);

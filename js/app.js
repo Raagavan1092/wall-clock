@@ -591,6 +591,24 @@
     });
   }
 
+  // The alarm drop-down under the alarm button: opens on tap, closes on a tap elsewhere or Esc.
+  function setAlarmMenu(on) {
+    const menu = document.getElementById("alarm-section"), btn = document.getElementById("alarm-toggle");
+    menu.hidden = !on;
+    btn.setAttribute("aria-expanded", String(on));
+    btn.classList.toggle("on", on);
+  }
+  function wireAlarmMenu() {
+    const menu = document.getElementById("alarm-section"), btn = document.getElementById("alarm-toggle");
+    btn.addEventListener("click", function () { setAlarmMenu(menu.hidden); });
+    document.addEventListener("pointerdown", function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target) && !document.querySelector(".alarm-modal")) setAlarmMenu(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !menu.hidden && !document.querySelector(".alarm-modal")) { setAlarmMenu(false); btn.focus(); }
+    });
+  }
+
   // Full screen view: hides every button and widget, leaving only the clock.
   function wireFullView() {
     const btn = document.getElementById("btn-fullview");
@@ -658,17 +676,16 @@
     wireSettingsPanel();
     wireLocation();
     wireFullView();
+    wireAlarmMenu();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.
     let alarmsOk = false;
     try {
       E.AlarmUI.init({
         getSettings: function () { return settings; },
         getData: function () { return data; },
-        // The next-alarm chip beside the gear opens Settings, where alarms live.
-        onChipClick: function () {
-          const panel = document.getElementById("settings-panel");
-          if (panel.classList.contains("hidden")) document.getElementById("settings-toggle").click();
-        },
+        // The next-alarm chip and the alarm button open the alarm drop-down.
+        onChipClick: function () { setAlarmMenu(true); },
+        onSetClick: function () { setAlarmMenu(false); },
       });
       alarmsOk = true;
     } catch (err) {

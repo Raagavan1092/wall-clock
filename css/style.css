@@ -244,7 +244,7 @@ html, body {
   fill: var(--centre-clock-secondary);
 }
 
-#settings-toggle, #loc-toggle {
+#settings-toggle, #loc-toggle, #alarm-toggle {
   flex: none;
   width: 44px;
   height: 44px;
@@ -256,10 +256,10 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(8px);
 }
-#settings-toggle:hover, #loc-toggle:hover { background: rgba(42, 33, 19, 0.9); }
-#loc-toggle { display: grid; place-items: center; padding: 0; }
-#loc-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-#loc-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
+#settings-toggle:hover, #loc-toggle:hover, #alarm-toggle:hover { background: rgba(42, 33, 19, 0.9); }
+#loc-toggle, #alarm-toggle { display: grid; place-items: center; padding: 0; }
+#loc-toggle svg, #alarm-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#loc-toggle.on, #alarm-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
 
 #settings-panel {
   position: fixed;
@@ -416,7 +416,7 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
-body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview #next-alarm, body.fullview .tc-chip, body.fullview .rc-corner,
+body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview #next-alarm, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
   position: fixed;
@@ -508,7 +508,7 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 /* ======================================================================
    Settings: the Alarms section
    ====================================================================== */
-#settings-panel .primary-action {
+#settings-panel .primary-action , #alarm-section .primary-action {
   width: 100%;
   margin: 0;
   display: flex;
@@ -526,8 +526,8 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   box-shadow: 0 8px 22px rgba(201, 168, 92, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: transform 0.12s, box-shadow 0.12s;
 }
-#settings-panel .primary-action:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(201, 168, 92, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
-#settings-panel .primary-action svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#settings-panel .primary-action:hover , #alarm-section .primary-action:hover { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(201, 168, 92, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+#settings-panel .primary-action svg , #alarm-section .primary-action svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 .alarm-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .alarm-empty { font-size: 12.5px; color: var(--muted); padding: 10px 12px; border: 1px dashed #3a3022; border-radius: 12px; }
@@ -548,7 +548,7 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 .alarm-row-next { font-size: 12px; color: var(--gold-hi); }
 .alarm-row.is-off .alarm-row-next { color: var(--muted); }
 
-#settings-panel .alarm-switch {
+#settings-panel .alarm-switch , #alarm-section .alarm-switch {
   position: relative;
   width: 40px;
   height: 24px;
@@ -559,10 +559,10 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   border: 1px solid #5a4a2a;
   transition: background 0.15s;
 }
-#settings-panel .alarm-switch[aria-checked="true"] { background: var(--gold); border-color: #e8c878; }
+#settings-panel .alarm-switch[aria-checked="true"] , #alarm-section .alarm-switch[aria-checked="true"] { background: var(--gold); border-color: #e8c878; }
 .alarm-switch-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #f0e6c8; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); transition: transform 0.15s; }
 .alarm-switch[aria-checked="true"] .alarm-switch-knob { transform: translateX(16px); background: #1a1208; }
-#settings-panel .alarm-icon-btn {
+#settings-panel .alarm-icon-btn , #alarm-section .alarm-icon-btn {
   width: 32px;
   height: 32px;
   margin: 0;
@@ -574,8 +574,8 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   border-color: transparent;
   color: var(--muted);
 }
-#settings-panel .alarm-icon-btn:hover { background: #332817; color: var(--ink); }
-#settings-panel .alarm-icon-btn.danger:hover { color: var(--centre-bad); }
+#settings-panel .alarm-icon-btn:hover , #alarm-section .alarm-icon-btn:hover { background: #332817; color: var(--ink); }
+#settings-panel .alarm-icon-btn.danger:hover , #alarm-section .alarm-icon-btn.danger:hover { color: var(--centre-bad); }
 
 /* ======================================================================
    The Set Alarm dialog
@@ -1015,3 +1015,17 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 
 /* No focus borders on the clock screen: a tapped button or the dial should not grow an outline. */
 #stage, #stage *, #stage *:focus, #stage *:focus-visible, #stage :focus-within { outline: none !important; -webkit-tap-highlight-color: transparent; }
+
+/* Alarm drop-down under the alarm button, and the plain buttons above the Location widget. */
+#alarm-section {
+  position: absolute; top: 52px; right: 0; z-index: 8;
+  width: min(360px, 100%); max-height: min(70vh, 480px); overflow-y: auto;
+  padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  background: #1a160f; border: 1px solid #4a3d27; border-radius: 16px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  font-family: "Segoe UI", system-ui, sans-serif; color: var(--centre-text);
+}
+#alarm-section[hidden] { display: none; }
+#alarm-section .alarm-list { margin: 0; }
+#alarm-section button { font: inherit; cursor: pointer; }
+#alarm-section #alarm-reliable { background: transparent; color: var(--muted); border: 1px solid var(--ring-stroke); border-radius: 999px; padding: 6px 12px; font-size: 12px; }
+.tc-plain { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }

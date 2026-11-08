@@ -178,7 +178,8 @@
     button.id = "alarm-reliable";
     button.textContent = "Make alarms reliable…";
     button.addEventListener("click", function () { safe(function () { Native.openSetup(); }); });
-    alarmBody.appendChild(button);
+    const setBtn = alarmBody.querySelector("#alarm-set");
+    if (setBtn) alarmBody.insertBefore(button, setBtn); else alarmBody.appendChild(button);
 
     // Display: phone-only options (they used to sit inside "Make alarms reliable"). They apply at once.
     if (typeof Native.getDisplayPrefs === "function") {

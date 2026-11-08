@@ -347,10 +347,7 @@
     const now = Date.now();
     const items = Alarms.list();
     listEl.innerHTML = "";
-    if (!items.length) {
-      listEl.appendChild(h("li", { class: "alarm-empty", text: "No alarms yet. Set one for a tithi, a muhūrta, Rāhu Kālam, sunrise - anything on the dial." }));
-      return;
-    }
+    if (!items.length) return;
     items.forEach(function (a) {
       let nextText;
       if (!a.enabled) nextText = a.lastRang && a.repeat === "once" ? "Rang " + fmtWhen(a.lastRang, now) : "Off";
@@ -982,7 +979,7 @@
     listEl = document.getElementById("alarm-list");
     chipEl = document.getElementById("next-alarm");
     const setBtn = document.getElementById("alarm-set");
-    if (setBtn) setBtn.addEventListener("click", function (e) { openDialog(null, e.currentTarget); });
+    if (setBtn) setBtn.addEventListener("click", function (e) { if (options.onSetClick) options.onSetClick(); openDialog(null, e.currentTarget); });
     if (chipEl) chipEl.addEventListener("click", function () { if (options.onChipClick) options.onChipClick(); });
     function refresh() { renderList(); renderChip(); }
     Alarms.onChange(refresh);
