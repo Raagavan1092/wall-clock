@@ -14,24 +14,31 @@
 // compare with the rest of the engine (which is tropical minus ayanāṃśa), use
 // Sidereal-style longitudes: tropical - Ayanamsa.get(name, date).
 //
-// PROVENANCE / CAVEATS (read before trusting to the arc-minute):
-//  - The constants below are the standard SS values (Burgess/Whitney
-//    translations). They were entered from memory because the reference sites
-//    were unreachable when this was written, then sanity-checked numerically
-//    against the modern ephemeris (test/run-web-tests.js, section 4). That check
-//    already caught one wrong constant (Mercury) and the wrong creation-to-Kali
-//    count. It is a coarse check: SS itself drifts from the real sky (today
-//    roughly Sun/Moon/Rāhu <4°, Jupiter/Saturn ~6°, and more for Mars, Mercury
-//    and Venus near conjunction), which is exactly what bīja corrects. So verify
-//    against the actual almanac before relying on arc-minutes.
-//  - Order of the manda/śīghra steps for the five star-planets could not be
-//    checked against the verses; the plausible orderings agree to within a
-//    couple of degrees, so the choice is documented at starPlanet().
-//  - The BIJA table is deliberately EMPTY: bīja values and their epoch differ by
-//    school (Vākya, Parahita, Rashtriya...) and must come from the text the
-//    department follows. With it empty, results are pure Sūrya Siddhānta.
-//  - Positions are for the instant, not for a local sunrise: SS's deśāntara /
-//    bhujāntara / cara corrections convert a local-time ahargaṇa; since this
+// PROVENANCE (checked against the primary text):
+//  - Source: Ebenezer Burgess's translation with Whitney's notes (Journal of the
+//    American Oriental Society vol. 6, 1860; archive.org id dli.bengal.10689.17955).
+//    Verified there: the revolution counts (i.29-33, 41-44), the civil days in a
+//    mahayuga, 1,955,880,000 years from creation to the Kali epoch (i.46-48), all
+//    mean planets at 0 Aries at that epoch with the Moon's node at 0 Libra and its
+//    apsis at 0 Cancer (i.57-58 and note), the sine table (ii.17-27), the epicycle
+//    sizes (ii.34-37) and how they vary (ii.38), and the sign rules (ii.45).
+//  - Burgess's worked table for 1 Jan 1860, midnight at Ujjain (ahargana 1,811,945)
+//    is reproduced to the arcsecond for the mean places (see test/run-web-tests.js).
+//  - The order of the four corrections for Mars..Saturn (ii.43-44) follows Burgess's
+//    commentary, because the verse wording is ambiguous: half sighra, half manda,
+//    whole manda (on the mean place), whole sighra.
+//  - Not reproduced from the text: Burgess's final "true place" example table has
+//    unreadable OCR, so the true longitudes are checked against the modern ephemeris
+//    only (coarse bounds). SS itself drifts from the real sky (Burgess notes up to
+//    ~9 deg in his day), which is what bija corrects.
+//  - The BIJA table is deliberately EMPTY: bija values and their epoch differ by
+//    school (Vakya, Parahita, Rashtriya...) and must come from the text the
+//    department follows. With it empty, results are pure Surya Siddhanta.
+//    (Burgess prints the historical set attributed to Bentley, as changes to the
+//    revolution counts: Mercury -16, Venus -12, Jupiter -8, Saturn +12, Moon's apsis
+//    -4, node +4, Sun/Moon/Mars 0. Not loaded here; see bija docs below.)
+//  - Positions are for the instant, not for a local sunrise: SS's desantara /
+//    bhujantara / cara corrections convert a local-time ahargana; since this
 //    takes an absolute instant (UTC) they are not needed here.
 (function (global) {
   "use strict";
@@ -102,7 +109,7 @@
   // SS Rsines (R = 3438') at 3°45' steps, 0..90°. Used with linear interpolation,
   // as the text prescribes. opts.exactSine switches to Math.sin for comparison.
   const R = 3438;
-  const SINE_TABLE = [0, 225, 449, 671, 889, 1105, 1315, 1520, 1719, 1910, 2093, 2267,
+  const SINE_TABLE = [0, 225, 449, 671, 890, 1105, 1315, 1520, 1719, 1910, 2093, 2267,
     2431, 2585, 2728, 2859, 2978, 3084, 3177, 3256, 3321, 3372, 3409, 3431, 3438];
   const STEP_DEG = 3.75;
 
@@ -132,14 +139,19 @@
   }
 
   // ---- Bīja table (EMPTY on purpose) --------------------------------------
-  // Keyed by body: sun, moon, mars, mercury, jupiter, venus, saturn, rahu.
-  // Each entry is either
-  //   { epochYear, constantArcmin, arcminPerYear }   (years are Gregorian decimal years;
-  //       correction = constantArcmin + arcminPerYear * (year - epochYear)), or
-  //   a function (jd, ctx) => correction in degrees, for tables that do not fit that shape.
-  // The correction is added to the body's own mean element before the saṃskāras:
-  // the mean longitude for Sun/Moon/Mars/Jupiter/Saturn/Rāhu, and the śīghrocca for
-  // Mercury and Venus (their "own" revolution count in SS). Positive = forward.
+  // Keyed by body: sun, moon, mars, mercury, jupiter, venus, saturn, rahu, plus
+  // moonApogee for the Moon's apsis. Each entry may combine either or both of:
+  //   revsPerMahayuga: n        the classical form (as printed by Burgess): change the
+  //                             body's revolution count per mahayuga by n, as the count is
+  //                             printed in the text (use multiples of 4, as the tradition
+  //                             does; for Rahu, retrograde, +n = faster backward). Acts over
+  //                             the whole time since the Kali epoch.
+  //   { epochYear, constantArcmin, arcminPerYear }   a linear correction in degrees:
+  //                             constantArcmin + arcminPerYear * (year - epochYear).
+  // or the entry can be a function (jd, ctx) => correction in degrees.
+  // Corrections apply to the body's own mean element: the mean longitude for
+  // Sun/Moon/Mars/Jupiter/Saturn/Rahu and the sighrocca for Mercury and Venus (their
+  // "own" revolution count in SS). Positive = forward.
   const BIJA = {};
 
   function setBija(body, entry) {
@@ -154,8 +166,14 @@
     const e = BIJA[body];
     if (!e) return 0;
     if (typeof e === "function") return e(jd, { body: body });
+    if (e.constantArcmin == null && e.arcminPerYear == null) return 0;
     const year = 2000 + (jd - 2451545.0) / 365.25;
     return ((e.constantArcmin || 0) + (e.arcminPerYear || 0) * (year - (e.epochYear || 2000))) / 60;
+  }
+
+  function bijaRevs(body) {
+    const e = BIJA[body];
+    return (e && typeof e === "object" && e.revsPerMahayuga) ? BigInt(e.revsPerMahayuga) : 0n;
   }
 
   // ---- Mean positions ------------------------------------------------------
@@ -200,29 +218,37 @@
     if (!ELEMENTS[body]) throw new Error("Unknown body '" + body + "'. Available: " + BODIES.join(", ") + ", ketu");
   }
 
-  // Mean elements for a body at `date` (all degrees, with any bīja applied).
-  function elements(body, date) {
+  // Mean elements for a body at `date` (all degrees, with any bīja applied unless
+  // opts.applyBija === false).
+  function elements(body, date, opts) {
     checkBody(body);
+    const useBija = !(opts && opts.applyBija === false);
     const days = ahargana(date);
     const jd = julianDayUTC(date);
     const el = ELEMENTS[body];
-    const bija = bijaDegrees(body, jd);
+    const bija = useBija ? bijaDegrees(body, jd) : 0;
+    // The text gives the node's count as a magnitude (retrograde), so +n there means
+    // faster backward motion; our stored count is negative, hence the sign flip.
+    const dRevs = useBija ? (body === "rahu" ? -bijaRevs(body) : bijaRevs(body)) : 0n;
     const out = { days: days, bija: bija };
     if (body === "mercury" || body === "venus") {
-      // Mean = Sun's mean; the body's own motion is its śīghrocca.
+      // Mean = Sun's mean; the body's own motion is its sighrocca.
       out.mean = revolve(el.mean, days);
-      out.sighrocca = Util.normDeg(revolve(el.sighrocca, days) + bija);
+      out.sighrocca = Util.normDeg(revolve(el.sighrocca + dRevs, days) + bija);
     } else {
-      out.mean = Util.normDeg(revolve(el.mean, days) + bija);
+      out.mean = Util.normDeg(revolve(el.mean + dRevs, days) + bija);
       if (el.sighrocca) out.sighrocca = revolve(el.sighrocca, days);
     }
-    if (el.apogee) out.apogee = revolve(el.apogee, days);
+    if (el.apogee) {
+      const apogeeRevs = body === "moon" && useBija ? el.apogee + bijaRevs("moonApogee") : el.apogee;
+      out.apogee = revolve(apogeeRevs, days);
+    }
     return out;
   }
 
-  function meanLongitude(body, date) {
-    if (body === "ketu") return Util.normDeg(meanLongitude("rahu", date) + 180);
-    const e = elements(body, date);
+  function meanLongitude(body, date, opts) {
+    if (body === "ketu") return Util.normDeg(meanLongitude("rahu", date, opts) + 180);
+    const e = elements(body, date, opts);
     // For Mercury/Venus the "own" mean position is the śīghrocca.
     return (body === "mercury" || body === "venus") ? e.sighrocca : e.mean;
   }
@@ -258,41 +284,29 @@
     opts = opts || {};
     const exact = !!opts.exactSine;
     if (body === "ketu") return Util.normDeg(trueLongitude("rahu", date, opts) + 180);
-    if (body === "rahu") return meanLongitude("rahu", date); // SS has only the mean node
-    const saved = opts.applyBija === false ? stashBija() : null;
-    try {
-      const e = elements(body, date);
-      if (body === "sun" || body === "moon") {
-        return Util.normDeg(e.mean - mandaEquation(body, e.mean, e.apogee, exact));
-      }
-      return starPlanet(body, e, exact);
-    } finally {
-      if (saved) restoreBija(saved);
+    if (body === "rahu") return meanLongitude("rahu", date, opts); // SS has only the mean node
+    const e = elements(body, date, opts);
+    if (body === "sun" || body === "moon") {
+      // One equation only: the manda (equation of the apsis).
+      return Util.normDeg(e.mean - mandaEquation(body, e.mean, e.apogee, exact));
     }
+    return starPlanet(body, e, exact);
   }
 
-  // Mars, Mercury, Jupiter, Venus, Saturn: manda / śīghra / manda / śīghra.
-  //   P1 = mean - half of manda(mean)
-  //   P2 = P1 + sighra(P1)
-  //   P3 = mean - whole manda(P2)         (manda re-derived from the corrected planet)
-  //   true = P3 + sighra(P3)
+  // Mars, Mercury, Jupiter, Venus, Saturn (ii.43-44, in Burgess's reading):
+  //   L1   = mean + half sighra(mean)
+  //   L2   = L1   + half manda(L1)
+  //   L3   = mean + whole manda(L2)       (applied to the MEAN place)
+  //   true = L3   + whole sighra(L3)
+  // For Mercury and Venus the "mean" is the Sun's mean and the sighrocca is the body's
+  // own revolution, exactly as in the text's worked tables.
   function starPlanet(body, e, exact) {
-    // Mercury/Venus: the "mean" fed to manda is the Sun's mean; the śīghra then
-    // supplies the planet's own motion.
     const mean = e.mean;
-    const p1 = mean - mandaEquation(body, mean, e.apogee, exact) / 2;
-    const p2 = p1 + sighraEquation(body, p1, e.sighrocca, exact);
-    const p3 = mean - mandaEquation(body, p2, e.apogee, exact);
-    return Util.normDeg(p3 + sighraEquation(body, p3, e.sighrocca, exact));
+    const l1 = mean + sighraEquation(body, mean, e.sighrocca, exact) / 2;
+    const l2 = l1 - mandaEquation(body, l1, e.apogee, exact) / 2;
+    const l3 = mean - mandaEquation(body, l2, e.apogee, exact);
+    return Util.normDeg(l3 + sighraEquation(body, l3, e.sighrocca, exact));
   }
-
-  function stashBija() {
-    const copy = Object.assign({}, BIJA);
-    clearBija();
-    return copy;
-  }
-
-  function restoreBija(copy) { clearBija(); Object.assign(BIJA, copy); }
 
   // Every body at once: { sun, moon, mars, mercury, jupiter, venus, saturn, rahu, ketu }.
   function positions(date, opts) {
