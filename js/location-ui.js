@@ -94,9 +94,8 @@
     let locked = E.Settings.needsLocation();
 
     // ================= widget =================
-    // On unless switched off: the widget stands in for the time slider row.
-    let shown = true;
-    try { shown = localStorage.getItem(SHOWN_KEY) !== "0"; } catch (e) { /* storage unavailable */ }
+    // Always closed when the app opens; the clock button opens it for the session.
+    let shown = false;
 
     function setShown(on, persist) {
       shown = on;

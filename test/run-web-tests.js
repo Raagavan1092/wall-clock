@@ -292,9 +292,11 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name)));
 
     // the pin button brings the widget into the second row
-    ok("widget: on by default; the old day navigator and slider row are gone", await page.evaluate(() => !document.getElementById("loc-widget").hidden && !document.getElementById("time-scrub") && !document.getElementById("day-buttons") && !document.getElementById("time-slider")));
+    ok("widget: closed by default; the old day navigator and slider row are gone", await page.evaluate(() => document.getElementById("loc-widget").hidden && !document.getElementById("time-scrub") && !document.getElementById("day-buttons") && !document.getElementById("time-slider")));
     await page.click("#loc-toggle");
-    ok("widget: the pin turns it off, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !!document.getElementById("btn-prev-display")));
+    ok("widget: the clock button opens it", await page.evaluate(() => !document.getElementById("loc-widget").hidden));
+    await page.click("#loc-toggle");
+    ok("widget: and closes it again, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !!document.getElementById("btn-prev-display")));
     await page.click("#loc-toggle");
     await page.waitForTimeout(1200);
     {
@@ -371,8 +373,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
-    ok("second visit: no prompt, stays unlocked, widget stays on", await page.evaluate(() =>
-      document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && !document.getElementById("loc-widget").hidden));
+    ok("second visit: no prompt, stays unlocked, widget starts closed", await page.evaluate(() =>
+      document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && document.getElementById("loc-widget").hidden));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));
     await ctx.close();
   }

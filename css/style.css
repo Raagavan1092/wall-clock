@@ -484,7 +484,7 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
    is centred in the rest of the width, the screen's height at most. */
 @media (orientation: landscape) {
   #stage {
-    --dial: min(100vh, 100dvh, max(200px, calc(100vw - 540px)));
+    --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - 540px)));
     display: grid;
     grid-template-columns: minmax(0, 1fr) 540px;
     grid-template-rows: auto 1fr;
