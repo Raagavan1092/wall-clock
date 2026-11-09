@@ -184,7 +184,7 @@
       // Good/bad times and day/night only depend on the snapshot, never on
       // which switchable ring is toggled, so they're rebuilt whenever the
       // snapshot itself changes.
-      lastGoodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data);
+      lastGoodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data, { yogaSets: settings.yogaSets });
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
       applyFixedRingVisibility();
@@ -505,6 +505,7 @@
       workingRingOrder = from.ringOrder.slice();
       workingHiddenRings = from.hiddenRings.slice();
       workingHiddenMarkers = from.hiddenMarkers.slice();
+      document.getElementById("set-yoga-asal-vakya").checked = !!(from.yogaSets && from.yogaSets.asalVakya);
       renderRingOrderList();
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
@@ -538,6 +539,7 @@
         ringOrder: workingRingOrder.slice(),
         hiddenRings: workingHiddenRings.slice(),
         hiddenMarkers: workingHiddenMarkers.slice(),
+        yogaSets: { asalVakya: document.getElementById("set-yoga-asal-vakya").checked },
         layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);

@@ -402,12 +402,15 @@
   // weekday x nakshatra/tithi combination yogas that used to have a ring of
   // their own - Maraṇa Yogam and Viṣa Yoga (bad), Amṛta Yogam, Sarvārtha
   // Siddhi and Ravi Yoga (good) - each event in its own lane (layoutEvents).
-  function buildGoodBadTimes(snapshot, data) {
+  // `opts.yogaSets.asalVakya` (Settings > Yogas) adds the Asal Vākya
+  // Amṛta / Maraṇa Yogam; off (or no opts) leaves them out.
+  function buildGoodBadTimes(snapshot, data, opts) {
     const a = snapshot.anchors;
+    const asalVakya = !!(opts && opts.yogaSets && opts.yogaSets.asalVakya);
     const all = dailyWindows(snapshot, data)
-      .concat(activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)))
+      .concat(asalVakya ? activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)) : [])
       .concat(activeIntervalsFor("Viṣa Yoga", "bad", buildVishaYoga(snapshot, data)))
-      .concat(activeIntervalsFor("Amṛta Yogam", "good", buildAmritaYoga(snapshot, data)))
+      .concat(asalVakya ? activeIntervalsFor("Amṛta Yogam", "good", buildAmritaYoga(snapshot, data)) : [])
       .concat(activeIntervalsFor("Sarvārtha Siddhi", "good", buildSarvarthaSiddhiYoga(snapshot, data)))
       .concat(activeIntervalsFor("Ravi Yoga", "good", buildRaviYoga(snapshot, data)));
     function ring(key, goodBad) {

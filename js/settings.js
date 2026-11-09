@@ -65,6 +65,9 @@
       // (RingAdapter.MARKER_TITLES) the user has chosen to hide.
       hiddenRings: [],
       hiddenMarkers: [],
+      // Optional local-practice yoga sets (Settings > Yogas). asalVakya: the
+      // Amṛta / Siddha / Maraṇa Yogam weekday x nakṣatra table. Off by default.
+      yogaSets: { asalVakya: false },
       // Physical order of the ring layers, outside in (Dial.LAYER_KEYS).
       layerOrder: VedicEngine.Dial.LAYER_KEYS.slice(),
     };
@@ -113,6 +116,7 @@
       // more, so anything an earlier version saved for them is dropped.
       hiddenRings: sanitizeKeys(saved.hiddenRings, VedicEngine.RingAdapter.RING_ORDER),
       hiddenMarkers: sanitizeKeys(saved.hiddenMarkers, VedicEngine.RingAdapter.MARKER_TITLES),
+      yogaSets: { asalVakya: !!(saved.yogaSets && saved.yogaSets.asalVakya) },
       layerOrder: d.layerOrder,
     };
   }
