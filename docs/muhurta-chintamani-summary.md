@@ -1,7 +1,9 @@
-# Muhurta Chintamani — summary of Prakaranas 1–2
+# Muhurta Chintamani — summary of Prakaranas 1–2, plus event muhurtas from the whole book
 
 Source: *Muhurta Chintamani* of Rama Daivajna, with Govinda's *Piyushadhara* (Sanskrit) and Kedardatt Joshi's *Pitambara* (Hindi) commentaries.
 Prakarana 1 (Shubhashubha) = book pp. 1–70; Prakarana 2 (Nakshatra) = book pp. 71–154 (Prakarana 1 v. 1–57, Prakarana 2 v. 1–63). Through book p. 70, add 52 to a book page number to get the PDF page (book p. 1 = PDF p. 53). The PDF page offset shifts after that (PDF p. 122 is a two-page spread and PDF p. 123 repeats it; book pp. 128–129 are missing from the scan), so each batch heading gives its own PDF pages.
+
+The last section, "When is it a good or bad time for N?", collects the event timings from Prakaranas 2–13 in tables.
 
 Verse numbers are as printed (v. N). Book page numbers are shown as "p. N".
 
@@ -590,3 +592,196 @@ Abhijit is the last quarter of Uttarashadha plus the first 1/15 of Shravana, so 
 | First parts of Yamaghanta / Mrityu yoga | 1.9 | 8 / 12 ghatis |
 | Abhukta-mula | 2.53–54 | From 1 to 13 ghatis around the Jyeshtha–Mula junction |
 | Gandanta (tithi, nakshatra, lagna) | 2.57 | The junction periods |
+
+---
+
+## When is it a good or bad time for N? — event muhurtas across the book
+
+These tables answer one question: *is this a good time to do N?* They cover every event the book gives a specific time for, from Prakarana 2 (Nakshatra) through Prakarana 13 (Grihapravesha). Prakaranas 3–13 are summarised here only for these event timings, not verse by verse. References are prakarana.verse (for example 6.55 = Vivaha, v. 55).
+
+**Short forms**
+- **Nakshatra classes** (2.2–8): *dhruva* = Uttaraphalguni, Uttarashadha, Uttarabhadrapada, Rohini. *chara* = Svati, Punarvasu, Shravana, Dhanishtha, Shatabhisha. *kshipra / laghu* = Hasta, Ashvini, Pushya, Abhijit. *mridu / maitra* = Mrigashira, Revati, Chitra, Anuradha. *ugra* = the three Purvas (Purvaphalguni, Purvashadha, Purvabhadrapada), Bharani, Magha. *mishra* = Vishakha, Krittika. *tikshna* = Mula, Jyeshtha, Ardra, Ashlesha. "The three Uttaras" = Uttaraphalguni, Uttarashadha, Uttarabhadrapada.
+- **Tithi classes**: *nanda* 1, 6, 11 · *bhadra* 2, 7, 12 · *jaya* 3, 8, 13 · *rikta* 4, 9, 14 · *purna* 5, 10, 15. Tithis are Shukla unless marked K (Krishna). 30 = Amavasya.
+- **Benefic weekdays** = Monday, Wednesday, Thursday, Friday. **Malefic weekdays** = Sunday, Tuesday, Saturday.
+- **Uttarayana** = Sun from Makara to Mithuna. **Hari-shayana** (Vishnu's sleep) = Ashadha S11 to Kartika S11.
+- **Lagna, standard** = benefics in kendra (1, 4, 7, 10) or trikona (5, 9); malefics in 3, 6, 11; the 8th (and usually the 12th) empty. Where a row says "standard lagna", this is what it means.
+
+**Scan gaps that affect this section:** book pp. 128–129 (Mula's abode) and book pp. 575–590 (the end of Vastu and Grihapravesha v. 1–4: the months, nakshatras and tithis for entering a new house) are missing from the scan. The house-entry row below gives only what survives (Grihapravesha v. 5–6, Yatra 11.109, and the hints in Vastu 12.15–19).
+
+### 1. Blanket rules for all auspicious work
+
+| Rule | Good | Bad / avoid | Ref |
+|---|---|---|---|
+| Uttarayana-only works | Pratishtha of deities and water-bodies, vivaha, agnyadhana, chaula, upanayana, rajyabhisheka, grihapravesha: **Uttarayana only** | Dakshinayana (except fierce deities' pratishtha, 2.61) | 5.26 |
+| Jupiter and Venus | Both visible | Set (asta), "child" (just risen) or "old" (about to set): Venus child 3 days after rising in the east / 10 in the west, old 15 days before setting in the east / 5 in the west; Jupiter 15 days each. Others allow 10, 7 or (in need) 3 days | 5.26–28 |
+| Comets and portents | — | While a comet is visible (some: a paksha; Varaha: 7 days after). 10 (or 13) days after an eclipse, earthquake or meteor. 7 days after untimely lightning, thunder or rain in Pausha–Chaitra (no fault if the ground doesn't hold footprints, 11.98) | 5.26, 5.53, 11.79 |
+| Gandanta | — | Nakshatra: last 2 ghatis of Revati / Ashlesha / Jyeshtha + first 2 of Ashvini / Magha / Mula. Tithi: 1 ghati at the end of a purna tithi + start of the next nanda. Lagna: last ½ ghati of Mina / Karka / Vrishchika + first ½ of the next sign | 6.43, 2.57 |
+| Sankranti | — | 16 ghatis before and after any solar sankranti (also set ghatis for other planets' ingress) | 6.79–80 |
+| Dagdha tithis (by the Sun's sign) | — | Sun in Dhanu or Mina: 2nd · Vrishabha or Kumbha: 4th · Mesha or Karka: 6th · Mithuna or Kanya: 8th · Simha or Vrishchika: 10th · Tula or Makara: 12th | 6.66 |
+| Vishaghati | — | 4 ghatis in every nakshatra, starting from its own fixed ghati (e.g. Ashvini 50, Bharani 24, Krittika 30, Rohini 40, Pushya 20, Magha 30, Hasta 21, Anuradha 10, Shravana 10, Revati 30). Bad for marriage, upanayana, chaula, house-building, entry, travel. Cancelled if the Moon is in kendra or trikona | 6.49–51 |
+| Weekday's bad muhurtas | — | Sun: Aryama (14th day-muhurta) · Mon: Brahma (9th) and Rakshasa (12th) · Wed: Abhijit (8th) · Thu: Jala (6th) and Rakshasa (12th) · Fri: Brahma (9th) and Pitr (4th) · Sat: Shiva (1st) and Sarpa (2nd). Kulika (day): Sun 14, Mon 12, Tue 10, Wed 8, Thu 6, Fri 4, Sat 2 | 6.54, 6.65 |
+| Bana (panchaka) | — | Avoid roga bana at night, agni and nripa by day, chora at night, mrityu at the sandhyas. Avoid by event: mrityu for marriage, roga for upanayana, agni for roofing a house, nripa for entering service, chora for travel | 6.73–74 |
+| Kartari and the Moon | — | Malefics on both sides (12th and 2nd) of the lagna; the Moon with a malefic; the Moon in 6, 8 or 12; the 8th sign from the person's janma rashi or lagna rising | 6.44–48 |
+| Krishna paksha / Tuesday etc. | Allowed for mixed-caste (sankirna) marriages | — | 6.94 |
+| **Cancellers** | Mercury, Jupiter or Venus in kendra or trikona; Jupiter in the lagna; the Sun in the 11th; the Moon in the 11th or vargottama in the lagna remove most faults | — | 6.89–91 |
+| Mother menstruating / in sutaka | — | No chaula, upanayana or vivaha of her child until she is clean | 5.33 |
+| After a big family rite | — | Within 6 months (some: a year) of a marriage in the family (3 generations): no other marriage, chaula or upanayana. Within a month of a death in either family: no marriage (or do shanti first). The eldest child's rites never in Jyeshtha month | 5.33, 6.15–18 |
+
+### 2. Life-cycle samskaras
+
+| Event | Time / age | Nakshatras (good) | Tithi | Weekday | Avoid | Ref |
+|---|---|---|---|---|---|---|
+| First menses (whether the time is auspicious) | Magha, Margashirsha, Vaishakha, Ashvina, Phalguna, Jyeshtha, Shravana; Shukla; by day, at dawn or dusk | Shravana, Dhanishtha, Shatabhisha, mridu, kshipra, dhruva, Svati (middling: Mula, Punarvasu, Magha, Vishakha, Krittika) | — | Mon, Wed, Thu, Fri | Chaitra, Ashadha, Bhadrapada, Kartika, Pausha; Bharani, Jyeshtha, Ardra, Ashlesha, the three Purvas; Bhadra, sankranti, Amavasya, 6, 8, 12, rikta; sandhya, midday, midnight; Vyatipata, Vaidhriti, eclipse (shanti if so) | 5.1–3 |
+| First bath after menses | 4th day | Hasta, Svati, Ashvini, Mrigashira, Anuradha, Dhanishtha, dhruva, Jyeshtha; for quick conception Mrigashira, Revati, Svati, Hasta, Ashvini, Rohini | Good tithi | Benefic | Krittika, Bharani, Mula, Ardra, Pushya, Punarvasu, Magha, Chitra, Vishakha, Shravana; Bhadra, sankranti | 5.4 |
+| **Garbhadhana** (conception) | Even nights 4–16 after menses for a son, odd for a daughter; at night | Three Uttaras, Mrigashira, Hasta, Anuradha, Rohini, Svati, Shravana, Dhanishtha, Shatabhisha (middling: Chitra, Punarvasu, Pushya, Ashvini) | Not 6, 8, 14, 15, 30, rikta | Mon, Wed, Thu, Fri | First 4 nights; day-time; janma nakshatra, 7th tara; Mula, Bharani, Ashvini, Revati, Magha; gandanta; eclipse days, Vyatipata, Vaidhriti, first half of Parigha; Bhadra, sandhyas, sankranti, parents' shraddha day | 5.5–7 |
+| **Pumsavana** | 3rd month (or 4th) | As simanta | As simanta | As simanta | As simanta | 5.10 |
+| **Simantonnayana** | 6th or 8th month (some 4th); Shukla; forenoon | Mrigashira, Pushya, Mula, Shravana, Punarvasu, Hasta (also dhruva, Revati) | Not rikta, 6, 8, 12, 30 | Sun, Tue, Thu | Lagnas Simha, Vrishchika (also Karka, Makara, Kanya); Venus-set / malamasa are **no** fault (fixed-time rite) | 5.8–9 |
+| Vishnubali (protecting the foetus) | 8th month; forenoon | Shravana, Rohini, Pushya | S7 or S12 | — | Malefic in 8th | 5.10 |
+| **Jatakarma, Namakarana** | Jatakarma at birth; naming on the 11th or 12th day (brahmana 11th, kshatriya 13th, vaishya 16th, shudra a month); forenoon | Mridu, dhruva, kshipra, chara | Not parva, rikta, 9, 30 | Benefic | Sun, Sat, Tue lagnas or navamshas; afternoon or night | 5.11 |
+| Mother's first bath after birth | — | Revati, dhruva, Mrigashira, Hasta, Svati, Ashvini, Anuradha | Not 4, 6, 8, 9, 12, 14 | Sun, Tue, Thu | Ardra, Punarvasu, Pushya, Shravana, Magha, Bharani, mishra, Mula, Chitra; Wed, Sat | 5.12 |
+| First breast-feeding | — | Mridu, dhruva, kshipra | Not rikta | Not Tue | Vishti, Vyatipata, Vaidhriti | 5.12 |
+| Dolarohana (first cradle) | 10th, 12th, 16th, 18th or 32nd day | Mridu, laghu, dhruva. Chakra: count the Sun's nakshatra to the Moon's: 1–5 health, 6–10 death, 11–15 thinness, 16–20 illness, 21–27 happiness | — | Mon, Wed, Thu, Fri | — | 5.14–15 |
+| Nishkramana (first outing) | 4th month (or 3rd, or 12th day) | Ashvini, Anuradha, Punarvasu, Pushya, Rohini, Shravana, etc. (travel nakshatras) | Shukla or early Krishna; not 6, 8, 12, 30, rikta | — | Mina, Vrishchika, Mesha lagna; adhomukha nakshatras | 5.15 |
+| Jalapuja (mother worships water) | After the first month | Shravana, Pushya, Punarvasu, Mrigashira, Hasta, Mula, Anuradha | Not rikta | Mon, Wed, Thu | Jupiter or Venus set; Chaitra, Pausha, adhika month | 5.16 |
+| **Annaprashana** | Boy: 6th month or later even months; girl: 5th or odd months | Sthira, mridu, laghu, chara | 2, 3, 5, 7, 10, 13 | Mon, Wed, Thu, Fri | 1, 6, 11, 8, 12, 30, rikta; Sun, Tue, Sat; Mina, Mesha, Vrishchika lagna; 8th sign from janma | 5.17 |
+| Seating on the ground | 5th month; Mars strong | Dhruva, Mrigashira, Jyeshtha, Anuradha, laghu | Not rikta | Benefic | — | 5.21 |
+| First tambula | 2½ months, or at annaprashana | Dhruva, mridu, laghu, Shravana, Mula, Punarvasu, Jyeshtha, Svati, Dhanishtha | — | Not Tue, Sat | — | 5.23 |
+| **Karnavedha** (ear-piercing) | 12th or 16th day, or 6th, 7th or 8th month, or an odd year; midday or forenoon. Kartika S12 onward praised | Shravana, Dhanishtha, Punarvasu, mridu, laghu | Not rikta, kshaya | Mon, Wed, Thu, Fri | Chaitra, Pausha, Hari-shayana, janma month, even year, janma taras; night | 5.24–25 |
+| **Chaula / Chudakarana** (first haircut) | 3rd or 5th year (odd) from conception or birth, or by family custom; Uttarayana | Punarvasu, Pushya, Revati, Ashvini, Shravana, Dhanishtha, Shatabhisha, Hasta, Chitra, Svati, Jyeshtha, Mrigashira | Not 1, 6, 8, 12, rikta, parvas | Mon, Wed, Thu, Fri (in need: brahmana Sun, kshatriya Tue, vaishya Wed, shudra Sat) | Chaitra; mother more than 5 months pregnant (unless the child is over 5); weak malefics in kendra; 8th sign from janma | 5.29–33 |
+| Shaving, haircut, nails | Not within 9 days of the last; by day | Chaula's nakshatras | Not rikta, parvas (4, 6, 8, 9, 14, 15, 30), 1 | Weekday effect on life (Garga): Sun −1 month, Sat −7, Tue −8; Wed +5, Mon +7, Thu +10, Fri +11 | Sandhyas, night; after a bath, oiling, a meal or putting on ornaments; before war or travel; shraddha day, Vyatipata, Bhadra. Shaving 6 times in a year on Krittika (3 on Anuradha, 8 Rohini, 5 Magha, 4 Uttaraphalguni) is fatal. **Any day** is fine for a yajna, a wedding, a parent's death, release from prison, or by order of a king or brahmana. Husband of a wife past 7 months pregnant: no shaving, corpse-carrying or long travel | 5.34–36 |
+| Aksharambha (first letters) | 5th year; Uttarayana | Laghu, Shravana, Svati, Revati, Punarvasu, Ardra, Chitra, Anuradha | 2, 3, 5, 6, 10, 11, 12 | Benefic | Chara lagna; 1, 8, 15, rikta; Tue, Sat; Hari-shayana | 5.37 |
+| Vidyarambha (start of study) | — | Mrigashira, Ardra, Punarvasu, Hasta, Chitra, Svati, Shravana, Dhanishtha, Shatabhisha, Ashvini, Mula, the three Purvas, Pushya, Ashlesha | 2, 3, 5, 6, 10, 11, 12 | Thu, Fri, Wed best; Sun middling; Mon dullness | Tue, Sat (no learning or death) | 5.38 |
+| Ankurarpana (sowing sprouts before a big rite) | 3rd, 5th, 7th or 9th day before; forenoon or evening | Seed-sowing nakshatras | Not parva, 13, rikta | Benefic | Night | 5.38 |
+| **Upanayana** | Brahmana 8th year (5th for brilliance), kshatriya 11th (6th), vaishya 12th (8th); latest 16 / 22 / 24. Uttarayana; Magha to Jyeshtha (brahmana in Vasanta, kshatriya Grishma, vaishya Sharad); forenoon best, midday middling, never afternoon | Kshipra, dhruva, chara, mridu, Ashlesha, Mula, the three Purvas, Ardra. By Veda: Rig — Mrigashira, Ardra, Ashlesha, Hasta, Chitra, Svati, Mula, Purvas; Yajur — Revati, Hasta, Anuradha, Mrigashira, Punarvasu, Pushya, Rohini, Uttaras; Sama — Ashvini, Dhanishtha, Pushya, Hasta, Uttaras, Ardra, Shravana; Atharva — Mrigashira, Revati, Pushya, Ashvini, Hasta, Anuradha, Dhanishtha, Punarvasu | 2, 3, 5, 10, 11, 12 (11–12 best); Krishna only to K5 (not K4) | Sun, Mon (Shukla), Wed, Thu, Fri | Bharani, Krittika, Magha, Vishakha, Jyeshtha; Tue, Sat; anadhyaya days (8, 14, 15, 1; Ashadha S10, Jyeshtha S2, Pausha S11, Magha S12; manvadi/yugadi; sankranti; the ashtakas); a pradosha day; galagraha (4, 7, 8, 9, 13, 14, 15, 1); thunder at the morning sandhya; Margashirsha and Ashadha onward; Jupiter 4, 8 or 12 from the boy's Moon (2, 5, 7, 9, 11 good; 1, 3, 6, 10 with worship); shakhesha (Veda lord) weak | 5.39–57 |
+| Tithi results for upanayana (Badarayana) | 2 Vedic and wise · 3 refined · 5 learned and rich · 10 wealthy · 11 virtuous · 12 statecraft | | | | 1 drunkard · 4 dull · 6 impure · 7 diseased · 8 short life · 9 poor · 13 death · 14 ruin · 15 decline | 5.40 |
+| Chhurika-bandhana (kshatriya's dagger, before marriage) | Upanayana months except Chaitra | — | — | Not Tue | Mars set | 5.59 |
+| Keshanta / Godana | 16th year (kshatriya 22nd, vaishya 24th), on chaula's days | | | | | 5.60 |
+| Samavartana | Upanayana's days | | | Not Tue, Sat | Moon or tara bad | 5.60 |
+
+### 3. Marriage (Vivaha) and what follows it
+
+| Item | Good | Bad / avoid | Ref |
+|---|---|---|---|
+| Asking for the bride (kanya-varana) | Uttarashadha, Svati, Shravana, the three Purvas, Anuradha, Dhanishtha, Krittika, or the marriage nakshatras; benefic weekday | Tuesday; rikta, 8, 9 | 6.10 |
+| Choosing the groom (vara-varana, tilaka) | Dhruva nakshatras, Krittika, the three Purvas | — | 6.11 |
+| Girl's age | Even years after 6. Jupiter must be strong for the girl, the Sun for the boy, the Moon for both; over 10, tara and Moon suffice | — | 6.12 |
+| **Months** | Sun in Mesha, Vrishabha, Mithuna (Ashadha up to S10), Vrishchika, Makara, Kumbha. Best: Magha, Phalguna, Vaishakha, Jyeshtha; middling: Kartika, Margashirsha | Sun in Karka, Simha, Kanya, Tula, Dhanu, Mina. Ashadha after S10, Shravana, Bhadrapada, Ashvina, Pausha (Sun in Dhanu), Chaitra (Sun in Mina). Hari-shayana | 6.13 |
+| Eldest child | Second child may marry in its janma month / nakshatra | First-born son or daughter in their janma month, nakshatra or tithi. "Three Jyeshthas" (eldest son + eldest daughter + Jyeshtha month) never; two are middling | 6.14–15 |
+| **Nakshatras** | Rohini, Mrigashira, Magha, Uttaraphalguni, Hasta, Svati, Anuradha, Mula, Uttarashadha, Uttarabhadrapada, Revati — free of malefic vedha (5- or 7-shalaka chakra) and not occupied by a malefic | Any nakshatra pierced or occupied by a malefic (fine again once the Moon has passed it); eclipse nakshatra; nakshatra in graha-yuddha | 6.55–58 |
+| **Tithis** | S2 to K10 generally | Rikta, 8, 6, 14, Amavasya; kshaya / vriddhi tithis | 6.55 |
+| **Weekdays** | Mon, Wed, Thu, Fri; Sun and Sat middling | Tuesday | 6.55 |
+| Lagna and navamsha | Lagna navamsha in Tula, Kanya, Mithuna, the first half of Dhanu, or Mina gives a chaste wife. Vargottama good. Sun, Saturn, Rahu, Ketu in 3, 6, 8, 11; Mars 3, 6, 11; Moon 2, 3, 11; Mercury, Jupiter, Venus anywhere but 7, 8, 12 | Last navamsha (unless vargottama); chara lagna with chara navamsha. Saturn in 12, Mars 10, Venus 3 or 6, Moon or malefic in the lagna, Mars 8, anything in 7 (jamitra). Deaf lagna (by day Tula, Vrishchika) → poverty; blind by day (Mesha, Vrishabha, Simha) → widowhood; blind by night (Mithuna, Karka, Kanya) → loss of children; lame (Makara, Kumbha, Mina, end of Dhanu) → loss of wealth | 6.81–87 |
+| 21 mahadoshas (Narada) | — | No panchanga shuddhi; Jupiter or Venus set; sankranti; papa-shadvarga; Venus 6th; Mars 8th; gandanta; kartari; Moon 6/8/12; Moon with a malefic; 8th from either partner's lagna or rashi; vishaghati; durmuhurta; vara-dosha; ekargala; same nakshatra for both; eclipse or utpata nakshatra; vedha; malefic-occupied nakshatra; bad navamsha; mahapata; Vaidhriti | 6.38 |
+| Lata, pata, kranti-samya, ekargala, upagraha | — | Pata = the nakshatra where Harshana, Vaidhriti, Sadhya, Vyatipata, Ganda or Shula yoga ends. Kranti-samya = Sun and Moon in Mesha–Simha, Vrishabha–Makara, Tula–Kumbha, Kanya–Mina, Karka–Vrishchika, Dhanu–Mithuna. Ekargala = Vyaghata, Ganda, Vyatipata, Vishkambha, Shula, Vajra, Parigha, Atiganda with the Moon an odd count from the Sun | 6.59–64 |
+| **Godhuli lagna** (cow-dust twilight) | When no clean lagna is found: good for all varnas (esp. shudras, a grown-up bride, gandharva marriages, eastern regions). No check of nakshatra, tithi, karana, yoga, navamsha or jamitra needed. Winter (Margashirsha–Magha): when the Sun's disc looks like a ball; summer (Chaitra–Jyeshtha): half set; rains: fully set | Thursday after sunset; Saturday before sunset; Moon in 6, 8 or the lagna; Mars in 8, 7 or the lagna (kills the groom); kulika; kranti-samya | 6.99–101 |
+| Pre-wedding work (pounding, mandapa, vedi, pots, ankurarpana) | On the marriage nakshatras, on days 1, 2, 4, 5, 7, 8 before the wedding. Placing the kanjika pot: Mula, Mrigashira, Ardra, Shravana, Hasta, Revati, Uttarashadha, Chitra, Krittika, on Sun or Tue | The 3rd, 6th, 9th day before; Chitra, Vishakha, Shatabhisha, Ashvini, Jyeshtha, Bharani, Ardra to Ashlesha | 6.96 |
+| Removing the mandapa | Even day (not the 6th), or 5th or 7th day after | — | 6.97 |
+| **Vadhu-pravesha** (bride's first entry to the husband's house) | Within 16 days: even days, or 5th, 7th, 9th. Then odd days to a month, odd months to a year, odd years (1, 3, 5); after 5 years any clean day. Dhruva, kshipra, mridu, Shravana, Dhanishtha, Mula, Magha, Svati | Even year + even month (death). Rikta; Sun, Tue (some also Wed) | 7.1–2 |
+| Where the bride stays in year 1 | — | In the husband's house during Jyeshtha (harms his elder brother), adhika month (husband), Ashadha (mother-in-law), Pausha (father-in-law), kshaya month (herself); in her father's house during Chaitra (her father). No fault if that relative is not living | 7.3 |
+| **Dviragamana** (gauna, second coming) | Odd years (1, 3, 5); Sun in Kumbha, Vrishchika, Mesha (also Tula, Vrishabha per Rajamartanda); Sun and Jupiter strong for the groom; Mon, Wed, Thu, Fri; lagna Mithuna, Mina, Kanya, Tula, Vrishabha; laghu, dhruva, chara, mridu, Mula | Chaitra, Pausha, Hari-shayana, Jupiter set, adhika month. **Pratishukra** (Venus in front or on the right): children, pregnant women and new brides must not travel; Venus behind or on the left is good. No pratishukra fault for city entry, emergencies, weddings, pilgrimage, oppression by a king, the bride's first entry, or Bhrigu, Angiras, Vatsa, Vasishtha, Kashyapa, Atri, Bharadvaja gotras | 8.1–4 |
+
+### 4. Household, farming, trade and daily life (Prakarana 2)
+
+| Event | Good | Bad / avoid | Ref |
+|---|---|---|---|
+| New clothes, ornaments (coral, ivory, conch, gold) | Revati, Ashvini, Dhanishtha, Pushya, Punarvasu, dhruva, Hasta to Anuradha. Red clothes on Tuesday | Rikta; Sat, Mon, Tue. Married women not on dhruva, Punarvasu, Pushya. Women: no bath with the Moon in Shatabhisha. Not while Venus is set, in Hari-shayana or the janma month. **Any day** if given by a brahmana, at a wedding, or by a king | 2.10–12 |
+| Planting creepers and trees | Vishakha, Mula, Shatabhisha, mridu, dhruva, kshipra | — | 2.13 |
+| Meeting a king or saint | Dhruva, mridu, kshipra, Shravana, Dhanishtha | — | 2.13 |
+| Buying and selling cows | Kshipra, Revati, Vishakha, Punarvasu, Jyeshtha, Shatabhisha, Dhanishtha, Svati | — | 2.13 |
+| Cattle out / into the cowshed | Settling them: Mon, Wed, Sat | Rikta, 8, 30; Tue; Shravana, dhruva, Chitra | 2.14 |
+| First dose of medicine | Laghu, mridu, chara, Mula; dual lagna; Sun, Mon, Wed, Thu, Fri; houses 7, 8, 12 empty | Patient's janma nakshatra | 2.15 |
+| Sewing, putting on armour | Punarvasu, Dhanishtha, Chitra, Anuradha, Ashvini | — | 2.15 |
+| Buying | Revati, Shatabhisha, Ashvini, Svati, Shravana, Chitra | Selling nakshatras | 2.16 |
+| Selling | Purvaphalguni, Purvashadha, Purvabhadrapada, Vishakha, Krittika, Ashlesha, Bharani | Buying nakshatras | 2.17 |
+| Opening a shop | Mridu, dhruva, kshipra, chara; Venus or Moon in the lagna; benefics in 2, 10, 11 | Rikta; Tue; Kumbha lagna | 2.17 |
+| Horses (buy, sell, ride, train) | Kshipra, Revati, Dhanishtha, Mrigashira, Svati, Shatabhisha, Punarvasu. Riding: Thu, Mon, Fri | Rikta; Tue | 2.18 |
+| Elephants | Mridu, kshipra, chara. Goad training: Saturday | — | 2.18 |
+| Making ornaments | Tripushkara day; chara, kshipra, dhruva | — | 2.19 |
+| Setting gems | Sun or Tue; Mesha, Vrishchika, Simha lagna | Tikshna, ugra, dhruva nakshatras | 2.19 |
+| Pearls | Chara, dhruva, mridu, kshipra; Mon or Fri; Karka, Vrishabha, Tula lagna | — | 2.19 |
+| Weapons (king's victory) | Tikshna, ugra, Ashvini, Mrigashira, Vishakha, Krittika | — | 2.19 |
+| Taking up weapons | Mitra, dhruva, laghu, Punarvasu, Jyeshtha, Vishakha; Fri, Thu, Sun; fixed lagna | Rikta | 2.21 |
+| First use of bed, seat, sandals | Shravana, Bharani, Punarvasu, Jyeshtha (Hindi: dhruva, mridu, laghu, Revati, Pushya too) | — | 2.21 |
+| Eating from gold or silver dishes | Laghu, mitra, dhruva, mridu; Mon, Wed, Thu, Fri | — | 2.19 |
+| Minting coins | Dhruva, mridu, kshipra, chara; purna and jaya tithis; Jupiter and Venus risen | Mon, Sat | 2.20 |
+| Washing clothes | Dhanishtha, Ashvini, Hasta, Chitra, Svati, Vishakha, Anuradha, Punarvasu, Pushya | Rikta, parva, 6, 12, 15, a parent's shraddha tithi; Sat, Wed (also Tue, Sun, sankranti) | 2.20 |
+| Lending money | Svati, Punarvasu, mridu, Vishakha, Pushya, Shravana, Dhanishtha, Shatabhisha, Ashvini; chara lagna. Repaying a debt: Tuesday | Lending on Wednesday | 2.27 |
+| Borrowing | — | Tuesday, sankranti day, Vriddhi yoga, Sunday + Hasta (debt passes to grandsons) | 2.27 |
+| Money given, deposited, lent | — | On tikshna, mishra, dhruva, ugra nakshatras, in Bhadra, Vyatipata, Mahapata: never recovered | 2.24 |
+| Wells, tanks | Anuradha, Hasta, dhruva, Dhanishtha, Shatabhisha, Purvashadha, Magha, Revati, Pushya, Mrigashira; Moon in a watery sign | — | 2.25 |
+| Starting dance | As wells, without Purvashadha and Magha, plus Jyeshtha | — | 2.25 |
+| Entering service | Kshipra, mitra; Sun, Wed, Thu, Fri; Sun or Mars in 10 or 11 | — | 2.26 |
+| **First ploughing** | Mula, Vishakha, Magha, chara, dhruva, mridu, kshipra; Jupiter in the lagna; the Moon in a watery navamsha | Sun, Sat; rikta, 6, 8; Simha, Kumbha, Karka, Mesha, Makara, Tula lagna | 2.28 |
+| **Sowing seed** | Ploughing's nakshatras minus Shravana, Shatabhisha, Punarvasu, Vishakha. Hala chakra (Sun's nakshatra → Moon's): 4–11 and 21–28 good | Tuesday. Hala chakra 1–3 and 12–20 bad; Rahu (phani) chakra bad sectors | 2.29 |
+| Transplanting | Vishakha, Purvabhadrapada, Mula, Rohini, Shatabhisha, Uttaraphalguni | Sat, Tue | 2.32 |
+| **Harvesting** | Tikshna, Purvabhadrapada, Krittika, Mrigashira, Uttaras, Hasta, Dhanishtha, Shravana, Svati, Purvashadha, Bharani, Chitra, Pushya; fixed lagna | Sat, Tue, rikta | 2.31 |
+| Threshing | Purvaphalguni, Uttaraphalguni, Shravana, Magha, Jyeshtha, Rohini, Mula, Anuradha, Revati | — | 2.32 |
+| Storing grain | Benefic weekday | Mishra, ugra, tikshna, Ardra; Mesha, Karka, Tula lagna | 2.33 |
+| Lending grain | Dhruva, Pushya, Vishakha, Jyeshtha, Ashvini, chara | — | 2.33 |
+| Eating new grain | Chara, kshipra, mridu; benefic lagna | Nanda tithis; vishaghati; Chaitra, Pausha; Sat, Tue | 2.37 |
+| Blood-letting | Chitra, Svati, Anuradha, Jyeshtha, Rohini, Mrigashira, Shatabhisha, laghu, Shravana; Tue, Sun, Thu | — | 2.30 |
+| Purge or emetic | Same nakshatras | Wed, Sat | 2.30 |
+| Big homas (koti-homa, maharudra) | Mitra, kshipra, chara, dhruva; Sun or benefic weekday; Jupiter strong. Check Agni-vasa (on earth) and the planet's "mouth" (benefic) | Agni in heaven or the nether world (does not apply to samskaras and vivaha) | 2.30, 2.35–36 |
+| Shanti and paushtika rites | Kshipra, dhruva, chara, mitra, Revati, Magha | Jupiter or Venus set (unless a portent demands it) | 2.34 |
+| Boat: build / launch / voyage | Build: Fri, Thu, Sun, not Bharani, Krittika, Rohini, Vishakha, Jyeshtha, Ashlesha, Magha, Ardra. Launch: Shravana, Dhanishtha, Purvaphalguni, Anuradha, Ashvini, Hasta. Voyage: Ashvini, Hasta, Pushya, Mrigashira, Purvaphalguni, Anuradha, Dhanishtha, Shravana; lagna or its navamsha in a watery sign (11.46) | — | 2.38, 11.46 |
+| Recovery bath | Chara lagna; Sun, Tue, Thu; rikta; Moon weak | Revati, Punarvasu, dhruva, Magha, Svati, Ashlesha (also Pushya, Shatabhisha); Fri, Mon | 2.40 |
+| Crafts (carving, images) | Mridu, dhruva, kshipra, chara; Mercury or Jupiter in 10 or the lagna | — | 2.41 |
+| Treaty or friendship | Pushya, Anuradha, Purvaphalguni; 8 or 12; Taitila karana | — | 2.42 |
+| Ordeals | Hasta, Punarvasu, Shravana, Jyeshtha, Shatabhisha; morning | 8, 14; Sat, Tue; Bhadra; nadi nakshatras (1, 10, 16, 18, 23, 25 from janma) | 2.43 |
+| Shraddha / preta rites (when delayed) | Ashvini, Pushya, Hasta, Ashlesha, Mula, Jyeshtha, Shravana, Ardra, Svati | The 18 other nakshatras. **Panchaka** (Moon in Kumbha or Mina): no cremation without panchaka-shanti, no travel south, no weaving cots, thatching, gathering wood | 2.48 |
+| Effigy cremation | Sun, Mon, Thu; Shravana, Hasta, Svati, Ashvini, Pushya | Fri, Tue, Sat; 13, 14, 30, nanda; tikshna, ugra, Revati, Shatabhisha; Tripushkara; Shukla paksha; Dakshinayana after the 1st year. A body actually present needs no muhurta | 2.51–52 |
+| Pratishtha of images, tanks, gardens | Uttarayana; mridu, kshipra, chara, dhruva; Shukla (or first ⅔ of Krishna); Magha to Jyeshtha; morning; fixed or dual lagna; Sun in Simha lagna, Brahma Kumbha, Vishnu Kanya, Shiva Mithuna. Deity's own nakshatra: planets Pushya, Durga Mula, Kubera Anuradha, Sun Hasta, Shiva Shravana or Abhijit | Tuesday; rikta; Ashadha to Bhadrapada; vainashika nakshatras. Fierce deities allowed in Dakshinayana | 2.61–63 |
+
+### 5. Travel (Yatra)
+
+| Item | Good | Bad / avoid | Ref |
+|---|---|---|---|
+| Sun's sign | Dhanu, Mesha, Simha best; Makara, Kumbha, Mithuna, Kanya, Vrishabha, Tula middling | Karka, Mina, Vrishchika (very long journey). Taras 3, 5, 7 from janma | 11.8 |
+| Tithi | — | 6, 8, 12, S1, 15, 30, rikta | 11.9 |
+| Nakshatras | Best 9: Ashvini, Punarvasu, Anuradha, Mrigashira, Pushya, Revati, Hasta, Shravana, Dhanishtha. Middling: Rohini, the Uttaras, Mula, Shatabhisha, Purvashadha, Jyeshtha | Krittika, Svati, Vishakha, Ardra, Ashlesha, Chitra, Magha, Bharani, the three Purvas (Guru: death in every direction). If a middling one must be used, skip its first part: Purvas, Krittika, Magha, Bharani 16 ghatis; Svati, Vishakha, Jyeshtha, Ashlesha 14 ghatis; first half of Krittika, Magha, Svati; second half of Chitra and Ashlesha | 11.9–13 |
+| Weekday | Mon, Wed, Thu, Fri | Sun, Tue, Sat | 11.9 |
+| Time of day by nakshatra class | Shravana, Hasta, Pushya, Mrigashira: any time | Dhruva/mishra in the forenoon; tikshna at midday; ugra in the afternoon; laghu in the first part of the night; mridu at midnight; chara at the end of the night | 11.11 |
+| Time of day by direction | Dawn: all but east · godhuli: all but west · midnight: all but north · midday / Abhijit: all but south | (as left) | 11.54 |
+| Direction by nakshatra (parigha) | Travel within a nakshatra's own side: Krittika–Ashlesha east, Magha–Vishakha south, Anuradha–Shravana west, Dhanishtha–Bharani north. Corners take the next side clockwise. **Any direction**: Anuradha, Hasta, Pushya, Ashvini (Varaha adds Mrigashira, Revati, Shravana, Dhanishtha) | Crossing the NW–SE parigha line (allowed only in need, with a clean lagna and no shula) | 11.36–38 |
+| Ayana of Sun and Moon | Both north: go north or east. Both south: go south or west. Split: by day the Sun's direction, by night the Moon's | Otherwise death | 11.39 |
+| Yogini (by tithi) | Behind or on the right | In front or on the left. 1, 9 east · 3, 11 SE · 5, 13 south · 4, 12 SW · 6, 14 west · 7, 15 NW · 2, 10 north · 8, 30 NE | 11.34 |
+| Venus (pratishukra) | Behind or left; "blind" while the Moon is in Revati to Krittika pada 1 | Venus rising in, or in the sign or door-nakshatras of, the direction of travel; Venus retrograde, set or debilitated | 11.40–42 |
+| Ghata (fatal) factors | — | The ghata Moon, tithi, weekday, nakshatra and lagna for one's janma rashi | 11.27–33 |
+| Bhramana / adala / mahadala | Hivara yoga very good | Sun's nakshatra → Moon's, divided by 7: these remainders are bad for travel, ploughing, war, theft, treaties, digging wells, mounting | 11.25–26 |
+| Lagna | Vargottama lagna or Moon; the lagna in the destination's door-sign; janma lagna or rashi lord in it; benefics in kendra or trikona, malefics in 3, 6, 11 | Kumbha lagna or navamsha (loss at every step); Mina (crooked path); 8th from janma rashi or lagna; the Moon in 1, 6, 8, 12; Saturn in 10; Venus in 7; a retrograde planet in kendra or its weekday; lalatika (direction lord rising) | 11.43–56 |
+| Prasthana (symbolic departure) | Move an object or yourself out (Garga: to the next house; Bhrigu: past the boundary; Bharadvaja: a bow-shot; Vasishtha: outside town). Then the king leaves within 10 days, a samanta 7, others 5 | No sex on the day or the 7 nights before; no milk 3 nights before; no shave 5 nights before; that day no honey, oil or vomiting; don't eat sesame, oil, jaggery or meat or insult women or brahmanas when leaving | 11.91–97 |
+| Leaving and returning | Same-day leave and enter: check only the entry muhurta. Return home (supurva pravesha): mridu, dhruva, kshipra, chara | Never on the 9th tithi, nakshatra or weekday from the entry (or entry on the 9th from departure). Returning on Vishakha or Krittika harms the wife, tikshna the house, ugra a son, (mishra) oneself. No travel while a vrata, pratishtha, wedding, festival or sutaka is under way | 11.79–82, 11.109 |
+| Vijayadashami | Ashvina S10 (esp. with Shravana): good for all work; travel needs no muhurta | — | 11.78 |
+
+### 6. Building and entering a house
+
+| Item | Good | Bad / avoid | Ref |
+|---|---|---|---|
+| Owner's planets | Sun, Moon, Jupiter, Venus strong | Weak, set or debilitated: Sun → owner dies; Moon → wife; Jupiter → happiness; Venus → wealth | 12.6 |
+| Moon and house nakshatra | Moon's nakshatra to the left or right of the house | In front: no stay; behind: theft | 12.6 |
+| Vrisha-vastu chakra | Count the Sun's nakshatra to the Moon's: 8–18 good | 1–7 and 19–28 bad | 12.13–14 |
+| Month (solar + lunar) | East- or west-facing house: Sun in Kumbha (Phalguna), Simha or Karka (Shravana), Makara (Pausha). North- or south-facing: Sun in Mesha or Vrishabha (Vaishakha), Tula or Vrishchika (Margashirsha). Sun-sign results (Narada): Mesha good, Vrishabha wealth, Karka good, Simha more servants, Tula happiness, Vrishchika wealth, Makara wealth, Kumbha gems | Sun in Mithuna death, Kanya illness, Dhanu great loss, Mina danger. Kartika with Sun in Kanya, Magha with Sun in Dhanu. (A grass or wooden hut needs no month check) | 12.15–16 |
+| Nakshatras | Dhruva, mridu, Shatabhisha, Svati, Hasta, Dhanishtha, Pushya. Digging foundations: adhomukha nakshatras; slab or roof: urdhvamukha; doors: tiryanmukha | Raising pillars in Dhanishtha-panchaka | 12.15, 12.18–19 |
+| Tithi and door direction | 2, 3, 5, 6, 7, 10, 11, 12, 13, 15; Shukla better | 1 poverty, 4 loss of wealth, 8 uprooting, 9 weapons, 30 fear of the king, 14 loss of wife. Facing east not from 15 to K8; north not K9–K14; west not 30–S8; south not S9–S14 | 12.17 |
+| Weekday and lagna | Fixed or dual lagna; benefics anywhere but 8, 12; malefics 3, 6, 11 | Tue, Sun; rikta, 30, 1; chara lagna or navamsha | 12.18 |
+| Where to start digging | Opposite Rahu's mouth. For a house, Rahu's mouth is NE with the Sun in Simha, Kanya, Tula; NW in Vrishchika, Dhanu, Makara; SW in Kumbha, Mina, Mesha; SE in Vrishabha, Mithuna, Karka (temples and tanks use other sign groups) | Digging at Rahu's mouth | 12.19 |
+| Sutika-griha (birth room) | Built and entered in Punarvasu, Shravana, Rohini | — | 12.15 |
+| **Grihapravesha** (house entry) | Book pp. 575–590 (v. 1–4) are missing from the scan. What survives: door east → purna tithis (5, 10, 15); south → nanda (1, 6, 11); west → bhadra (2, 7, 12); north → jaya (3, 8, 13). Vama-ravi: the Sun on the left of the entrant. Kalasha chakra (Sun's nakshatra → Moon's): 2–5 empty house, 6–9 gain, 10–13 wealth, 14–17 quarrel, 18–21 miscarriage, 22–24 stability, 25–27 lasting. Return-from-travel entry: mridu, dhruva, kshipra, chara | Rikta tithis for every door. Kalasha chakra 1 (fire), 14–17, 18–21 | 13.5–6, 11.109 |
+
+### 7. Royal and fire rites
+
+| Event | Good | Bad / avoid | Ref |
+|---|---|---|---|
+| **Agnyadhana** (setting up sacred fires) | Uttarayana; Krittika, Vishakha, dhruva, Revati, Mrigashira, Jyeshtha, Pushya. Fire lasts if Jupiter is in Dhanu in the lagna, Mars in Mesha in 10 or 7, or the Moon or Sun in 3, 6, 11. No muhurta needed if done at the wedding or in its fixed season (brahmana Vasanta, kshatriya Grishma, vaishya Sharad) | Rikta; Moon, Mars, Jupiter or Venus debilitated, set, defeated or in an enemy's sign; Karka, Makara, Mina, Kumbha lagna or navamsha; the Moon in the lagna | 9.1–3 |
+| **Rajyabhisheka** (coronation) | Uttarayana; Jupiter, Moon, Venus, Mars, Sun and the lagna, 10th and janma lords strong; Jyeshtha, Shravana, kshipra, mridu, dhruva; shirshodaya or upachaya lagna; Jupiter in the lagna or trikona, Mars 6, Venus 10, Saturn and Sun 3 or 11 | Chaitra, rikta, Tuesday, night, adhika month (Vasishtha: also Wed, Amavasya); malefics in the lagna (illness), 8th (death), 5th (sons). A son crowned on his father's death needs no muhurta | 10.1–4 |
+
+### 8. Sankranti punya-kala (Prakarana 3) — when to bathe, give and do shraddha
+
+| Sankranti | Punya-kala (most meritorious window) | Ref |
+|---|---|---|
+| Every solar sankranti | 16 ghatis before + 16 after (32 ghatis, about 12 h 48 min) | 3.5 |
+| Karka and the Vishnupada signs (Vrishabha, Simha, Vrishchika, Kumbha) | The 16 ghatis **before** | 3.8 |
+| Mesha, Tula (vishuva) | 16 ghatis on **either** side (Dipika: 8 + 8; Brihaspati: 10) | 3.8 |
+| Makara and the shadashiti signs (Mithuna, Kanya, Dhanu, Mina) | The 16 ghatis **after** | 3.8 |
+| At night | Before midnight: the second half of the previous day. After midnight: the first half of the next day. Exactly at midnight: both. No bath or gifts at night (except for an eclipse) | 3.5–6 |
+| At sandhya | Karka in the morning sandhya: the whole day after sunrise. Makara in the evening sandhya: the whole day before sunset | 3.7 |
