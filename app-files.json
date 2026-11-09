@@ -25,6 +25,7 @@
     "js/engine/panchanga.js",
     "js/data/mc-data.js",
     "js/render/mc-yogas.js",
+    "js/data/mc-events.js",
     "js/render/ring-adapter.js",
     "js/render/dial.js",
     "js/settings.js",
@@ -37,6 +38,7 @@
     "js/alarm-ui.js",
     "js/android-bridge.js",
     "js/today-special.js",
+    "js/muhurta-finder.js",
     "js/app.js"
   ]
 }

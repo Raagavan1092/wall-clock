@@ -979,6 +979,50 @@ body.fullview .gb-toggle { display: none; }
   background: rgba(5, 4, 3, 0.72);
 }
 #ts-dialog.hidden { display: none; }
+#mf-dialog {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  background: rgba(5, 4, 3, 0.72);
+}
+#mf-dialog.hidden { display: none; }
+#mf-dialog .ld-card { width: min(680px, 100%); height: min(860px, 100%); }
+#mf-close {
+  width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
+  border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: #b3a586; cursor: pointer;
+}
+#mf-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.mf-combo { display: flex; flex-direction: column; gap: 4px; }
+#mf-list {
+  /* In the flow (not floating), so it can't be clipped by the scrolling dialog body. */
+  max-height: min(320px, 45vh); overflow-y: auto;
+  margin: 0; padding: 6px; list-style: none; background: #16130e; border: 1px solid #5a4a2a; border-radius: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+}
+#mf-list[hidden] { display: none; }
+.mf-group { padding: 8px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #a99a7c; text-transform: uppercase; }
+.mf-item { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+.mf-item:hover, .mf-item[aria-selected="true"] { background: rgba(201, 168, 92, 0.14); }
+.mf-ref { flex: none; font-size: 11.5px; color: #8f8168; }
+.mf-empty { padding: 10px; color: #8f8168; font-size: 13px; }
+.mf-when { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.mf-mode { display: inline-flex; border: 1px solid #3a3020; border-radius: 999px; overflow: hidden; }
+.mf-mode button { height: 40px; padding: 0 14px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 13.5px; cursor: pointer; }
+.mf-mode button[aria-pressed="true"] { background: #e8c77a; color: #1a1408; font-weight: 600; }
+.mf-date, .mf-find, .mf-go {
+  height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #3a3020; background: #1d1912;
+  color: var(--gold-hi); font: inherit; font-size: 13.5px; cursor: pointer;
+}
+.mf-find { align-self: flex-start; background: #e8c77a; border-color: #e8c77a; color: #1a1408; font-weight: 600; }
+.mf-find:disabled { opacity: 0.5; cursor: default; }
+.mf-go { height: 32px; font-size: 12.5px; align-self: flex-start; }
+#mf-results { display: flex; flex-direction: column; gap: 10px; }
+.mf-status { margin: 0; color: var(--gold-hi); font-size: 14px; }
+.mf-day { border: 1px solid #3a3020; border-radius: 14px; background: #1f1a11; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.mf-date-head { font-weight: 600; color: var(--gold-hi); }
+.mf-win { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px solid #2b2418; }
+.mf-win:first-of-type { border-top: 0; padding-top: 0; }
+.mf-time { font-variant-numeric: tabular-nums; font-size: 14.5px; }
+.mf-why { font-size: 12.5px; color: #c9b88f; line-height: 1.4; }
+body.fullview #mf-dialog { display: none; }
 #ts-dialog .ld-card { width: min(720px, 100%); }
 #ts-close {
   width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
@@ -1013,7 +1057,7 @@ body.fullview .gb-toggle { display: none; }
 }
 .ld-search:focus-within { border-color: var(--gold-hi); box-shadow: 0 0 0 2px rgba(255, 215, 122, 0.2); }
 .ld-search > svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #a99a7c; stroke-width: 2; stroke-linecap: round; }
-#loc-search { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; }
+#loc-search, #mf-search { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; }
 #loc-geo {
   flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px;
   border: 0; border-radius: 8px; background: #2a2314; color: #f2b01e; font: inherit; font-size: 13px; cursor: pointer;

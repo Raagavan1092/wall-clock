@@ -349,6 +349,15 @@
     });
     syncSecondaryButton();
 
+    if (E.MuhurtaFinder) {
+      E.MuhurtaFinder.init({
+        getSettings: function () { return settings; },
+        getData: function () { return data; },
+        getOpts: yogaOpts,
+        goTo: function (date) { setManualTime(date); },
+      });
+    }
+
     document.getElementById("btn-todays-specialities").addEventListener("click", function () {
       if (!cachedSnapshot || !E.TodaySpecial) return;
       E.TodaySpecial.open(cachedSnapshot, data, yogaOpts());

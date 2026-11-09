@@ -143,6 +143,39 @@
   </div>
 </div>
 
+<div id="mf-dialog" class="hidden">
+  <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="mf-title">
+    <div class="ld-head">
+      <h2 id="mf-title">Find muhurta</h2>
+      <button type="button" id="mf-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="ld-body">
+      <div class="ld-label">EVENT</div>
+      <div class="mf-combo">
+        <label class="ld-search" for="mf-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
+          <input type="text" id="mf-search" role="combobox" aria-expanded="false" aria-controls="mf-list" aria-autocomplete="list" placeholder="Type or choose: marriage, upanayana, travel…" autocomplete="off" spellcheck="false">
+        </label>
+        <ul id="mf-list" role="listbox" aria-label="Events" hidden></ul>
+      </div>
+      <p class="ld-note" id="mf-ref"></p>
+      <div class="ld-label">WHEN</div>
+      <div class="mf-when">
+        <div id="mf-mode" class="mf-mode" role="group" aria-label="Date filter">
+          <button type="button" data-mode="after" aria-pressed="true">After</button>
+          <button type="button" data-mode="before" aria-pressed="false">Before</button>
+          <button type="button" data-mode="between" aria-pressed="false">Between</button>
+        </div>
+        <button type="button" id="mf-date" class="mf-date" aria-haspopup="dialog" aria-expanded="false">pick a date</button>
+      </div>
+      <button type="button" id="mf-find" class="mf-find">Find the next suitable times</button>
+      <div id="mf-results" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
 <div id="ts-dialog" class="hidden">
   <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="ts-title">
     <div class="ld-head">

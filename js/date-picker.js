@@ -128,7 +128,7 @@
       if ((state.min && v < state.min) || (state.max && v > state.max)) b.disabled = true;
       b.tabIndex = -1;
       grid.appendChild(b);
-      if (v === state.focus || (!focusBtn && v === state.value)) focusBtn = b;
+      if (v === state.focus || (!focusBtn && v === state.value) || (!focusBtn && !state.value && state.marked && state.marked[0] === v)) focusBtn = b;
     }
     place();
     const target = focusBtn || grid.querySelector(".dp-day:not(:disabled)");
@@ -150,7 +150,7 @@
   function open(opts) {
     if (!root) build();
     if (state) cancel();
-    const start = parse(opts.value) || parse(todayIST());
+    const start = parse(opts.value) || (opts.marked && parse(opts.marked[0])) || parse(todayIST());
     state = {
       y: start.y, m: start.m, value: opts.value || null, focus: opts.value || null,
       title: opts.title || "Pick a date", min: opts.min || null, max: opts.max || null, marked: opts.marked || null,
