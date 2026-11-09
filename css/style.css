@@ -1149,7 +1149,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 /* Themed date picker (js/date-picker.js), replacing the browser's own. */
 .dp-overlay {
   /* Transparent: it only catches a tap outside the drop-down, which closes it. */
-  position: fixed; inset: 0; z-index: 90; background: transparent;
+  /* Above every dialog (Set alarm is 100) but below the ringing overlay (200). */
+  position: fixed; inset: 0; z-index: 150; background: transparent;
 }
 .dp-overlay[hidden] { display: none; }
 .dp-card {

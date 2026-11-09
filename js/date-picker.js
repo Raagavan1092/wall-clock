@@ -74,6 +74,12 @@
       '<div class="dp-foot"><button type="button" class="dp-today">Today</button><span></span><button type="button" class="dp-cancel">Cancel</button></div>' +
       '</div>';
     document.body.appendChild(root);
+    // The picker belongs to the field that opened it: a tap in it must not
+    // count as a tap "outside" for that field's drop-down or dialog (the
+    // location/time widget and the menus close on outside taps at the document).
+    ["pointerdown", "mousedown", "touchstart"].forEach(function (type) {
+      root.addEventListener(type, function (e) { e.stopPropagation(); });
+    });
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     root.addEventListener("click", function (e) {

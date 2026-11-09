@@ -854,6 +854,8 @@
 
     function onKey(e) {
       if (!modal.isConnected || document.querySelector(".alarm-ring")) return;
+      // The date picker (a child of the Date field) handles its own keys.
+      if (VedicEngine.DatePicker && VedicEngine.DatePicker.isOpen()) return;
       e.stopPropagation(); // the clock's own arrow/space shortcuts must not fire from in here
       if (e.key === "Escape") { e.preventDefault(); close(); return; }
       if (e.key !== "Tab") return;
