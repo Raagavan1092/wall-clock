@@ -105,8 +105,18 @@
       document.body.classList.toggle("loc-on", on);
       if (!on) closeMenu();
       if (persist) { try { localStorage.setItem(SHOWN_KEY, on ? "1" : "0"); } catch (e) { /* storage unavailable */ } }
-      if (on) update();
+      if (on) { document.dispatchEvent(new CustomEvent("dropdown-open", { detail: "loc" })); update(); }
     }
+    // A drop-down: a tap anywhere else (or Esc) closes it, and opening the alarm list closes it.
+    document.addEventListener("pointerdown", function (e) {
+      if (!shown) return;
+      const path = e.composedPath ? e.composedPath() : [e.target]; // the arc redraws while dragged, so e.target may already be detached
+      if (!path.includes(widget) && !path.includes(toggle) && !path.includes(dlg)) setShown(false, false);
+    });
+    document.addEventListener("dropdown-open", function (e) { if (e.detail !== "loc" && shown) setShown(false, false); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && shown && !menuOpen() && dlg.classList.contains("hidden")) { setShown(false, false); toggle.focus(); }
+    });
     toggle.addEventListener("click", function () { setShown(!shown, true); });
 
     // ---- place menu (recent places + Change location…)

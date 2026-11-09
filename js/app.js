@@ -596,12 +596,14 @@
   function setAlarmMenu(on) {
     const menu = document.getElementById("alarm-section"), btn = document.getElementById("alarm-toggle");
     menu.hidden = !on;
+    if (on) document.dispatchEvent(new CustomEvent("dropdown-open", { detail: "alarm" }));
     btn.setAttribute("aria-expanded", String(on));
     btn.classList.toggle("on", on);
   }
   function wireAlarmMenu() {
     const menu = document.getElementById("alarm-section"), btn = document.getElementById("alarm-toggle");
     btn.addEventListener("click", function () { setAlarmMenu(menu.hidden); });
+    document.addEventListener("dropdown-open", function (e) { if (e.detail !== "alarm" && !menu.hidden) setAlarmMenu(false); });
     document.addEventListener("pointerdown", function (e) {
       if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target) && !document.querySelector(".alarm-modal")) setAlarmMenu(false);
     });
