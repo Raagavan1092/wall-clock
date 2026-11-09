@@ -126,20 +126,6 @@
     "names": ["Meṣa", "Vṛṣabha", "Mithuna", "Karka", "Siṃha", "Kanyā", "Tulā", "Vṛścika", "Dhanu", "Makara", "Kumbha", "Mīna"]
   },
 
-  "durmuhurta": {
-    "status": "standard",
-    "note": "Weekday (0=Sunday..6=Saturday) -> the muhurta(s) that are Durmuhurta, as 0-based indices into the 15-part day (sunrise-sunset) or night (sunset-next sunrise) muhurta division. The standard published rule (as tabulated in Muhurta Chintamani and used by drikpanchang.com): Sun 14th day; Mon 9th and 12th day; Tue 4th day and 7th night; Wed 8th day; Thu 6th and 12th day; Fri 4th and 9th day; Sat 1st and 2nd day. Not yet cross-checked against drikpanchang clock times for Sringeri the way rahuYamaGulika was.",
-    "byWeekday": [
-      [{ "part": "day", "index": 13 }],
-      [{ "part": "day", "index": 8 }, { "part": "day", "index": 11 }],
-      [{ "part": "day", "index": 3 }, { "part": "night", "index": 6 }],
-      [{ "part": "day", "index": 7 }],
-      [{ "part": "day", "index": 5 }, { "part": "day", "index": 11 }],
-      [{ "part": "day", "index": 3 }, { "part": "day", "index": 8 }],
-      [{ "part": "day", "index": 0 }, { "part": "day", "index": 1 }]
-    ]
-  },
-
   "abhijit": {
     "status": "standard",
     "note": "Abhijit muhurta = the 8th of the 15 day muhurtas (0-based index 7), the one centred on local midday. Not observed on Wednesday, when that same muhurta is the day's Durmuhurta (drikpanchang likewise shows no Abhijit on Wednesdays).",
@@ -155,8 +141,7 @@
 
   "varjyamAmrita": {
     "status": "contested",
-    "note": "Varjyam (tyājya / viṣa ghaṭī, bad) and Amṛta Kālam (amṛta ghaṭī, good): each is a 4-ghaṭī window starting the given number of ghaṭīs after the nakṣatra begins, where 1 ghaṭī = 1/60 of THAT nakṣatra's actual duration (so both scale with how long the nakṣatra lasts). Indexed like nakshatra.names. Varjyam rows 0-22 and 26 confirmed against drikpanchang.com's Nakshatra Thyajyam table (its '51 to 54' = start after 50) and a printed panchang's Thyajya column; Mūla uses 56 (some texts also give 20). Rows 23-25 (Śatabhiṣā 18, P.Bhādrapadā 16, U.Bhādrapadā 24) are the standard values but were not confirmed from a source here. Amṛta: Aśvinī-Rohiṇī, Hasta, Citrā and Revatī confirmed against the Praśnamārga table (wisdomlib); the rest are the commonly used values (as drikpanchang's Amrit Kalam), not yet cross-checked.",
-    "varjyamStartGhati": [50, 24, 30, 40, 14, 21, 30, 20, 32, 30, 20, 18, 21, 20, 14, 14, 10, 14, 56, 24, 20, 10, 10, 18, 16, 24, 30],
+    "note": "Amṛta Kālam (amṛta ghaṭī, good): a 4-ghaṭī window starting the given number of ghaṭīs after the nakṣatra begins, where 1 ghaṭī = 1/60 of THAT nakṣatra's actual duration (so it scales with how long the nakṣatra lasts). Indexed like nakshatra.names. Aśvinī-Rohiṇī, Hasta, Citrā and Revatī confirmed against the Praśnamārga table (wisdomlib); the rest are the commonly used values (as drikpanchang's Amrit Kalam), not yet cross-checked. Varjyam (its bad counterpart) was removed from the dial per the project owner.",
     "amritaStartGhati": [42, 48, 54, 52, 38, 35, 54, 44, 56, 54, 44, 42, 45, 44, 38, 38, 34, 38, 44, 48, 44, 34, 34, 42, 40, 48, 54],
     "windowGhati": 4
   },
@@ -178,11 +163,9 @@
 
   "rahuYamaGulika": {
     "status": "standard",
-    "note": "Weekday -> 0-based segment index within the 8-part DAYTIME (sunrise-to-sunset) division. Empirically derived by cross-checking drikpanchang.com's published Rahu Kalam/Yamaganda/Gulikai Kalam clock times for Sringeri against an 8-way division of that day's actual sunrise-sunset span, for one date per weekday (2026-01-15 Thu, 2026-03-03 Tue, 2026-04-08 Wed, 2026-05-16 Sat, 2026-06-21 Sun, 2026-07-20 Mon, 2026-08-21 Fri) - all 7 weekdays matched a single consistent table, so this is confirmed rather than guessed. CONTESTED/NOT COVERED: night-time Rahu/Yama/Gulika (used in some regional traditions) is not addressed by drikpanchang's daytime table and is left unimplemented here.",
+    "note": "Rāhu Kālam only: weekday -> 0-based segment index within the 8-part DAYTIME (sunrise-to-sunset) division. Not from Muhūrta Cintāmaṇi (a later, mainly South Indian practice): empirically derived by matching drikpanchang.com's published Rahu Kalam clock times for Sringeri against an 8-way division of that day's sunrise-sunset span, one date per weekday in 2026, all consistent. Yamagaṇḍa and Gulika Kālam were removed per the project owner: the text's Yamaghaṇṭa and Kulika (Muhūrta Cintāmaṇi 1.37-39, js/data/mc-data.js) replace them. Night-time Rāhu is not implemented.",
     "weekdaySegmentIndex": {
-      "rahu":       [7, 1, 6, 4, 5, 3, 2],
-      "yamaganda":  [4, 3, 2, 1, 0, 6, 5],
-      "gulika":     [6, 5, 4, 3, 2, 1, 0]
+      "rahu":       [7, 1, 6, 4, 5, 3, 2]
     },
     "weekdayIndexOrder": "0=Sunday..6=Saturday, matching VedicEngine.Util.weekdayAtOffset"
   },

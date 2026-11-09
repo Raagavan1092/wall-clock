@@ -288,9 +288,12 @@
   }
 
   // A clean alarm from a draft or from storage; null if it names no event.
+  // Windows that were replaced by the text's versions (Muhūrta Cintāmaṇi 1.37):
+  // alarms saved on the old ones move over.
+  const RENAMED = { "win:gulika": "win:kulika", "win:yamaganda": "win:yamaghanta" };
   function normalize(d) {
     const known = getCatalog().byId;
-    const events = (Array.isArray(d.events) ? d.events : []).filter(function (id, i, arr) {
+    const events = (Array.isArray(d.events) ? d.events : []).map(function (id) { return RENAMED[id] || id; }).filter(function (id, i, arr) {
       return typeof id === "string" && known.has(id) && arr.indexOf(id) === i;
     });
     const custom = normalizeCustom(d.custom);

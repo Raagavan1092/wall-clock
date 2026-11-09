@@ -32,6 +32,8 @@
 <script src="../js/engine/scaled-intervals.js"></script>
 <script src="../js/engine/ghati.js"></script>
 <script src="../js/engine/panchanga.js"></script>
+<script src="../js/data/mc-data.js"></script>
+<script src="../js/render/mc-yogas.js"></script>
 <script src="../js/render/ring-adapter.js"></script>
 <script src="../js/render/dial.js"></script>
 <script src="../js/settings.js"></script>
@@ -109,12 +111,12 @@
   const sk = await A.preview({ events: ["marker:sankranti"], mode: "start" }, 2);
   check("saṅkrānti (about monthly) is found, with its rāśi", sk.length === 2 && /Saṅkrānti/.test(sk[0].detail), sk.map(x => x.detail).join(", "));
   check("no events / unknown id -> nothing", (await A.preview({ events: [] }, 1)).length === 0 && (await A.preview({ events: ["nope"] }, 1)).length === 0);
-  const dur = await A.preview({ events: ["win:durmuhurta"], mode: "start" }, 14);
-  check("adjacent windows of one kind merge (Saturday's two Durmuhūrta)", dur.some(x => x.end - x.start > 80 * MIN) && dur.every(x => x.end - x.start < 100 * MIN));
+  const dur = await A.preview({ events: ["win:kalamsha"], mode: "start" }, 14);
+  check("adjacent windows of one kind merge (back-to-back bad kalāṃśas)", dur.some(x => x.end - x.start > 80 * MIN) && dur.every(x => x.end - x.start < 160 * MIN));
 
   // --- stored alarms: firing, once, grace, persistence --------------------------------
   const a1 = A.add({ events: ["win:rahu"], mode: "before", offsetValue: 10, offsetUnit: "min", repeat: "always", label: "  prep  " });
-  const a2 = A.add({ events: ["win:gulika"], mode: "start", repeat: "once" });
+  const a2 = A.add({ events: ["win:kulika"], mode: "start", repeat: "once" });
   check("add normalises (label trimmed, ids assigned)", a1 && a1.label === "prep" && a1.id && a2.id !== a1.id);
   check("alarm without events is refused", A.add({ events: ["nope"] }) === null);
   const listed = () => A.list();
@@ -140,7 +142,7 @@
   A.tick(Math.max(n1.fireAt, n2.fireAt) + A.GRACE_MS + MIN);
   const a2Next = await until(() => { const a = listed().find(x => x.id === a2.id); return a.next && a.next.fireAt > n2.fireAt && a.next; });
   check("a skipped 'once' alarm stays armed for its next occurrence", listed().find(a => a.id === a2.id).enabled && !!a2Next && a2Next.fireAt > n2.fireAt);
-  const a5 = A.add({ events: ["win:yamaganda"], mode: "start", repeat: "always" });
+  const a5 = A.add({ events: ["win:yamaghanta"], mode: "start", repeat: "always" });
   await until(() => listed().find(a => a.id === a5.id).next);
   const n5 = listed().find(a => a.id === a5.id).next;
   const ringsBefore5 = rings.length;
@@ -151,7 +153,7 @@
   A.remove(a5.id);
 
   // once: rings, then switches itself off
-  const a3 = A.add({ events: ["win:yamaganda"], mode: "start", repeat: "once" });
+  const a3 = A.add({ events: ["win:yamaghanta"], mode: "start", repeat: "once" });
   await until(() => listed().find(a => a.id === a3.id).next);
   const n3 = listed().find(a => a.id === a3.id).next;
   A.tick(n3.fireAt + 500);
@@ -159,7 +161,7 @@
   check("'once' then turns itself off", listed().find(a => a.id === a3.id).enabled === false);
 
   // grace: within the grace period still rings
-  const a4 = A.add({ events: ["win:gulika"], mode: "end", repeat: "always" });
+  const a4 = A.add({ events: ["win:kulika"], mode: "end", repeat: "always" });
   await until(() => listed().find(a => a.id === a4.id).next);
   const n4 = listed().find(a => a.id === a4.id).next;
   A.tick(n4.fireAt + 2 * MIN);

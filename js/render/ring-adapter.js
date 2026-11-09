@@ -137,9 +137,8 @@
     return segments;
   }
 
-  // The daily good/bad time windows: Rāhu Kālam, Yamagaṇḍa, Gulika Kālam,
-  // Durmuhūrta and Varjyam (bad), and Abhijit, Pradoṣa and Amṛta
-  // Kālam (good), as raw (possibly overlapping, possibly outside the day)
+  // The daily good/bad time windows not from Muhūrta Cintāmaṇi: Rāhu Kālam
+  // (bad), and Abhijit, Pradoṣa and Amṛta Kālam (good), as raw (possibly overlapping, possibly outside the day)
   // intervals - buildGoodBadTimes below clips and lays them out.
   function dailyWindows(snapshot, data) {
     const r = snapshot.scaledRings.rahuYamaGulika;
@@ -151,18 +150,16 @@
     }
     const intervals = [
       windowOf(r.day[idx.rahu[v]], "Rāhu Kālam", "bad"),
-      windowOf(r.day[idx.yamaganda[v]], "Yamagaṇḍa", "bad"),
-      windowOf(r.day[idx.gulika[v]], "Gulika Kālam", "bad"),
     ];
-    data.durmuhurta.byWeekday[v].forEach(function (d) {
-      intervals.push(windowOf(muhurta[d.part][d.index], "Durmuhūrta", "bad"));
-    });
+    // Yamagaṇḍa and Gulika Kālam (eighths of the day) and Durmuhūrta were
+    // dropped: the text's Yamaghaṇṭa, Kulika and bad kalāṃśas (mc-yogas.js
+    // mainWindows, 1.37-39) take their place, per the project owner.
     if (data.abhijit.skipWeekdays.indexOf(v) === -1) {
       intervals.push(windowOf(muhurta.day[data.abhijit.dayIndex], "Abhijit", "good"));
     }
     const pradoshaEnd = muhurta.night[data.pradosha.nightMuhurtaCount - 1].endTime;
     intervals.push(windowOf({ startTime: snapshot.anchors.sunsetToday, endTime: pradoshaEnd }, "Pradoṣa", "good"));
-    // Varjyam / Amṛta Kālam: 4 "ghaṭīs" of each nakṣatra touching this day,
+    // Amṛta Kālam: 4 "ghaṭīs" of each nakṣatra touching this day,
     // where a ghaṭī here is 1/60 of that nakṣatra's own full length (its
     // true start/end, not the part clipped to this day). Windows falling
     // outside the day are dropped by buildGoodBadTimes.
@@ -173,7 +170,6 @@
         const t = n.startTime.getTime() + startGhati * ghatiMs;
         return { startTime: new Date(t), endTime: new Date(t + va.windowGhati * ghatiMs) };
       }
-      intervals.push(windowOf(nakWindow(va.varjyamStartGhati[n.index]), "Varjyam", "bad"));
       intervals.push(windowOf(nakWindow(va.amritaStartGhati[n.index]), "Amṛta Kālam", "good"));
     });
     return intervals;
@@ -534,10 +530,9 @@
   // activeIntervalsFor() label them with above.
   const WINDOW_DEFS = [
     { id: "win:rahu", text: "Rāhu Kālam", goodBad: "bad", note: "Inauspicious eighth of the day" },
-    { id: "win:yamaganda", text: "Yamagaṇḍa", goodBad: "bad", note: "Inauspicious eighth of the day" },
-    { id: "win:gulika", text: "Gulika Kālam", goodBad: "bad", note: "Inauspicious eighth of the day" },
-    { id: "win:durmuhurta", text: "Durmuhūrta", goodBad: "bad", note: "Inauspicious muhūrta(s) of the day" },
-    { id: "win:varjyam", text: "Varjyam", goodBad: "bad", note: "Inauspicious window inside each nakṣatra" },
+    { id: "win:kulika", text: "Kulika", goodBad: "bad", note: "Bad day muhūrta (Muhūrta Cintāmaṇi 1.37)" },
+    { id: "win:yamaghanta", text: "Yamaghaṇṭa", goodBad: "bad", note: "Bad day muhūrta (Muhūrta Cintāmaṇi 1.37)" },
+    { id: "win:kalamsha", text: "Kalāṃśa", goodBad: "bad", note: "Bad sixteenths of the day (Muhūrta Cintāmaṇi 1.38–39)" },
     { id: "combo:marana", text: "Maraṇa Yogam", goodBad: "bad", note: "Weekday + nakṣatra, inauspicious" },
     { id: "combo:visha", text: "Viṣa Yoga", goodBad: "bad", note: "Weekday + tithi, inauspicious" },
     { id: "win:abhijit", text: "Abhijit", goodBad: "good", note: "The midday muhūrta" },
@@ -660,6 +655,12 @@
     // The good/bad windows: whole windows (not clipped to the day), and the
     // weekday-conditioned combination yogas (clipped to the day they hold on).
     dailyWindows(snapshot, data).forEach(function (w) { push(WINDOW_ID_BY_TEXT[w.text], w.startTime, w.endTime); });
+    // Muhūrta Cintāmaṇi windows that alarms can be set on (Kulika, Yamaghaṇṭa, Kalāṃśa).
+    if (VedicEngine.MCYogas) {
+      VedicEngine.MCYogas.mainWindows(snapshot, data).forEach(function (w) {
+        if (WINDOW_ID_BY_TEXT[w.text] && WINDOW_ID_BY_TEXT[w.text].indexOf("win:") === 0 && ["Kulika", "Yamaghaṇṭa", "Kalāṃśa"].indexOf(w.text) !== -1) push(WINDOW_ID_BY_TEXT[w.text], w.startTime, w.endTime);
+      });
+    }
     [
       activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)),
       activeIntervalsFor("Viṣa Yoga", "bad", buildVishaYoga(snapshot, data)),
