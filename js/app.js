@@ -244,8 +244,9 @@
     const key = prev + "|" + next;
     if (key === lastSwitchLabel) return;
     lastSwitchLabel = key;
-    document.querySelector("#btn-next-display .rc-name").textContent = next ? "(" + next + ")" : "";
-    document.querySelector("#btn-prev-display .rc-name").textContent = prev ? "(" + prev + ")" : "";
+    const nb = document.getElementById("btn-next-display"), pb = document.getElementById("btn-prev-display");
+    nb.title = nb.ariaLabel = next ? "Next ring (" + next + ")" : "Next ring";
+    pb.title = pb.ariaLabel = prev ? "Previous ring (" + prev + ")" : "Previous ring";
   }
 
   const IST_OFFSET_MS = 5.5 * 3600 * 1000;

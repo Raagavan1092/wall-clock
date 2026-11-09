@@ -118,22 +118,22 @@ html, body {
 .rc-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .rc-shape path { fill: var(--glass); stroke: var(--ring-stroke); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: auto; cursor: pointer; transition: fill 0.15s; }
 .rc-corner:hover .rc-shape path, .rc-corner:active .rc-shape path { fill: rgba(60, 46, 24, 0.9); }
-.rc-label {
+.rc-arrow {
   position: absolute;
-  bottom: 7%;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  font-size: clamp(9px, 3.6cqw, 18px);
-  white-space: nowrap;
-  line-height: 1.15;
-  font-weight: 600;
+  bottom: 12%;
+  width: 22%;
+  height: auto;
+  aspect-ratio: 1;
+  fill: none;
+  stroke: var(--gold-hi);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   pointer-events: auto;
   cursor: pointer;
 }
-.rc-prev .rc-label { left: 8%; align-items: flex-start; text-align: left; }
-.rc-next .rc-label { right: 8%; align-items: flex-end; text-align: right; }
-.rc-name { font-weight: 500; color: var(--gold-hi); }
+.rc-prev .rc-arrow { left: 10%; }
+.rc-next .rc-arrow { right: 10%; }
 
 .ring-boundary, .ghati-scale-boundary {
   fill: none;
@@ -460,24 +460,30 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 }
 .tc-chip[hidden] { display: none; }
 .tc-chip:hover { background: rgba(42, 33, 19, 0.9); }
-/* Good / Bad times: pills with a check box that doubles as the colour key. */
-.tc-toggle::before {
-  content: "";
-  flex: none;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--muted);
-  border-radius: 4px;
+/* Good / Bad times: round coloured check boxes at the clock's top corners (good left, bad right). */
+.gb-toggle {
+  position: absolute;
+  top: 0;
+  z-index: 3;
+  width: clamp(26px, 8cqw, 40px);
+  height: clamp(26px, 8cqw, 40px);
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: transparent;
   color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 10px;
-  text-align: center;
+  font: 700 clamp(14px, 4.6cqw, 22px)/1 "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.tc-toggle[aria-checked="true"]::before { content: "\2713"; background: var(--accent); border-color: var(--accent); }
-.tc-toggle[aria-checked="true"] { border-color: var(--accent); }
-#btn-show-good { --accent: var(--good-fill); }
-#btn-show-bad { --accent: var(--bad-fill); }
+.gb-toggle[hidden] { display: none; }
+.gb-toggle[aria-checked="true"] { background: var(--accent); }
+.gb-toggle[aria-checked="true"]::before { content: "\2713"; }
+#btn-show-good { left: 0; --accent: var(--good-fill); }
+#btn-show-bad { right: 0; --accent: var(--bad-fill); }
+body.fullview .gb-toggle { display: none; }
 
 /* Landscape: the clock on the left; the controls on the right in one column,
    the navigator stuck to the top right with the buttons under it. The clock

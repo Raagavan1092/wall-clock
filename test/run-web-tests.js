@@ -312,9 +312,9 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       ok("widget: away from the ticks any minute can be picked", times.slice(1).some(t => !/:00$/.test(t)), times.join(" "));
     }
     await page.click("#loc-now");
-    ok("widget: shows under the top row and the plain buttons, with place, time and arc", await page.evaluate(() => {
+    ok("widget: shows under the top row and above the plain buttons, with place, time and arc", await page.evaluate(() => {
       const w = document.getElementById("loc-widget"), row = document.querySelector("#top-controls .tc-row");
-      return !w.hidden && w.previousElementSibling === document.querySelector("#top-controls .tc-plain") && row.nextElementSibling === document.getElementById("alarm-section") && row.contains(document.getElementById("loc-toggle")) &&
+      return !w.hidden && w.nextElementSibling === document.querySelector("#top-controls .tc-plain") && row.nextElementSibling === document.getElementById("alarm-section") && row.contains(document.getElementById("loc-toggle")) &&
         /Varanasi/.test(document.getElementById("loc-chip-name").textContent) && /N .* E/.test(document.getElementById("loc-coords").textContent) &&
         /\d\d:\d\d/.test(document.getElementById("loc-arc").textContent) && !!document.querySelector("#loc-arc circle");
     }));
