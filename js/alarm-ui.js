@@ -1,5 +1,5 @@
 // Everything on screen for alarms (the engine is alarms.js): the "Set Alarm"
-// dialog, the saved-alarm list in Settings, the next-alarm chip beside the
+// dialog, the saved-alarm list in Settings, the
 // gear, and the full-screen overlay + bell that ring when one goes off.
 (function (global) {
   "use strict";
@@ -336,10 +336,9 @@
     if (navigator.vibrate) { try { navigator.vibrate([300, 150, 300, 150, 600]); } catch (e) { /* ignore */ } }
   }
 
-  // ---- the alarm list in Settings and the next-alarm chip ------------------
+  // ---- the alarm list in Settings------------------
 
   let listEl = null;
-  let chipEl = null;
   let dialogOpener = null;
 
   function renderList() {
@@ -375,19 +374,6 @@
         h("button", { type: "button", class: "alarm-icon-btn", "aria-label": "Edit " + a.title, title: "Edit", onclick: function (e) { openDialog(a.id, e.currentTarget); } }, icon("edit")),
         h("button", { type: "button", class: "alarm-icon-btn danger", "aria-label": "Delete " + a.title, title: "Delete", onclick: function () { Alarms.remove(a.id); } }, icon("trash")))));
     });
-  }
-
-  function renderChip() {
-    if (!chipEl) return;
-    const now = Date.now();
-    const upcoming = Alarms.list().filter(function (a) { return a.enabled && a.next; })
-      .sort(function (a, b) { return a.next.fireAt - b.next.fireAt; })[0];
-    if (!upcoming) { chipEl.hidden = true; return; }
-    chipEl.hidden = false;
-    chipEl.innerHTML = "";
-    chipEl.appendChild(icon("bell"));
-    chipEl.appendChild(h("span", { class: "chip-text", text: fmtWhen(upcoming.next.fireAt, now) + " · " + upcoming.title }));
-    chipEl.title = "Next alarm in " + span(upcoming.next.fireAt - now) + " - " + upcoming.title + " (" + upcoming.triggerText.toLowerCase() + ")";
   }
 
   // ---- the Set Alarm dialog -------------------------------------------------
@@ -977,11 +963,9 @@
     // locked); the page must not ring a second time on top of it.
     Alarms.onRing(global.AndroidAlarms ? function () {} : showRing);
     listEl = document.getElementById("alarm-list");
-    chipEl = document.getElementById("next-alarm");
     const setBtn = document.getElementById("alarm-set");
     if (setBtn) setBtn.addEventListener("click", function (e) { if (options.onSetClick) options.onSetClick(); openDialog(null, e.currentTarget); });
-    if (chipEl) chipEl.addEventListener("click", function () { if (options.onChipClick) options.onChipClick(); });
-    function refresh() { renderList(); renderChip(); }
+    function refresh() { renderList(); }
     Alarms.onChange(refresh);
     refresh();
     // Keep "in 2 h 10 min" honest.

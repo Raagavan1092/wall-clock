@@ -683,8 +683,6 @@
       E.AlarmUI.init({
         getSettings: function () { return settings; },
         getData: function () { return data; },
-        // The next-alarm chip and the alarm button open the alarm drop-down.
-        onChipClick: function () { setAlarmMenu(true); },
         onSetClick: function () { setAlarmMenu(false); },
       });
       alarmsOk = true;

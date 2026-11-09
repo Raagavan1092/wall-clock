@@ -103,8 +103,8 @@ html, body {
 .rc-corner {
   position: absolute;
   bottom: 0;
-  width: 34cqw;
-  height: 24cqw;
+  width: 36cqw;
+  height: 25cqw;
   padding: 0;
   border: 0;
   background: none;
@@ -124,7 +124,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-size: clamp(15px, 3.8cqw, 20px);
+  font-size: clamp(9px, 4.2cqw, 20px);
   line-height: 1.15;
   font-weight: 600;
   pointer-events: auto;
@@ -377,7 +377,7 @@ html, body {
 
 /* ======================================================================
    Top-right controls: Yesterday / Today / Tomorrow, the time slider, the
-   settings gear and the next-alarm chip.
+   settings gear.
    ====================================================================== */
 :root {
   --gold: #c9a85c;
@@ -423,7 +423,7 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
-body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview #next-alarm, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
+body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
   position: fixed;
@@ -441,7 +441,7 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   body.fullview #dial-wrap { grid-row: 1; }
 }
 
-#next-alarm, .tc-chip {
+.tc-chip {
   align-self: flex-end;
   display: inline-flex;
   align-items: center;
@@ -457,9 +457,9 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   font-size: 12px;
   cursor: pointer;
 }
-#next-alarm[hidden], .tc-chip[hidden] { display: none; }
-#next-alarm:hover, .tc-chip:hover { background: rgba(42, 33, 19, 0.9); }
-/* Good / Bad times: pills like the next-alarm chip, with a check box that doubles as the colour key. */
+.tc-chip[hidden] { display: none; }
+.tc-chip:hover { background: rgba(42, 33, 19, 0.9); }
+/* Good / Bad times: pills with a check box that doubles as the colour key. */
 .tc-toggle::before {
   content: "";
   flex: none;
@@ -477,7 +477,6 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 .tc-toggle[aria-checked="true"] { border-color: var(--accent); }
 #btn-show-good { --accent: var(--good-fill); }
 #btn-show-bad { --accent: var(--bad-fill); }
-#next-alarm .chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Landscape: the clock on the left; the controls on the right in one column,
    the navigator stuck to the top right with the buttons under it. The clock
@@ -1042,4 +1041,11 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   #stage { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
   #dial-wrap { min-height: min(100vw, 230px); }
   body.fullview #dial-wrap { min-height: 0; }
+}
+
+/* Landscape phone: keep the Location & time widget compact so the controls fit beside the clock. */
+@media (orientation: landscape) {
+  #stage { --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - min(540px, 48vw)))); grid-template-columns: minmax(0, 1fr) min(540px, 48vw); }
+  #loc-widget { padding: 8px 12px 10px; }
+  #loc-arc { display: block; width: 100%; height: min(190px, 28vh); }
 }
