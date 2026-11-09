@@ -1,6 +1,8 @@
 // A date picker in the clock's own dark-and-gold look, used instead of the
-// browser's native one (which ignores the theme). One at a time:
-//   DatePicker.open({ value: "YYYY-MM-DD", title: "Pick a date", onPick: fn(value), onCancel: fn() })
+// browser's native one (which ignores the theme). It opens as a drop-down
+// attached to the field that opened it (`anchor`), below it or, if there is
+// no room, above. One at a time:
+//   DatePicker.open({ anchor: el, value: "YYYY-MM-DD", title: "Pick a date", onPick: fn(value), onCancel: fn() })
 // Dates are plain calendar dates ("YYYY-MM-DD"); the caller decides the time zone.
 (function (global) {
   "use strict";
@@ -9,6 +11,33 @@
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   let root = null, state = null, lastFocus = null;
+  const GAP = 6, MARGIN = 8;
+
+  // Places the card against its anchor: below, or above when it would not
+  // fit below; kept inside the viewport sideways.
+  function place() {
+    if (!state) return;
+    const card = root.querySelector(".dp-card");
+    const a = state.anchor && state.anchor.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const w = card.offsetWidth, h = card.offsetHeight;
+    if (!a || (a.width === 0 && a.height === 0)) {
+      card.style.left = Math.max(MARGIN, (vw - w) / 2) + "px";
+      card.style.top = Math.max(MARGIN, (vh - h) / 2) + "px";
+      return;
+    }
+    let left = a.left + a.width / 2 - w / 2;
+    left = Math.min(Math.max(MARGIN, left), vw - w - MARGIN);
+    let top = a.bottom + GAP, below = true;
+    if (top + h > vh - MARGIN && a.top - GAP - h >= MARGIN) { top = a.top - GAP - h; below = false; }
+    top = Math.min(Math.max(MARGIN, top), Math.max(MARGIN, vh - h - MARGIN));
+    card.style.left = left + "px";
+    card.style.top = top + "px";
+    card.classList.toggle("dp-above", !below);
+    // The little pointer under/over the field.
+    const arrowX = Math.min(Math.max(16, a.left + a.width / 2 - left), w - 16);
+    card.style.setProperty("--dp-arrow-x", arrowX + "px");
+  }
 
   function pad(n) { return String(n).padStart(2, "0"); }
   function fmt(y, m, d) { return y + "-" + pad(m + 1) + "-" + pad(d); }
@@ -45,6 +74,8 @@
       '<div class="dp-foot"><button type="button" class="dp-today">Today</button><span></span><button type="button" class="dp-cancel">Cancel</button></div>' +
       '</div>';
     document.body.appendChild(root);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
     root.addEventListener("click", function (e) {
       if (e.target === root) { cancel(); return; }
       const nav = e.target.closest(".dp-nav");
@@ -99,12 +130,14 @@
       grid.appendChild(b);
       if (v === state.focus || (!focusBtn && v === state.value)) focusBtn = b;
     }
+    place();
     const target = focusBtn || grid.querySelector(".dp-day:not(:disabled)");
     if (target) { target.tabIndex = 0; target.focus(); }
   }
 
   function close() {
     root.hidden = true;
+    if (state && state.anchor) state.anchor.setAttribute("aria-expanded", "false");
     const s = state;
     state = null;
     if (lastFocus && lastFocus.focus) lastFocus.focus();
@@ -113,7 +146,7 @@
   function pick(v) { const s = close(); if (s && s.onPick) s.onPick(v); }
   function cancel() { const s = close(); if (s && s.onCancel) s.onCancel(); }
 
-  // opts: { value, title, min, max, marked: ["YYYY-MM-DD"], onPick, onCancel }
+  // opts: { anchor, value, title, min, max, marked: ["YYYY-MM-DD"], onPick, onCancel }
   function open(opts) {
     if (!root) build();
     if (state) cancel();
@@ -121,8 +154,9 @@
     state = {
       y: start.y, m: start.m, value: opts.value || null, focus: opts.value || null,
       title: opts.title || "Pick a date", min: opts.min || null, max: opts.max || null, marked: opts.marked || null,
-      onPick: opts.onPick, onCancel: opts.onCancel,
+      onPick: opts.onPick, onCancel: opts.onCancel, anchor: opts.anchor || null,
     };
+    if (state.anchor) state.anchor.setAttribute("aria-expanded", "true");
     lastFocus = document.activeElement;
     root.hidden = false;
     render();

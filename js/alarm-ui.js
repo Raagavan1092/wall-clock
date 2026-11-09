@@ -794,7 +794,7 @@
     amountInput.addEventListener("blur", function () { amountInput.value = isFinite(state.offsetValue) ? state.offsetValue : ""; });
     dateInput.addEventListener("click", function () {
       VedicEngine.DatePicker.open({
-        value: state.date || null, title: "Alarm date", min: VedicEngine.DatePicker.todayIST(),
+        anchor: dateInput, value: state.date || null, title: "Alarm date", min: VedicEngine.DatePicker.todayIST(),
         onPick: function (v) { state.date = v; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); },
       });
     });

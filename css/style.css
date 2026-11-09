@@ -1104,15 +1104,21 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* Themed date picker (js/date-picker.js), replacing the browser's own. */
 .dp-overlay {
-  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
-  padding: 12px; background: rgba(5, 4, 3, 0.6);
+  /* Transparent: it only catches a tap outside the drop-down, which closes it. */
+  position: fixed; inset: 0; z-index: 90; background: transparent;
 }
 .dp-overlay[hidden] { display: none; }
 .dp-card {
-  width: min(340px, 100%); padding: 14px; display: flex; flex-direction: column; gap: 10px;
-  background: #16130e; border: 1px solid #3a3020; border-radius: 20px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  position: fixed; width: min(320px, calc(100vw - 16px)); padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  background: #16130e; border: 1px solid #5a4a2a; border-radius: 16px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
   color: var(--ink); font-family: "Segoe UI", system-ui, sans-serif;
 }
+/* Pointer toward the field the drop-down belongs to. */
+.dp-card::before {
+  content: ""; position: absolute; left: calc(var(--dp-arrow-x, 50%) - 7px); top: -8px; width: 14px; height: 14px;
+  background: #16130e; border-left: 1px solid #5a4a2a; border-top: 1px solid #5a4a2a; transform: rotate(45deg);
+}
+.dp-card.dp-above::before { top: auto; bottom: -8px; transform: rotate(225deg); }
 .dp-title { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; color: #a99a7c; text-align: center; }
 .dp-head { display: flex; align-items: center; gap: 4px; }
 .dp-month { flex: 1; text-align: center; font-weight: 600; color: var(--gold-hi); font-size: 16px; }

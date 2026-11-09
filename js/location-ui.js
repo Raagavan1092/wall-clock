@@ -189,7 +189,7 @@
     $("loc-next").addEventListener("click", function () { api.shiftDay(1); });
     nowBtn.addEventListener("click", function () { api.goLive(); });
     dateBtn.addEventListener("click", function () {
-      E.DatePicker.open({ value: shownDate, title: "Go to a date", onPick: function (v) { api.pickDate(v); } });
+      E.DatePicker.open({ anchor: dateBtn, value: shownDate, title: "Go to a date", onPick: function (v) { api.pickDate(v); } });
     });
 
     // ---- the arc
