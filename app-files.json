@@ -23,6 +23,8 @@
     "js/engine/scaled-intervals.js",
     "js/engine/ghati.js",
     "js/engine/panchanga.js",
+    "js/data/mc-data.js",
+    "js/render/mc-yogas.js",
     "js/render/ring-adapter.js",
     "js/render/dial.js",
     "js/settings.js",
@@ -33,6 +35,7 @@
     "js/alarms.js",
     "js/alarm-ui.js",
     "js/android-bridge.js",
+    "js/today-special.js",
     "js/app.js"
   ]
 }

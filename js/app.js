@@ -79,6 +79,7 @@
     cachedSnapshot = null;
     lastRenderedRingKey = null;
     lastShowKey = null;
+    lastSecondaryView = null;
   }
 
   // "Switch time": "ghati" (Vedic readout leads, 60-ghati scale, pala hand)
@@ -98,6 +99,17 @@
     if (localStorage.getItem(SHOW_BAD_KEY) === "0") show.bad = false;
   } catch (e) { /* storage unavailable */ }
   let lastShowKey = null;
+
+  // "Secondary yogas": the dial shows the tithi-vāra-nakṣatra yogas on the
+  // Good / Bad Times ring, with no switchable ring. A viewing preference.
+  const SECONDARY_KEY = "vedicWallClock.secondaryYogas";
+  let secondaryView = false;
+  try { secondaryView = localStorage.getItem(SECONDARY_KEY) === "1"; } catch (e) { /* storage unavailable */ }
+  let lastSecondaryView = null;
+
+  function yogaOpts() {
+    return { yogaSets: settings.yogaSets, regionalLimits: settings.regionalLimits !== false };
+  }
 
   let data = null;
   let dialHandles = null;
@@ -160,6 +172,12 @@
       });
     }
 
+    if (secondaryView) {
+      lines.push({ text: "", emphasis: "gap" });
+      lines.push({ text: "Secondary yogas", emphasis: "ring" });
+      return lines;
+    }
+
     // Now/next for the active switchable ring, on two lines. Kāla has a
     // blank (unlabelled) night band - name just the ring there rather than
     // show a bare "Kāla: ", and look past blank segment(s) for "next".
@@ -180,23 +198,31 @@
     const { snapshot, changed } = getSnapshot(now);
     const ringKey = activeRingOrder[currentRingIndex];
 
-    if (changed) {
-      // Good/bad times and day/night only depend on the snapshot, never on
-      // which switchable ring is toggled, so they're rebuilt whenever the
-      // snapshot itself changes.
-      lastGoodBad = E.RingAdapter.buildGoodBadTimes(snapshot, data, { yogaSets: settings.yogaSets });
+    const viewChanged = secondaryView !== lastSecondaryView;
+    if (viewChanged) {
+      E.Dial.setSecondaryMode(secondaryView);
+      document.body.classList.toggle("secondary-view", secondaryView);
+      lastSecondaryView = secondaryView;
+    }
+    if (changed || viewChanged) {
+      // Good/bad times and day/night only depend on the snapshot (and the
+      // view), never on which switchable ring is toggled, so they're rebuilt
+      // whenever the snapshot itself changes.
+      lastGoodBad = secondaryView
+        ? E.RingAdapter.buildSecondaryYogas(snapshot, data, yogaOpts())
+        : E.RingAdapter.buildGoodBadTimes(snapshot, data, yogaOpts());
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
       applyFixedRingVisibility();
     }
     // The Good / Bad Times ring also depends on which halves are switched on.
     const showKey = (show.good ? "g" : "-") + (show.bad ? "b" : "-");
-    if (changed || showKey !== lastShowKey) {
+    if (changed || viewChanged || showKey !== lastShowKey) {
       E.Dial.renderGoodBadRing(dialHandles.goodBadRingGroup, lastGoodBad.good, lastGoodBad.bad, show);
       lastShowKey = showKey;
     }
-    if (changed || ringKey !== lastRenderedRingKey) {
-      if (ringKey) {
+    if (changed || viewChanged || ringKey !== lastRenderedRingKey) {
+      if (ringKey && !secondaryView) {
         lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
         E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor, E.RingAdapter.START_LABEL_RINGS);
       } else {
@@ -279,7 +305,7 @@
   }
 
   function cycleRing(delta) {
-    if (!activeRingOrder.length) return;
+    if (!activeRingOrder.length || secondaryView) return;
     currentRingIndex = (currentRingIndex + delta + activeRingOrder.length) % activeRingOrder.length;
     render();
   }
@@ -308,6 +334,25 @@
     document.getElementById("btn-show-good").addEventListener("click", function () { setShown("good", !show.good); });
     document.getElementById("btn-show-bad").addEventListener("click", function () { setShown("bad", !show.bad); });
     syncShowButtons();
+
+    const secBtn = document.getElementById("btn-secondary-yogas");
+    function syncSecondaryButton() {
+      secBtn.setAttribute("aria-pressed", String(secondaryView));
+      secBtn.textContent = secondaryView ? "Main view" : "Secondary yogas";
+      secBtn.title = secondaryView ? "Back to the daily windows and the switchable rings" : "Show the tithi-vāra-nakṣatra yogas";
+    }
+    secBtn.addEventListener("click", function () {
+      secondaryView = !secondaryView;
+      try { localStorage.setItem(SECONDARY_KEY, secondaryView ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+      syncSecondaryButton();
+      render();
+    });
+    syncSecondaryButton();
+
+    document.getElementById("btn-todays-specialities").addEventListener("click", function () {
+      if (!cachedSnapshot || !E.TodaySpecial) return;
+      E.TodaySpecial.open(cachedSnapshot, data, yogaOpts());
+    });
 
     window.addEventListener("keydown", function (e) {
       // Not while typing in / scrubbing a field or working in a dialog (the
@@ -506,6 +551,7 @@
       workingHiddenRings = from.hiddenRings.slice();
       workingHiddenMarkers = from.hiddenMarkers.slice();
       document.getElementById("set-yoga-asal-vakya").checked = !!(from.yogaSets && from.yogaSets.asalVakya);
+      document.getElementById("set-yoga-regional").checked = from.regionalLimits !== false;
       renderRingOrderList();
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
@@ -540,6 +586,7 @@
         hiddenRings: workingHiddenRings.slice(),
         hiddenMarkers: workingHiddenMarkers.slice(),
         yogaSets: { asalVakya: document.getElementById("set-yoga-asal-vakya").checked },
+        regionalLimits: document.getElementById("set-yoga-regional").checked,
         layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);

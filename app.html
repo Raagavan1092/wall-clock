@@ -87,8 +87,10 @@
   <section>
     <details>
     <summary><h3>Yogas</h3></summary>
-    <p class="settings-note">Local practices, shown on the Good / Bad Times ring only if ticked.</p>
-    <label><input type="checkbox" id="set-yoga-asal-vakya"> Asal Vākya Pañcāṅga (Kumārasvāmīyam): Amṛta / Siddha / Maraṇa Yogam by weekday and nakṣatra</label>
+    <p class="settings-note">The yogas follow Muhūrta Cintāmaṇi. Daily windows show on the Good / Bad Times ring; tithi-vāra-nakṣatra yogas in the Secondary yogas view; details in Today Special.</p>
+    <label><input type="checkbox" id="set-yoga-regional"> Apply the text's regional limits (a rule the text confines to some lands shows only for places there; regions are estimated from the nearest district)</label>
+    <p class="settings-note">Local practices, shown in the Secondary yogas view only if ticked.</p>
+    <label><input type="checkbox" id="set-yoga-asal-vakya"> Asal Vākya Pañcāṅga (Kumārasvāmīyam): Amṛta / Maraṇa Yogam by weekday and nakṣatra</label>
     </details>
   </section>
 
@@ -139,6 +141,18 @@
   <div class="settings-actions">
     <button id="settings-save" type="button">Save</button>
     <button id="settings-cancel" type="button">Cancel</button>
+  </div>
+</div>
+
+<div id="ts-dialog" class="hidden">
+  <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="ts-title">
+    <div class="ld-head">
+      <h2 id="ts-title">Today Special</h2>
+      <button type="button" id="ts-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="ld-body" id="ts-body"></div>
   </div>
 </div>
 

@@ -257,6 +257,8 @@
   const LAYER_RADIUS_PREFIX = { switchable: "outerRing", goodBad: "goodBadRing" };
   const LAYERS_OUTER = 610, LAYER_GAP = 4;
   let layerFrame = null;
+  let currentOrder = LAYER_KEYS;
+  let secondaryMode = false;
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
 
   // Assigns each layer its radii for `order` (outside in; any missing or
@@ -265,6 +267,7 @@
   function setLayerOrder(order) {
     const valid = (order || []).filter(function (k, i, arr) { return LAYER_KEYS.indexOf(k) !== -1 && arr.indexOf(k) === i; });
     const full = valid.length === LAYER_KEYS.length ? valid : LAYER_KEYS;
+    currentOrder = full;
     let r = LAYERS_OUTER;
     full.forEach(function (key) {
       const prefix = LAYER_RADIUS_PREFIX[key];
@@ -272,15 +275,27 @@
       R[prefix + "Inner"] = r - LAYER_THICKNESS[key];
       r = R[prefix + "Inner"] - LAYER_GAP;
     });
+    // Secondary yogas view: no switchable ring, so the Good / Bad Times ring
+    // takes both layers' room.
+    if (secondaryMode) {
+      R.goodBadRingOuter = LAYERS_OUTER;
+      R.goodBadRingInner = r + LAYER_GAP;
+    }
     if (layerFrame) {
       clearGroup(layerFrame);
-      LAYER_KEYS.forEach(function (key) {
+      (secondaryMode ? ["goodBad"] : LAYER_KEYS).forEach(function (key) {
         const prefix = LAYER_RADIUS_PREFIX[key];
         [R[prefix + "Outer"], R[prefix + "Inner"]].forEach(function (radius) {
           layerFrame.appendChild(el("circle", { cx: CX, cy: CY, r: radius, class: "ring-boundary" }));
         });
       });
     }
+  }
+
+  // Turns the Secondary yogas layout on or off. Callers re-render the rings.
+  function setSecondaryMode(on) {
+    secondaryMode = !!on;
+    setLayerOrder(currentOrder);
   }
 
   function buildScaleFrame(root) {
@@ -827,7 +842,7 @@
     R, CX, CY,
     LAYER_KEYS,
     clearGroup,
-    setLayerOrder,
+    setLayerOrder, setSecondaryMode,
     buildStaticStructure,
     renderOuterRing,
     renderGoodBadRing,

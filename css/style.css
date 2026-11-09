@@ -29,6 +29,8 @@
   --bad-label: #fff3ec;
   --good-fill: #2f86c9;
   --good-label: #f2f8ff;
+  --mild-fill: #8a6a3e;
+  --mild-label: #fff6e6;
   /* Highlight for whatever is active right now (dial.js updateTimeState). */
   --active-outline: #ffe08a;
   --centre-bad: #ff8d6e;
@@ -172,6 +174,9 @@ html, body {
    so they win the (equal-specificity) cascade regardless of position. */
 .ring-segment.bad { fill: var(--bad-fill); }
 .ring-segment.good { fill: var(--good-fill); }
+/* A bad yoga in a part the text relaxes (acceptable if the work is urgent):
+   on the bad side, paler. */
+.ring-segment.mild { fill: var(--mild-fill); }
 /* Good Times / Bad Times rings: a faint full-ring background behind the
    per-event lanes (dial.js renderEventRing). */
 .ring-segment.event-ring-bg { fill: var(--ring-neutral); stroke: none; }
@@ -190,6 +195,7 @@ html, body {
 .timed.is-active .dial-label { fill: #ffffff; font-weight: 700; }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
+.mild-label { fill: var(--mild-label); font-weight: 600; }
 
 .tick-major { stroke: var(--tick-major); stroke-width: 2.5; }
 .tick-minor { stroke: var(--tick-minor); stroke-width: 1; }
@@ -434,6 +440,9 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
+body.secondary-view .rc-corner { display: none; }
+#btn-secondary-yogas[aria-pressed="true"], #btn-secondary-yogas[aria-pressed="true"]:hover { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
+body.fullview #ts-dialog,
 body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
@@ -965,6 +974,24 @@ body.fullview .gb-toggle { display: none; }
   background: rgba(5, 4, 3, 0.72);
 }
 #loc-dialog.hidden { display: none; }
+/* Today Special dialog: shares the location dialog's card. */
+#ts-dialog {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  background: rgba(5, 4, 3, 0.72);
+}
+#ts-dialog.hidden { display: none; }
+#ts-dialog .ld-card { width: min(720px, 100%); }
+#ts-close {
+  width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
+  border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: #b3a586; cursor: pointer;
+}
+#ts-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.ts-sec { border: 1px solid #3a3020; border-radius: 14px; background: #1f1a11; }
+.ts-sec summary { cursor: pointer; padding: 10px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.ts-title { font-weight: 600; color: var(--gold-hi); }
+.ts-sub { font-size: 12px; color: #a99a7c; }
+.ts-sec ul { margin: 0; padding: 0 14px 12px 32px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; line-height: 1.45; }
 .ld-card {
   width: min(600px, 100%); max-height: 100%; display: flex; flex-direction: column;
   background: #16130e; border: 1px solid #3a3020; border-radius: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);

@@ -371,6 +371,7 @@
         startTime: new Date(Math.max(lo, iv.startTime.getTime())),
         endTime: new Date(Math.min(hi, iv.endTime.getTime())),
         text: iv.text, goodBad: iv.goodBad, contested: false,
+        extraTooltip: iv.tip || undefined,
       };
     }).filter(function (ev) { return ev.endTime > ev.startTime; })
       .sort(function (a, b) { return a.startTime - b.startTime || b.endTime - a.endTime; });
@@ -381,7 +382,7 @@
     const JOIN_SLACK_MS = 60 * 1000;
     const events = [];
     clipped.forEach(function (ev) {
-      const joinable = events.find(function (e) { return e.text === ev.text && Math.abs(ev.startTime - e.endTime) <= JOIN_SLACK_MS; });
+      const joinable = events.find(function (e) { return e.text === ev.text && e.goodBad === ev.goodBad && e.extraTooltip === ev.extraTooltip && Math.abs(ev.startTime - e.endTime) <= JOIN_SLACK_MS; });
       if (joinable) joinable.endTime = ev.endTime;
       else events.push(ev);
     });
@@ -397,36 +398,38 @@
     return { events: events, laneCount: Math.max(1, laneEnds.length) };
   }
 
-  // The two halves of the always-on Good / Bad Times ring. Each holds the
-  // day's daily windows of its kind (dailyWindows above) plus the five
-  // weekday x nakshatra/tithi combination yogas that used to have a ring of
-  // their own - Maraṇa Yogam and Viṣa Yoga (bad), Amṛta Yogam, Sarvārtha
-  // Siddhi and Ravi Yoga (good) - each event in its own lane (layoutEvents).
-  // `opts.yogaSets.asalVakya` (Settings > Yogas) adds the Asal Vākya
-  // Amṛta / Maraṇa Yogam; off (or no opts) leaves them out.
+  // The two halves of the always-on Good / Bad Times ring: the day's small
+  // windows (dailyWindows above, plus the Muhūrta Cintāmaṇi windows from
+  // mc-yogas.js mainWindows), each event in its own lane (layoutEvents).
+  // The tithi-vāra-nakṣatra yogas live in the Secondary yogas view
+  // (buildSecondaryYogas) instead.
   function buildGoodBadTimes(snapshot, data, opts) {
+    const MC = VedicEngine.MCYogas;
+    const all = dailyWindows(snapshot, data).concat(MC ? MC.mainWindows(snapshot, data, opts) : []);
+    return splitGoodBad(all, snapshot);
+  }
+
+  // The Secondary yogas view: tithi-vāra-nakṣatra yogas (mc-yogas.js
+  // secondary), drawn on the same two-sided ring. "mild" windows (a bad
+  // yoga in a part the text relaxes) go on the bad side, lighter.
+  function buildSecondaryYogas(snapshot, data, opts) {
+    const MC = VedicEngine.MCYogas;
+    const res = MC ? MC.secondary(snapshot, data, opts) : { windows: [] };
+    const out = splitGoodBad(res.windows, snapshot);
+    out.suppressed = res.suppressed || [];
+    return out;
+  }
+
+  function splitGoodBad(all, snapshot) {
     const a = snapshot.anchors;
-    const asalVakya = !!(opts && opts.yogaSets && opts.yogaSets.asalVakya);
-    const all = dailyWindows(snapshot, data)
-      .concat(asalVakya ? activeIntervalsFor("Maraṇa Yogam", "bad", buildMaranaYoga(snapshot, data)) : [])
-      .concat(activeIntervalsFor("Viṣa Yoga", "bad", buildVishaYoga(snapshot, data)))
-      .concat(asalVakya ? activeIntervalsFor("Amṛta Yogam", "good", buildAmritaYoga(snapshot, data)) : [])
-      .concat(activeIntervalsFor("Sarvārtha Siddhi", "good", buildSarvarthaSiddhiYoga(snapshot, data)))
-      .concat(activeIntervalsFor("Ravi Yoga", "good", buildRaviYoga(snapshot, data)));
-    function ring(key, goodBad) {
-      const laid = layoutEvents(all.filter(function (iv) { return iv.goodBad === goodBad; }), a.governingSunrise, a.nextSunrise);
+    function ring(key, kinds) {
+      const laid = layoutEvents(all.filter(function (iv) { return kinds.indexOf(iv.goodBad) !== -1; }), a.governingSunrise, a.nextSunrise);
       finalizeSegments(laid.events, a);
       return { ringKey: key, title: key === "goodTimes" ? "Good Times" : "Bad Times", segments: laid.events, laneCount: laid.laneCount };
     }
-    return { good: ring("goodTimes", "good"), bad: ring("badTimes", "bad") };
+    return { good: ring("goodTimes", ["good"]), bad: ring("badTimes", ["bad", "mild"]) };
   }
 
-  // One line of the centre readout's status, for one half of the Good /
-  // Bad Times ring: what is active right now and until when, or, if
-  // nothing is, what comes next. When several windows are active at once
-  // the one ending soonest is named (the short, strict windows like Rāhu
-  // Kālam end before the day-long yogas), with a count of the rest.
-  // Returns { active, text, until } or { active: false, text, at } or null.
   function statusFor(ringDescriptor, now) {
     const events = ringDescriptor.segments;
     const active = events.filter(function (e) { return e.startTime <= now && now < e.endTime; })
@@ -673,5 +676,5 @@
     return out;
   }
 
-  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, buildAlarmCatalog, buildAlarmEvents, dateNote, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
+  VedicEngine.RingAdapter = { build, buildDayNight, buildGoodBadTimes, buildSecondaryYogas, statusFor, tithiNameAt, buildDayMarkers, buildHourScale, buildAlarmCatalog, buildAlarmEvents, dateNote, RING_ORDER, RING_TITLES, START_LABEL_RINGS, MARKER_TITLES, FIXED_RING_TITLES };
 })(typeof window !== "undefined" ? window : globalThis);

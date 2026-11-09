@@ -68,6 +68,9 @@
       // Optional local-practice yoga sets (Settings > Yogas). asalVakya: the
       // Amṛta / Siddha / Maraṇa Yogam weekday x nakṣatra table. Off by default.
       yogaSets: { asalVakya: false },
+      // Apply the text's regional limits (a rule the text confines to some
+      // lands is shown only for places there). On by default.
+      regionalLimits: true,
       // Physical order of the ring layers, outside in (Dial.LAYER_KEYS).
       layerOrder: VedicEngine.Dial.LAYER_KEYS.slice(),
     };
@@ -117,6 +120,7 @@
       hiddenRings: sanitizeKeys(saved.hiddenRings, VedicEngine.RingAdapter.RING_ORDER),
       hiddenMarkers: sanitizeKeys(saved.hiddenMarkers, VedicEngine.RingAdapter.MARKER_TITLES),
       yogaSets: { asalVakya: !!(saved.yogaSets && saved.yogaSets.asalVakya) },
+      regionalLimits: saved.regionalLimits !== false,
       layerOrder: d.layerOrder,
     };
   }
