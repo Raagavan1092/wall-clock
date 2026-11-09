@@ -267,7 +267,73 @@
       if (last && w.s - last.e <= 60000 && last.nak === w.nak && last.tithi === w.tithi && last.lagna === w.lagna) last.e = Math.max(last.e, w.e);
       else joined.push(w);
     });
+    // What is good about each window.
+    let goodYogas = [];
+    if (E.MCYogas) {
+      goodYogas = E.MCYogas.secondary(snapshot, data, opts).windows.filter(function (w) { return w.goodBad === "good"; })
+        .concat(E.MCYogas.mainWindows(snapshot, data, opts).filter(function (w) { return w.goodBad === "good"; }));
+    }
+    const ctxDay = { ev: ev, data: data, v: v, sun: sun, snapshot: snapshot, goodYogas: goodYogas, auspicious: auspicious, P: P };
+    joined.forEach(function (w) { const g = goodPoints(w, ctxDay); w.good = g.good; w.middling = g.middling; });
     return { windows: joined };
+  }
+
+  const CLASS_LABEL = { dhruva: "dhruva", chara: "cara", kshipra: "kṣipra", mridu: "mṛdu", ugra: "ugra", mishra: "miśra", tikshna: "tīkṣṇa" };
+  function nakClass(i) {
+    const C = E.MCEvents.NCLASS;
+    return Object.keys(CLASS_LABEL).find(function (k) { return C[k].indexOf(i) !== -1; });
+  }
+  // Short phrases for what makes window `w` good, and what is only middling.
+  function goodPoints(w, c) {
+    const ev = c.ev, data = c.data, M = E.MCEvents, good = [], middling = [];
+    const ref = " (" + ev.ref + ")";
+    if (w.nak != null) {
+      const nm = data.nakshatra.names[w.nak], cl = nakClass(w.nak);
+      if (w.mid) middling.push(nm + ": a middling nakṣatra for this" + ref);
+      else if (ev.naks) good.push(nm + (cl ? " (" + CLASS_LABEL[cl] + ")" : "") + ": a nakṣatra the text gives for this" + ref);
+    }
+    if (w.tithi) {
+      const t = w.tithi, name = E.RingAdapter.tithiNameAt({ tithiSequence: [t] }, data, new Date(w.s));
+      const cls = E.MCData ? E.MCData.tithiClass[(t.pakshaIndex - 1) % 5] : "";
+      if (ev.tithis) good.push(name + ": a tithi the text gives for this" + ref);
+      else if (ev.badTithis) good.push(name + ", a " + cls.toLowerCase() + " tithi: not one the text bars for this");
+      const third = t.pakshaIndex <= 5 ? 0 : t.pakshaIndex <= 10 ? 1 : 2;
+      if ((t.paksha === "shukla" && third === 2) || (t.paksha === "krishna" && third === 0)) good.push("the Moon strong in this part of the pakṣa (1.4)");
+    }
+    const vara = data.vara.names[c.v];
+    if (ev.varas && ev.varas.indexOf(c.v) !== -1) good.push(vara + ": a good weekday for this" + ref);
+    else if (ev.midVaras && ev.midVaras.indexOf(c.v) !== -1) middling.push(vara + ": a middling weekday" + ref);
+    if (ev.sunSigns) good.push("the Sun in " + data.rashi.names[c.sun] + ", an allowed sign");
+    if (ev.uttarayana) good.push("Uttarāyaṇa (5.26)");
+    if (ev.masas && w.tithi) good.push(data.amantaMasa.names[w.tithi.amantaMasaRashiIndex] + ", a month the text allows");
+    if (ev.noAsta) good.push("Jupiter and Venus both visible (5.26–28)");
+    if (ev.chakra && w.nak != null) {
+      const s28 = c.snapshot.sunNakshatraIndex < 21 ? c.snapshot.sunNakshatraIndex : c.snapshot.sunNakshatraIndex + 1;
+      const m28 = w.nak < 21 ? w.nak : w.nak + 1;
+      good.push(ev.chakra.name + ": count " + (((m28 - s28 + 28) % 28) + 1) + ", a good part");
+    }
+    if (ev.direction && w.nak != null) {
+      good.push(M.anyDirection.indexOf(w.nak) !== -1 ? data.nakshatra.names[w.nak] + " is good in any direction (11.38)" : data.nakshatra.names[w.nak] + " lies on the " + ev.direction + " side (11.36)");
+      good.push("yoginī not in front or on the left (11.34); no dishāśūla today");
+    }
+    if (w.timeNote) good.push("the time of day suits this nakṣatra: " + w.timeNote + " (11.11)");
+    if (ev.agniVasa) good.push("Agni on earth (2.36)");
+    if (ev.homaMouth) good.push("the oblation falls in a benefic's mouth (2.35)");
+    if (w.lagna != null) {
+      let l = data.rashi.names[w.lagna] + " lagna";
+      if (ev.lagnas) l += ", one the text gives for this";
+      if (ev.stdLagna) l += ": 8th empty, Moon well placed, no kartari";
+      if (ev.jamitra) l += ", 7th empty";
+      if (w.lagnaNote) l += (ev.stdLagna || ev.jamitra ? "; " : ": ") + w.lagnaNote;
+      good.push(l);
+    }
+    const names = [];
+    c.goodYogas.forEach(function (y) {
+      if (ms(y.startTime) < w.e && ms(y.endTime) > w.s && names.indexOf(y.text) === -1) names.push(y.text);
+    });
+    if (names.length) good.push("good yogas: " + names.join(", "));
+    if (c.auspicious) good.push("clear of the day's bad windows and yogas");
+    return { good: good, middling: middling };
   }
 
   // Saṅkrānti puṇya-kāla (3.5-8).
@@ -421,14 +487,23 @@
         const head = h("div", "mf-time", fmtTime(w.s) + "–" + fmtTime(w.e) + E.RingAdapter.dateNote(new Date(w.e), day.snapshot ? day.snapshot.anchors : { governingSunrise: new Date(w.s) }) +
           (g1 && g2 ? "  ·  ghaṭī " + g1.ghati + ":" + String(g1.pala).padStart(2, "0") + "–" + g2.ghati + ":" + String(g2.pala).padStart(2, "0") : ""));
         row.appendChild(head);
-        const why = [];
-        if (w.text) why.push(w.text);
-        if (w.tithi) why.push(E.RingAdapter.tithiNameAt({ tithiSequence: [w.tithi] }, data, new Date(w.s)));
-        if (w.nak != null) why.push(data.nakshatra.names[w.nak] + (w.mid ? " (middling)" : ""));
-        if (day.snapshot && !w.text) why.push(data.vara.names[day.snapshot.varaIndex]);
-        if (w.lagna != null) why.push(data.rashi.names[w.lagna] + " lagna" + (w.lagnaNote ? " (" + w.lagnaNote + ")" : ""));
-        if (w.timeNote) why.push("travel in " + w.timeNote + " for this nakṣatra (11.11)");
-        row.appendChild(h("div", "mf-why", why.join(" · ")));
+        if (w.text) row.appendChild(h("div", "mf-why", w.text));
+        if (w.good && w.good.length) {
+          const g = h("div", "mf-good");
+          g.appendChild(h("span", "mf-tag mf-tag-good", "Good"));
+          const ul = h("ul");
+          w.good.forEach(function (x) { ul.appendChild(h("li", null, x)); });
+          g.appendChild(ul);
+          row.appendChild(g);
+        }
+        if (w.middling && w.middling.length) {
+          const m = h("div", "mf-good");
+          m.appendChild(h("span", "mf-tag mf-tag-mid", "Middling"));
+          const ul = h("ul");
+          w.middling.forEach(function (x) { ul.appendChild(h("li", null, x)); });
+          m.appendChild(ul);
+          row.appendChild(m);
+        }
         const go = h("button", "mf-go", "Show on the clock");
         go.type = "button";
         go.addEventListener("click", function () { ctx.goTo(new Date(w.s + 60000)); close(); });
@@ -443,11 +518,13 @@
     out.appendChild(notes);
   }
 
+  function syncClear() { $("mf-search-clear").hidden = !$("mf-search").value; }
   function close() { runId++; $("mf-dialog").classList.add("hidden"); $("btn-next-muhurta").focus(); }
   function choose(id) {
     chosen = allEvents().find(function (ev) { return ev.id === id; }) || null;
     $("mf-search").value = chosen ? chosen.name : "";
     openList(false);
+    syncClear();
     $("mf-ref").textContent = chosen ? "Muhūrta Cintāmaṇi " + chosen.ref : "";
   }
 
@@ -457,7 +534,9 @@
       $("mf-dialog").classList.remove("hidden");
       if (!dateA) dateA = E.DatePicker.todayIST();
       renderRange(); renderList();
-      $("mf-search").focus();
+      // No autofocus on the search box (it would pop the keyboard on phones):
+      // focus the dialog itself, so Tab starts from the top.
+      $("mf-dialog").querySelector(".ld-card").focus();
     });
     $("mf-close").addEventListener("click", close);
     $("mf-dialog").addEventListener("click", function (e) {
@@ -484,6 +563,18 @@
     });
     $("mf-date").addEventListener("click", pickDates);
     $("mf-find").addEventListener("click", run);
+    // × in the search box: clears the event. Clear: resets the whole form.
+    $("mf-search-clear").addEventListener("click", function () {
+      chosen = null; $("mf-search").value = ""; $("mf-ref").textContent = ""; $("mf-results").textContent = ""; runId++; $("mf-find").disabled = false;
+      renderList(); openList(false); syncClear();
+    });
+    $("mf-clear").addEventListener("click", function () {
+      runId++; chosen = null; mode = "after"; dateA = E.DatePicker.todayIST(); dateB = null;
+      $("mf-search").value = ""; $("mf-ref").textContent = ""; $("mf-results").textContent = ""; $("mf-find").disabled = false;
+      renderRange(); renderList(); openList(false); syncClear();
+    });
+    $("mf-search").addEventListener("input", syncClear);
+    syncClear();
   }
 
   VedicEngine.MuhurtaFinder = { init: init, search: search, evaluateDay: evaluateDay };

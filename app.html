@@ -144,7 +144,7 @@
 </div>
 
 <div id="mf-dialog" class="hidden">
-  <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="mf-title">
+  <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="mf-title" tabindex="-1">
     <div class="ld-head">
       <h2 id="mf-title">Find muhurta</h2>
       <button type="button" id="mf-close" aria-label="Close">
@@ -157,6 +157,9 @@
         <label class="ld-search" for="mf-search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
           <input type="text" id="mf-search" role="combobox" aria-expanded="false" aria-controls="mf-list" aria-autocomplete="list" placeholder="Type or choose: marriage, upanayana, travel…" autocomplete="off" spellcheck="false">
+          <button type="button" id="mf-search-clear" class="mf-x" aria-label="Clear the event" title="Clear" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
         </label>
         <ul id="mf-list" role="listbox" aria-label="Events" hidden></ul>
       </div>
@@ -170,7 +173,10 @@
         </div>
         <button type="button" id="mf-date" class="mf-date" aria-haspopup="dialog" aria-expanded="false">pick a date</button>
       </div>
-      <button type="button" id="mf-find" class="mf-find">Find the next suitable times</button>
+      <div class="mf-actions">
+        <button type="button" id="mf-find" class="mf-find">Find the next suitable times</button>
+        <button type="button" id="mf-clear" class="mf-clear">Clear</button>
+      </div>
       <div id="mf-results" aria-live="polite"></div>
     </div>
   </div>
