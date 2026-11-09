@@ -452,7 +452,8 @@
     const clockRow = h("div", { class: "al-time-row" }, tHour.field, h("span", { class: "al-time-sep", text: ":" }), tMin.field);
     const ghatiRow = h("div", { class: "al-time-row" }, tGhati.field, h("span", { class: "al-time-sep", text: "·" }), tPala.field);
     const customHint = h("p", { class: "al-hint" });
-    const dateInput = h("input", { type: "date", class: "al-date-input", "aria-label": "Date (optional)" });
+    // A button that opens the themed date picker (date-picker.js).
+    const dateInput = h("button", { type: "button", class: "al-date-input", "aria-label": "Date (optional)" });
     const dateClear = h("button", { type: "button", class: "al-link", text: "Clear" });
     const dateRow = h("div", { class: "al-date-row" }, h("span", { class: "al-date-label", text: "Date" }), dateInput, dateClear, h("span", { class: "al-sub", text: "Leave empty for every day" }));
     const customPane = h("div", { class: "al-custom-pane" },
@@ -691,7 +692,7 @@
         ? "24-hour clock, Indian Standard Time. Rings at this time " + (state.date ? "on that date." : "every day.")
         : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of " + (state.date ? "the Vedic day that begins on that date." : "every Vedic day.");
       customPane.classList.toggle("invalid", !customValid());
-      if (document.activeElement !== dateInput) dateInput.value = state.date;
+      dateInput.textContent = state.date ? new Date(state.date + "T00:00:00Z").toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "Any day";
       dateClear.hidden = !state.date;
     });
     function renderView() {
@@ -791,8 +792,12 @@
       renderWhen(); renderFoot(); schedulePreview();
     });
     amountInput.addEventListener("blur", function () { amountInput.value = isFinite(state.offsetValue) ? state.offsetValue : ""; });
-    dateInput.min = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
-    dateInput.addEventListener("input", function () { state.date = dateInput.value; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
+    dateInput.addEventListener("click", function () {
+      VedicEngine.DatePicker.open({
+        value: state.date || null, title: "Alarm date", min: VedicEngine.DatePicker.todayIST(),
+        onPick: function (v) { state.date = v; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); },
+      });
+    });
     dateClear.addEventListener("click", function () { state.date = ""; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
     customToggle.addEventListener("click", function () { state.customOn = !state.customOn; renderAll(); });
     [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala]].forEach(function (p) {

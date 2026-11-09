@@ -80,7 +80,8 @@
     const chip = $("loc-chip"), chipName = $("loc-chip-name"), coordsEl = $("loc-coords");
     const menu = $("loc-menu"), recentBox = $("loc-recent"), changeBtn = $("loc-change");
     const arc = $("loc-arc");
-    const nowBtn = $("loc-now"), dateInput = $("loc-date-input");
+    const nowBtn = $("loc-now"), dateBtn = $("loc-datebtn");
+    let shownDate = null; // "YYYY-MM-DD" (IST) of the clock time on show
 
     const dlg = $("loc-dialog"), card = dlg.querySelector(".ld-card");
     const closeBtn = $("loc-close"), cancelBtn = $("loc-cancel"), applyBtn = $("loc-apply");
@@ -187,7 +188,9 @@
     $("loc-prev").addEventListener("click", function () { api.shiftDay(-1); });
     $("loc-next").addEventListener("click", function () { api.shiftDay(1); });
     nowBtn.addEventListener("click", function () { api.goLive(); });
-    dateInput.addEventListener("change", function () { api.pickDate(dateInput.value); });
+    dateBtn.addEventListener("click", function () {
+      E.DatePicker.open({ value: shownDate, title: "Go to a date", onPick: function (v) { api.pickDate(v); } });
+    });
 
     // ---- the arc
     let arcKey = null, sunEls = null;
@@ -337,7 +340,7 @@
       nowBtn.classList.toggle("is-live", live);
       nowBtn.setAttribute("aria-pressed", String(live));
       const istDate = new Date(now.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
-      if (dateInput.value !== istDate && document.activeElement !== dateInput) dateInput.value = istDate;
+      shownDate = istDate;
     }
 
     // ================= dialog =================
