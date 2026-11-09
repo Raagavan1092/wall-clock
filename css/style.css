@@ -66,7 +66,7 @@ html, body {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  padding: max(8px, env(safe-area-inset-top)) env(safe-area-inset-right) max(24px, calc(env(safe-area-inset-bottom) + 12px)) env(safe-area-inset-left);
+  padding: max(8px, env(safe-area-inset-top)) env(safe-area-inset-right) max(36px, calc(env(safe-area-inset-bottom) + 24px)) env(safe-area-inset-left);
 }
 
 /* The dial sits in a square wrapper so the two ring buttons can hug its bottom corners. */
@@ -124,7 +124,8 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-size: clamp(9px, 4.2cqw, 20px);
+  font-size: clamp(9px, 3.6cqw, 18px);
+  white-space: nowrap;
   line-height: 1.15;
   font-weight: 600;
   pointer-events: auto;
@@ -1039,13 +1040,18 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 /* Portrait on a short screen (e.g. with the Location widget open): the clock keeps a usable size and the page scrolls, rather than the clock shrinking to nothing or being cut off. */
 @media (orientation: portrait) {
   #stage { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
-  #dial-wrap { min-height: min(100vw, 230px); }
+  #dial-wrap { min-height: min(100vw, 170px); }
   body.fullview #dial-wrap { min-height: 0; }
 }
 
 /* Landscape phone: keep the Location & time widget compact so the controls fit beside the clock. */
 @media (orientation: landscape) {
-  #stage { --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - min(540px, 48vw)))); grid-template-columns: minmax(0, 1fr) min(540px, 48vw); }
+  #stage { --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - min(540px, 48vw)))); grid-template-columns: minmax(0, 1fr) min(540px, 48vw); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+  #dial-wrap { grid-row: 1; }
+  #top-controls { max-height: 100%; overflow-y: auto; scrollbar-width: none; align-self: start; }
   #loc-widget { padding: 8px 12px 10px; }
-  #loc-arc { display: block; width: 100%; height: min(190px, 28vh); }
+  #loc-arc { max-height: min(190px, 22vh); }
 }
+#loc-arc { display: block; width: 100%; height: auto; max-height: min(190px, 22vh); }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
