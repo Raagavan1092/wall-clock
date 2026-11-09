@@ -103,5 +103,18 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_clock_info" />
         </receiver>
+
+        <!-- The 2x2 panchanga widget: ghati/pala, time, tithi and nakshatra with end times -->
+        <receiver
+            android:name=".PanchangaWidget"
+            android:exported="true"
+            android:label="@string/widget_info_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_info" />
+        </receiver>
     </application>
 </manifest>

@@ -92,24 +92,39 @@
     return tooltipEl;
   }
 
+  // The tip is a small card with no title bar. A tap on a segment shows it (a mouse also shows it on
+  // hover); a tap anywhere else, or a scroll, hides it. It opens beside the touch point on whichever
+  // side has room, and is always kept fully on screen.
+  function showTip(text, x, y) {
+    const tip = getTooltip();
+    tip.textContent = "";
+    text.split("\n").forEach(function (line, i) {
+      if (i > 0) tip.appendChild(document.createElement("br"));
+      tip.appendChild(document.createTextNode(line));
+    });
+    tip.style.maxWidth = Math.max(120, window.innerWidth - 16) + "px";
+    tip.style.visibility = "hidden";
+    tip.style.display = "block";
+    const w = tip.offsetWidth, h = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight, gap = 14, m = 8;
+    // Horizontally: to the right of the point if it fits, else to its left, else as far over as fits.
+    let left = x + gap + w + m <= vw ? x + gap : x - gap - w >= m ? x - gap - w : Math.min(Math.max(m, x - w / 2), vw - w - m);
+    // Vertically: below the point if it fits, else above it, else clamped.
+    let top = y + gap + h + m <= vh ? y + gap : y - gap - h >= m ? y - gap - h : Math.min(Math.max(m, y - h / 2), vh - h - m);
+    left = Math.min(Math.max(m, left), Math.max(m, vw - w - m));
+    top = Math.min(Math.max(m, top), Math.max(m, vh - h - m));
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.style.visibility = "visible";
+  }
+  function hideTip() { if (tooltipEl) tooltipEl.style.display = "none"; }
+  document.addEventListener("pointerdown", hideTip, true);
+  window.addEventListener("scroll", hideTip, true);
+
   function attachTooltip(path, text) {
-    path.addEventListener("mouseenter", function () {
-      const tip = getTooltip();
-      tip.textContent = "";
-      text.split("\n").forEach(function (line, i) {
-        if (i > 0) tip.appendChild(document.createElement("br"));
-        tip.appendChild(document.createTextNode(line));
-      });
-      tip.style.display = "block";
-    });
-    path.addEventListener("mousemove", function (e) {
-      const tip = getTooltip();
-      tip.style.left = e.clientX + 16 + "px";
-      tip.style.top = e.clientY + 16 + "px";
-    });
-    path.addEventListener("mouseleave", function () {
-      getTooltip().style.display = "none";
-    });
+    path.addEventListener("click", function (e) { showTip(text, e.clientX, e.clientY); });
+    path.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") showTip(text, e.clientX, e.clientY); });
+    path.addEventListener("pointermove", function (e) { if (e.pointerType === "mouse" && tooltipEl && tooltipEl.style.display === "block") showTip(text, e.clientX, e.clientY); });
+    path.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") hideTip(); });
   }
 
   function el(tag, attrs) {

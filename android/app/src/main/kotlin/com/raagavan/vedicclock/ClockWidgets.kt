@@ -15,6 +15,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.widget.RemoteViews
+import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,8 +56,10 @@ object ClockWidgets {
             val status = Store.prefs(ctx).getString(PREF_STATUS, null)?.let { runCatching { JSONObject(it) }.getOrNull() }
             val ids = mgr.getAppWidgetIds(ComponentName(ctx, ClockFaceWidget::class.java))
             for (id in ids) mgr.updateAppWidget(id, views(ctx, mgr.getAppWidgetOptions(id), status, now))
+            val infoIds = mgr.getAppWidgetIds(ComponentName(ctx, PanchangaWidget::class.java))
+            for (id in infoIds) mgr.updateAppWidget(id, infoViews(ctx, status, now))
             val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            if (ids.isNotEmpty()) am.setAndAllowWhileIdle(AlarmManager.RTC, now + REFRESH_MS, refreshIntent(ctx)) else am.cancel(refreshIntent(ctx))
+            if (ids.isNotEmpty() || infoIds.isNotEmpty()) am.setAndAllowWhileIdle(AlarmManager.RTC, now + REFRESH_MS, refreshIntent(ctx)) else am.cancel(refreshIntent(ctx))
         } catch (e: Exception) {
             Log.e(TAG, "Could not update the widgets", e)
         }
@@ -86,6 +89,42 @@ object ClockWidgets {
         v.setImageViewBitmap(R.id.w_face, drawFace(wPx, hPx, sinceSunrise(status, now), hhmm(now)))
         v.setOnClickPendingIntent(R.id.w_root, open(ctx))
         return v
+    }
+
+    /** The 2x2 widget: ghati and pala, hour and minute, then the tithi and the nakshatra with when each ends. */
+    private fun infoViews(ctx: Context, status: JSONObject?, now: Long): RemoteViews {
+        val v = RemoteViews(ctx.packageName, R.layout.widget_info)
+        val since = sinceSunrise(status, now)
+        v.setTextViewText(R.id.w_gp, if (since == null) "Open the app" else "Ghaṭī ${ghatiOf(since)} · Pala ${palaOf(since)}")
+        v.setTextViewText(R.id.w_hm, hhmm(now))
+        v.setTextViewText(R.id.w_tithi, panchangaLine("Tithi", status?.optJSONArray("tithis"), now))
+        v.setTextViewText(R.id.w_nak, panchangaLine("Nakṣatra", status?.optJSONArray("nakshatras"), now))
+        v.setOnClickPendingIntent(R.id.w_root, open(ctx))
+        return v
+    }
+
+    /** "Tithi: Amāvāsyā (kṛṣṇa)" over "till 06:29 (10 Nov)"; "Open the app" when the page has not handed over the data. */
+    internal fun panchangaLine(title: String, list: JSONArray?, now: Long): String {
+        val c = current(list, now) ?: return "$title: open the app"
+        return "$title: ${c.first}\ntill ${whenText(c.second, now)}"
+    }
+
+    /** The end time: just HH:mm when it is today (IST), else "HH:mm, d MMM". */
+    private fun whenText(ms: Long, now: Long): String {
+        val day = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = IST }
+        return if (day.format(Date(ms)) == day.format(Date(now))) hhmm(ms)
+        else hhmm(ms) + ", " + SimpleDateFormat("d MMM", Locale.US).apply { timeZone = IST }.format(Date(ms))
+    }
+
+    /** What holds now, when it ends and the next one's name; null when there is no data or it has all passed. */
+    internal fun current(list: JSONArray?, now: Long): Triple<String, Long, String?>? {
+        if (list == null) return null
+        for (i in 0 until list.length()) {
+            val o = list.optJSONObject(i) ?: continue
+            val end = o.optLong("e")
+            if (end > now) return Triple(o.optString("n"), end, list.optJSONObject(i + 1)?.optString("n"))
+        }
+        return null
     }
 
     private fun hhmm(ms: Long) = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = IST }.format(Date(ms))
@@ -242,6 +281,12 @@ object ClockWidgets {
 class ClockFaceWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) = ClockWidgets.updateAll(context)
     override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle) = ClockWidgets.updateAll(context)
+    override fun onEnabled(context: Context) = ClockWidgets.updateAll(context)
+    override fun onDisabled(context: Context) = ClockWidgets.updateAll(context)
+}
+
+class PanchangaWidget : AppWidgetProvider() {
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) = ClockWidgets.updateAll(context)
     override fun onEnabled(context: Context) = ClockWidgets.updateAll(context)
     override fun onDisabled(context: Context) = ClockWidgets.updateAll(context)
 }

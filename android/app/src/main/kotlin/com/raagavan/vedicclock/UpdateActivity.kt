@@ -26,7 +26,18 @@ class UpdateActivity : Activity() {
     private var apk: File? = null
     private var waitingForPermission = false
 
-    private class Release(val build: Int, val name: String, val notes: String, val url: String)
+    private class Release(val build: Int, val name: String, val notes: String, val url: String) {
+        /** "1.2.1", taken from the release name; "build N" if it has none. */
+        val version: String get() = Regex("""\d+\.\d+\.\d+""").find(name)?.value ?: "build $build"
+    }
+
+    /** The release text as plain words: no markdown marks, only the first paragraph, at most 3 lines / 220 characters. */
+    private fun plainSummary(body: String): String {
+        val first = body.replace("\r", "").trim().split(Regex("\n\\s*\n")).firstOrNull { it.isNotBlank() } ?: return ""
+        val lines = first.lines().map { it.replace(Regex("""[*_`#>]"""), "").replace(Regex("""^\s*[-•]\s*"""), "").trim() }.filter { it.isNotEmpty() }.take(3)
+        val text = lines.joinToString("\n")
+        return if (text.length > 220) text.take(217).trimEnd() + "…" else text
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,8 +81,8 @@ class UpdateActivity : Activity() {
                 val release = latest()
                 ui.post {
                     if (release.build > installedBuild()) {
-                        val notes = release.notes.trim().ifEmpty { "No release notes." }
-                        show("Update available", "Version 1.0.${release.build} is available (you have ${installedName()}).\n\n$notes",
+                        val notes = plainSummary(release.notes)
+                        show("Update available", "Version ${release.version} is available (you have ${installedName()}).\n" + notes,
                             "Update", { download(release) }, "Later")
                     } else show("Up to date", "You have the latest version (${installedName()}).")
                 }
@@ -105,7 +116,7 @@ class UpdateActivity : Activity() {
     }
 
     private fun download(release: Release) {
-        show("Downloading", "Downloading version 1.0.${release.build}…", negative = "Cancel")
+        show("Downloading", "Downloading version ${release.version}…", negative = "Cancel")
         Thread {
             try {
                 val dir = File(cacheDir, "updates").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
@@ -124,7 +135,7 @@ class UpdateActivity : Activity() {
                             done += n
                             if (total > 0) {
                                 val pct = (done * 100 / total).toInt()
-                                if (pct != lastPct) { lastPct = pct; ui.post { dialog?.setMessage("Downloading version 1.0.${release.build}… $pct%") } }
+                                if (pct != lastPct) { lastPct = pct; ui.post { dialog?.setMessage("Downloading version ${release.version}… $pct%") } }
                             }
                         }
                     }

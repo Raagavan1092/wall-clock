@@ -13,7 +13,7 @@ that ring on a locked phone**. It does not use the stock Clock app: the app sche
 * **Safety net**: if a page fetched from the site doesn't start within 20 s (the page calls
   `AndroidAlarms.booted()` once it has), the app reloads the bundled copy instead. Alarms already handed
   to Android keep ringing regardless, because native code holds the schedule.
-* **Native changes** (anything under `android/`) need a new APK: Releases > newest `VedicWallClock-N.apk`, install over the old one.
+* **Native changes** (anything under `android/`) need a new APK: Releases > newest `VedicWallClock-<version>.apk`, install over the old one.
 * The Settings screen has a switch to turn the web updates off (the APK's bundled copy is then always used).
 * Rule for web code: it may run with an *older* app, so check a bridge method exists before calling a new one.
 
@@ -22,7 +22,7 @@ that ring on a locked phone**. It does not use the stock Clock app: the app sche
 GitHub builds it when the native code (`android/`) changes on `master`, or when run by hand from the Actions tab (`.github/workflows/android.yml`). Web-side changes don't need a new APK: the app loads its UI from the web.
 
 1. Open the repo on GitHub > **Releases** > the newest `Vedic Wall Clock (Android) build N`.
-2. Download `VedicWallClock-N.apk` on the phone and open it. Allow "install unknown apps" for the browser/Files app when asked.
+2. Download `VedicWallClock-<version>.apk` on the phone and open it. Allow "install unknown apps" for the browser/Files app when asked.
 3. A new build installs over the old one and **keeps your alarms** (same signing key, see Signing below).
 
 (The workflow run also keeps the APK as an artifact, plus a `-debug` build.)

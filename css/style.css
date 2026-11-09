@@ -370,6 +370,7 @@ html, body {
    which is OS-rendered and can't be styled - see dial.js attachTooltip).
    A light-mode variant is a later concern. */
 .dial-tooltip {
+  box-sizing: border-box;
   position: fixed;
   z-index: 50;
   background: var(--tooltip-bg);
@@ -381,7 +382,7 @@ html, body {
   font-size: 13px;
   line-height: 1.4;
   pointer-events: none;
-  white-space: nowrap;
+  white-space: pre-line;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 

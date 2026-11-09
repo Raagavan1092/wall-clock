@@ -102,9 +102,11 @@ jobs:
 
       - name: Name the APK
         run: |
+          VERSION=$(grep -oP 'val appVersion = "\K[^"]+' android/app/build.gradle.kts)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk dist/VedicWallClock-${{ github.run_number }}.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/VedicWallClock-${{ github.run_number }}-debug.apk
+          cp android/app/build/outputs/apk/release/app-release.apk dist/VedicWallClock-$VERSION.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/VedicWallClock-$VERSION-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
@@ -123,16 +125,13 @@ jobs:
 
       - name: Release notes
         run: |
-          VERSION=$(grep -oP 'val appVersion = "\K[^"]+' android/app/build.gradle.kts)
           {
-            echo "## Version $VERSION (build ${{ github.run_number }})"
-            echo
-            # RELEASE_NOTES.md: the section under the heading "## <version>" is this release's notes.
+            # RELEASE_NOTES.md: the section under the heading "## <version>" is this release's notes
+            # (its first paragraph is a plain 2-3 line summary, which the in-app update dialog shows).
             awk -v v="$VERSION" '$0 ~ "^## " v "$" {on=1; next} /^## /{on=0} on' android/RELEASE_NOTES.md
             echo
-            echo "Install \`VedicWallClock-${{ github.run_number }}.apk\` on the phone (allow \"install unknown apps\" for the browser/Files app), then open the app and follow the \"Make alarms reliable\" checklist. See android/README.md."
+            echo "Install \`VedicWallClock-$VERSION.apk\` on the phone (allow \"install unknown apps\" for the browser/Files app), then open the app and follow the \"Make alarms reliable\" checklist. See android/README.md."
           } > release-body.md
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           cat release-body.md
 
       - name: Release
@@ -143,5 +142,5 @@ jobs:
           tag_name: android-${{ github.run_number }}
           name: Vedic Wall Clock ${{ env.VERSION }} (Android build ${{ github.run_number }})
           body_path: release-body.md
-          files: dist/VedicWallClock-${{ github.run_number }}.apk
+          files: dist/VedicWallClock-${{ env.VERSION }}.apk
           make_latest: true

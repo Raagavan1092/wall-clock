@@ -287,7 +287,7 @@
   function wireInput(svg) {
     // Tapping the dial itself no longer cycles the ring (per the project
     // owner) - so a tap on a segment just shows its tooltip. The buttons
-    // below / beside the clock, swipes and arrow keys do it instead.
+    // below / beside the clock and arrow keys do it instead (no swiping).
     function setShown(kind, on) {
       show[kind] = on;
       try { localStorage.setItem(kind === "good" ? SHOW_GOOD_KEY : SHOW_BAD_KEY, on ? "1" : "0"); } catch (e) { /* storage unavailable */ }
@@ -321,15 +321,6 @@
       if (e.key === "ArrowRight" || e.key === " ") cycleRing(1);
       else if (e.key === "ArrowLeft") cycleRing(-1);
     });
-
-    let touchStartX = null;
-    svg.addEventListener("touchstart", function (e) { touchStartX = e.changedTouches[0].clientX; }, { passive: true });
-    svg.addEventListener("touchend", function (e) {
-      if (touchStartX == null) return;
-      const dx = e.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(dx) > 40) cycleRing(dx < 0 ? 1 : -1);
-      touchStartX = null;
-    }, { passive: true });
   }
 
   // Moves the clock to `date`, whatever state it is in: a paused clock stays
