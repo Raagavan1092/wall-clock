@@ -118,22 +118,31 @@ html, body {
 .rc-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .rc-shape path { fill: var(--glass); stroke: var(--ring-stroke); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: auto; cursor: pointer; transition: fill 0.15s; }
 .rc-corner:hover .rc-shape path, .rc-corner:active .rc-shape path { fill: rgba(60, 46, 24, 0.9); }
-.rc-arrow {
+.rc-label {
   position: absolute;
-  bottom: 12%;
-  width: 22%;
-  height: auto;
-  aspect-ratio: 1;
+  bottom: 7%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.1;
+  font-size: clamp(9px, 3.6cqw, 18px);
+  font-weight: 600;
+}
+.rc-prev .rc-label { left: 8%; align-items: flex-start; }
+.rc-next .rc-label { right: 8%; align-items: flex-end; }
+.rc-arrow {
+  width: 2.4em;
+  height: 2.4em;
   fill: none;
   stroke: var(--gold-hi);
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  pointer-events: auto;
-  cursor: pointer;
 }
-.rc-prev .rc-arrow { left: 10%; }
-.rc-next .rc-arrow { right: 10%; }
+.rc-name { color: var(--gold-hi); font-weight: 500; }
 
 .ring-boundary, .ghati-scale-boundary {
   fill: none;

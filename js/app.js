@@ -245,6 +245,8 @@
     if (key === lastSwitchLabel) return;
     lastSwitchLabel = key;
     const nb = document.getElementById("btn-next-display"), pb = document.getElementById("btn-prev-display");
+    nb.querySelector(".rc-name").textContent = next;
+    pb.querySelector(".rc-name").textContent = prev;
     nb.title = nb.ariaLabel = next ? "Next ring (" + next + ")" : "Next ring";
     pb.title = pb.ariaLabel = prev ? "Previous ring (" + prev + ")" : "Previous ring";
   }
