@@ -72,14 +72,18 @@ object ClockWidgets {
     )
 
     private fun views(ctx: Context, options: Bundle?, status: JSONObject?, now: Long): RemoteViews {
-        // The face is a square picture sized to the widget (in px, kept modest: the launcher caps what a widget may carry).
+        // The face is a picture sized to the widget (in px, kept modest: the launcher caps what a widget may carry).
+        // A wide widget (the lock screen only offers 1x1 / 1x2 cells) gets the small clock plus the ghati, pala and time beside it.
         val density = ctx.resources.displayMetrics.density
         val wDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
         val hDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
-        val dp = if (wDp > 0 && hDp > 0) min(wDp, hDp) else 110
-        val px = (dp * density).toInt().coerceIn(96, 420)
+        val dw = if (wDp > 0) wDp else 110
+        val dh = if (hDp > 0) hDp else 110
+        val k = min(1f, 560f / max(dw * density, dh * density)) // longest side at most ~560 px
+        val wPx = (dw * density * k).toInt().coerceAtLeast(96)
+        val hPx = (dh * density * k).toInt().coerceAtLeast(48)
         val v = RemoteViews(ctx.packageName, R.layout.widget_clock)
-        v.setImageViewBitmap(R.id.w_face, drawFace(px, sinceSunrise(status, now), hhmm(now)))
+        v.setImageViewBitmap(R.id.w_face, drawFace(wPx, hPx, sinceSunrise(status, now), hhmm(now)))
         v.setOnClickPendingIntent(R.id.w_root, open(ctx))
         return v
     }
@@ -116,12 +120,75 @@ object ClockWidgets {
     private val EDGE = Color.rgb(0x4A, 0x3C, 0x22)
 
     /**
-     * The ghati scale (60 ticks, 0 at the top, clockwise), the ghati hand, and in the middle the ghati
-     * number with "Pala" and the IST time under it. [since] is null when unknown: no hand, "Open the app".
+     * The widget picture. Wide (at least 1.4x as wide as tall): the dial at the left, and at the right
+     * the ghati, the pala and the IST time. Otherwise the dial fills the picture with the writing in its middle.
+     * [since] is null when unknown: no hands, "Open the app".
      */
-    internal fun drawFace(size: Int, since: Long?, time: String): Bitmap {
-        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    internal fun drawFace(w: Int, h: Int, since: Long?, time: String): Bitmap {
+        val wide = w >= h * 1.4f
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
+        val t = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+        if (!wide) {
+            val size = min(w, h)
+            c.translate((w - size) / 2f, (h - size) / 2f)
+            drawDial(c, size, since, true)
+            val s = size.toFloat(); val cx = s / 2; val cy = s / 2
+            if (since == null) {
+                text(c, t, "Open", cx, cy - s * 0.02f, s * 0.085f, GOLD, true)
+                text(c, t, "the app", cx, cy + s * 0.08f, s * 0.085f, GOLD, true)
+            } else {
+                text(c, t, "GHAṬĪ", cx, cy - s * 0.15f, s * 0.06f, DIM, false)
+                text(c, t, ghatiOf(since).toString(), cx, cy + s * 0.04f, s * 0.2f, GOLD, true)
+                text(c, t, "Pala ${palaOf(since)}", cx, cy + s * 0.14f, s * 0.07f, INK, false)
+                text(c, t, time, cx, cy + s * 0.235f, s * 0.07f, DIM, false)
+            }
+            return bmp
+        }
+        // Wide: dial (no numerals; too small to read) then the three lines, left-aligned in the rest.
+        drawDial(c, h, since, false)
+        val x = h + h * 0.14f
+        val room = w - x - h * 0.04f
+        t.textAlign = Paint.Align.LEFT
+        fun fit(str: String, bold: Boolean, want: Float): Float {
+            t.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            t.textSize = want
+            val wd = t.measureText(str)
+            return if (wd > room) want * room / wd else want
+        }
+        fun line(str: String, y: Float, want: Float, color: Int, bold: Boolean) {
+            val sz = fit(str, bold, want)
+            t.textSize = sz; t.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            t.color = color
+            c.drawText(str, x, y, t)
+        }
+        val hh = h.toFloat()
+        if (since == null) {
+            line("Open the app", hh * 0.58f, hh * 0.2f, GOLD, true)
+        } else {
+            line("Ghaṭī ${ghatiOf(since)} · Pala ${palaOf(since)}", hh * 0.40f, hh * 0.2f, GOLD, true)
+            line(time, hh * 0.74f, hh * 0.3f, INK, true)
+        }
+        return bmp
+    }
+
+    private fun ghatiOf(since: Long) = (since / GHATI_MS) % 60
+    private fun palaOf(since: Long) = (since % GHATI_MS) * 60 / GHATI_MS
+
+    private fun text(c: Canvas, t: Paint, str: String, x: Float, y: Float, sz: Float, color: Int, bold: Boolean) {
+        t.textSize = sz; t.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        t.style = Paint.Style.STROKE; t.strokeWidth = sz * 0.22f; t.color = DISC; t.strokeJoin = Paint.Join.ROUND
+        c.drawText(str, x, y, t) // dark halo
+        t.style = Paint.Style.FILL; t.color = color
+        c.drawText(str, x, y, t)
+    }
+
+    /**
+     * The dial in a [size] x [size] square at the canvas origin: the ghati scale (60 ticks, 0 at the top,
+     * clockwise) and both hands, as in the app: the red day hand (one turn per sunrise-to-sunrise day) and
+     * the thin pala hand (one turn per ghati, 24 minutes).
+     */
+    private fun drawDial(c: Canvas, size: Int, since: Long?, numerals: Boolean) {
         val s = size.toFloat()
         val cx = s / 2
         val cy = s / 2
@@ -133,22 +200,22 @@ object ClockWidgets {
         p.style = Paint.Style.STROKE; p.color = EDGE; p.strokeWidth = max(1.5f, s * 0.012f)
         c.drawCircle(cx, cy, r - p.strokeWidth / 2, p)
 
-        // Ticks: every ghati, longer and brighter every fifth.
+        // Ticks: every ghati, longer and brighter every fifth (the small ones are left out when tiny).
         p.strokeCap = Paint.Cap.ROUND
         val outer = r * 0.94f
         for (i in 0 until 60) {
             val major = i % 5 == 0
-            val inner = outer - r * (if (major) 0.11f else 0.055f)
+            if (!major && size < 90) continue
+            val inner = outer - r * (if (major) 0.13f else 0.055f)
             p.color = if (major) GOLD else DIM
-            p.strokeWidth = s * (if (major) 0.016f else 0.008f)
+            p.strokeWidth = s * (if (major) 0.022f else 0.008f)
             val a = i * 6.0 * PI / 180
             c.drawLine(cx + (outer * sin(a)).toFloat(), cy - (outer * cos(a)).toFloat(), cx + (inner * sin(a)).toFloat(), cy - (inner * cos(a)).toFloat(), p)
         }
 
-        // Numerals 0, 5, ... 55 when there is room for them.
-        val t = Paint(Paint.ANTI_ALIAS_FLAG)
-        t.textAlign = Paint.Align.CENTER
-        if (size >= 150) {
+        if (numerals && size >= 150) {
+            val t = Paint(Paint.ANTI_ALIAS_FLAG)
+            t.textAlign = Paint.Align.CENTER
             t.color = DIM; t.typeface = Typeface.DEFAULT; t.textSize = s * 0.065f
             val rn = outer - r * 0.19f
             for (n in 0 until 60 step 5) {
@@ -157,35 +224,18 @@ object ClockWidgets {
             }
         }
 
-        // The ghati hand, under the writing so the numbers stay readable.
         if (since != null) {
+            // Pala hand: thin and long, once round per ghati.
+            val pa = ((since % GHATI_MS).toDouble() / GHATI_MS) * 2 * PI
+            p.color = INK; p.strokeWidth = max(1f, s * 0.012f)
+            c.drawLine(cx, cy, cx + (outer * 0.92f * sin(pa)).toFloat(), cy - (outer * 0.92f * cos(pa)).toFloat(), p)
+            // Day (ghati) hand: red and a little shorter.
             val a = (since.toDouble() / GHATI_MS) * 6.0 * PI / 180
-            p.color = HAND; p.strokeWidth = s * 0.026f
-            c.drawLine(cx, cy, cx + (outer * 0.9f * sin(a)).toFloat(), cy - (outer * 0.9f * cos(a)).toFloat(), p)
+            p.color = HAND; p.strokeWidth = s * 0.03f
+            c.drawLine(cx, cy, cx + (outer * 0.72f * sin(a)).toFloat(), cy - (outer * 0.72f * cos(a)).toFloat(), p)
             p.style = Paint.Style.FILL
-            c.drawCircle(cx, cy, s * 0.03f, p)
+            c.drawCircle(cx, cy, s * 0.04f, p)
         }
-
-        // The middle: GHAṬĪ, the number, Pala, and the time.
-        fun text(str: String, y: Float, sz: Float, color: Int, bold: Boolean) {
-            t.textSize = sz; t.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-            t.style = Paint.Style.STROKE; t.strokeWidth = sz * 0.22f; t.color = DISC; t.strokeJoin = Paint.Join.ROUND
-            c.drawText(str, cx, y, t) // dark halo
-            t.style = Paint.Style.FILL; t.color = color
-            c.drawText(str, cx, y, t)
-        }
-        if (since == null) {
-            text("Open", cy - s * 0.02f, s * 0.085f, GOLD, true)
-            text("the app", cy + s * 0.08f, s * 0.085f, GOLD, true)
-        } else {
-            val ghati = (since / GHATI_MS) % 60
-            val pala = (since % GHATI_MS) * 60 / GHATI_MS
-            text("GHAṬĪ", cy - s * 0.15f, s * 0.06f, DIM, false)
-            text(ghati.toString(), cy + s * 0.04f, s * 0.2f, GOLD, true)
-            text("Pala $pala", cy + s * 0.14f, s * 0.07f, INK, false)
-            text(time, cy + s * 0.235f, s * 0.07f, DIM, false)
-        }
-        return bmp
     }
 }
 

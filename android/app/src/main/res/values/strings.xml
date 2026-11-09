@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">Vedic Wall Clock</string>
-    <string name="widget_clock_desc">The clock face: ghaṭī hand, ghaṭī, pala and the time</string>
+    <string name="widget_clock_desc">A small clock with the ghaṭī and pala hands, and the ghaṭī, pala and time beside it</string>
     <string name="widget_clock_label">Vedic clock: clock face</string>
 </resources>
