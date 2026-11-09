@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One widget: an icon-height strip (one cell tall, two wide) with a small live dial and the ghati, pala and time beside it.
+     Kept one cell tall and not vertically resizable so that lock screens, which only offer 1x1 / 1x2 slots, will list it. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
-    android:minHeight="40dp"
-    android:minResizeWidth="40dp"
-    android:minResizeHeight="40dp"
+    android:minHeight="48dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="48dp"
+    android:maxResizeHeight="60dp"
     android:targetCellWidth="2"
     android:targetCellHeight="1"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_clock"
     android:previewLayout="@layout/widget_clock"
     android:previewImage="@drawable/widget_clock_preview"
-    android:resizeMode="horizontal|vertical"
+    android:resizeMode="horizontal"
     android:widgetCategory="home_screen|keyguard"
     android:description="@string/widget_clock_desc" />

@@ -78,7 +78,7 @@ object ClockWidgets {
         val wDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
         val hDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
         val dw = if (wDp > 0) wDp else 110
-        val dh = if (hDp > 0) hDp else 110
+        val dh = if (hDp > 0) hDp else 48
         val k = min(1f, 560f / max(dw * density, dh * density)) // longest side at most ~560 px
         val wPx = (dw * density * k).toInt().coerceAtLeast(96)
         val hPx = (dh * density * k).toInt().coerceAtLeast(48)
