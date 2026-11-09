@@ -138,7 +138,7 @@
   }
 
   // The daily good/bad time windows not from Muhūrta Cintāmaṇi: Rāhu Kālam
-  // (bad), and Abhijit, Pradoṣa and Amṛta Kālam (good), as raw (possibly overlapping, possibly outside the day)
+  // (bad), and Abhijit and Pradoṣa (good), as raw (possibly overlapping, possibly outside the day)
   // intervals - buildGoodBadTimes below clips and lays them out.
   function dailyWindows(snapshot, data) {
     const r = snapshot.scaledRings.rahuYamaGulika;
@@ -159,19 +159,8 @@
     }
     const pradoshaEnd = muhurta.night[data.pradosha.nightMuhurtaCount - 1].endTime;
     intervals.push(windowOf({ startTime: snapshot.anchors.sunsetToday, endTime: pradoshaEnd }, "Pradoṣa", "good"));
-    // Amṛta Kālam: 4 "ghaṭīs" of each nakṣatra touching this day,
-    // where a ghaṭī here is 1/60 of that nakṣatra's own full length (its
-    // true start/end, not the part clipped to this day). Windows falling
-    // outside the day are dropped by buildGoodBadTimes.
-    const va = data.varjyamAmrita;
-    snapshot.nakshatraSequence.forEach(function (n) {
-      const ghatiMs = (n.endTime.getTime() - n.startTime.getTime()) / 60;
-      function nakWindow(startGhati) {
-        const t = n.startTime.getTime() + startGhati * ghatiMs;
-        return { startTime: new Date(t), endTime: new Date(t + va.windowGhati * ghatiMs) };
-      }
-      intervals.push(windowOf(nakWindow(va.amritaStartGhati[n.index]), "Amṛta Kālam", "good"));
-    });
+    // Varjyam and Amṛta Kālam (fixed ghaṭīs inside each nakṣatra) were
+    // removed per the project owner: not from Muhūrta Cintāmaṇi.
     return intervals;
   }
 
@@ -537,7 +526,6 @@
     { id: "combo:visha", text: "Viṣa Yoga", goodBad: "bad", note: "Weekday + tithi, inauspicious" },
     { id: "win:abhijit", text: "Abhijit", goodBad: "good", note: "The midday muhūrta" },
     { id: "win:pradosha", text: "Pradoṣa", goodBad: "good", note: "Dusk, after sunset" },
-    { id: "win:amrita-kalam", text: "Amṛta Kālam", goodBad: "good", note: "Auspicious window inside each nakṣatra" },
     { id: "combo:amrita", text: "Amṛta Yogam", goodBad: "good", note: "Weekday + nakṣatra, most auspicious" },
     { id: "combo:sarvartha", text: "Sarvārtha Siddhi", goodBad: "good", note: "Weekday + nakṣatra, auspicious" },
     { id: "combo:ravi", text: "Ravi Yoga", goodBad: "good", note: "Moon's nakṣatra counted from the Sun's" },
