@@ -454,6 +454,12 @@ html, body {
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
 body.secondary-view .rc-corner:not(.rc-day) { display: none; }
 #btn-secondary-yogas[aria-pressed="true"], #btn-secondary-yogas[aria-pressed="true"]:hover { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
+/* Toggle rings / Toggle windows: a full-width pair under the three buttons, same look; gold when on. */
+.tc-toggles { flex-wrap: nowrap; }
+.tc-toggles .tc-chip { flex: 1 1 0; justify-content: center; align-self: stretch; padding: 6px 10px; }
+.tc-toggles .tc-chip[aria-pressed="true"], .tc-toggles .tc-chip[aria-pressed="true"]:hover { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
+body.secondary-view .tc-toggles { display: none; }
+body.rings-off .rc-corner:not(.rc-day) { display: none; }
 body.fullview #ts-dialog,
 body.fullview .tc-row, body.fullview #loc-menu, body.fullview #edit-bar, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
 body.fullview #settings-panel { display: none !important; }

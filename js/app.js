@@ -110,6 +110,16 @@
   try { secondaryView = localStorage.getItem(SECONDARY_KEY) === "1"; } catch (e) { /* storage unavailable */ }
   let lastSecondaryView = null;
 
+  // "Toggle rings" / "Toggle windows": show or hide the switchable rings and the
+  // Good / Bad windows in the main view. Viewing preferences, remembered.
+  const RINGS_KEY = "vedicWallClock.showRings", WINDOWS_KEY = "vedicWallClock.showWindows";
+  let ringsOn = true, windowsOn = true;
+  try {
+    if (localStorage.getItem(RINGS_KEY) === "0") ringsOn = false;
+    if (localStorage.getItem(WINDOWS_KEY) === "0") windowsOn = false;
+  } catch (e) { /* storage unavailable */ }
+  let lastLayoutKey = null;
+
   function yogaOpts() {
     return { yogaSets: settings.yogaSets, regionalLimits: settings.regionalLimits !== false };
   }
@@ -164,7 +174,7 @@
 
     // A blank line, then the Good / Bad Times ring's status: bad first (the one people check),
     // then good. Each says what is active and until when, or what is next.
-    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1 && (show.bad || show.good)) {
+    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1 && (secondaryView || windowsOn) && (show.bad || show.good)) {
       lines.push({ text: "", emphasis: "gap" });
       [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].filter(function (row) { return show[row[0]]; }).forEach(function (row) {
         const st = E.RingAdapter.statusFor(row[1], now);
@@ -187,7 +197,7 @@
     // Now/next for the active switchable ring, on two lines. Kāla has a
     // blank (unlabelled) night band - name just the ring there rather than
     // show a bare "Kāla: ", and look past blank segment(s) for "next".
-    if (!ringDescriptor) return lines; // every switchable ring hidden
+    if (!ringDescriptor || !ringsOn) return lines; // every switchable ring hidden, or turned off
     const nextSeg = ringDescriptor.segments.find(function (seg) {
       return seg.startTime > now && seg.text;
     });
@@ -204,11 +214,15 @@
     const { snapshot, changed } = getSnapshot(now);
     const ringKey = activeRingOrder[currentRingIndex];
 
-    const viewChanged = secondaryView !== lastSecondaryView;
+    const layoutKey = (ringsOn ? "r" : "-") + (windowsOn ? "w" : "-");
+    const viewChanged = secondaryView !== lastSecondaryView || layoutKey !== lastLayoutKey;
     if (viewChanged) {
+      E.Dial.setLayout(ringsOn, windowsOn);
       E.Dial.setSecondaryMode(secondaryView);
       document.body.classList.toggle("secondary-view", secondaryView);
+      document.body.classList.toggle("rings-off", !ringsOn);
       lastSecondaryView = secondaryView;
+      lastLayoutKey = layoutKey;
     }
     if (changed || viewChanged) {
       // Good/bad times and day/night only depend on the snapshot (and the
@@ -228,7 +242,7 @@
       lastShowKey = showKey;
     }
     if (changed || viewChanged || ringKey !== lastRenderedRingKey) {
-      if (ringKey && !secondaryView) {
+      if (ringKey && !secondaryView && ringsOn) {
         lastOuterRingDescriptor = E.RingAdapter.build(ringKey, snapshot, data);
         E.Dial.renderOuterRing(dialHandles.outerRingGroup, lastOuterRingDescriptor, E.RingAdapter.START_LABEL_RINGS);
       } else {
@@ -304,6 +318,7 @@
     Object.keys(groups).forEach(function (k) {
       groups[k].style.display = settings.hiddenRings.indexOf(k) === -1 ? "" : "none";
     });
+    if (!secondaryView && !windowsOn) groups.goodBad.style.display = "none";
     // With the Good / Bad Times ring hidden in Settings its toggles have nothing to do.
     /* Retired good/bad check buttons:
     const goodBadOn = settings.hiddenRings.indexOf("goodBad") === -1;
@@ -313,7 +328,7 @@
   }
 
   function cycleRing(delta) {
-    if (!activeRingOrder.length || secondaryView) return;
+    if (!activeRingOrder.length || secondaryView || !ringsOn) return;
     currentRingIndex = (currentRingIndex + delta + activeRingOrder.length) % activeRingOrder.length;
     render();
   }
@@ -360,6 +375,18 @@
       render();
     });
     syncSecondaryButton();
+
+    [["btn-toggle-rings", RINGS_KEY, function () { return ringsOn; }, function (v) { ringsOn = v; }],
+     ["btn-toggle-windows", WINDOWS_KEY, function () { return windowsOn; }, function (v) { windowsOn = v; }]].forEach(function (t) {
+      const b = document.getElementById(t[0]);
+      b.addEventListener("click", function () {
+        t[3](!t[2]());
+        b.setAttribute("aria-pressed", String(t[2]()));
+        try { localStorage.setItem(t[1], t[2]() ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+        render();
+      });
+      b.setAttribute("aria-pressed", String(t[2]()));
+    });
 
     if (E.MuhurtaFinder) {
       E.MuhurtaFinder.init({

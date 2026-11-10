@@ -259,6 +259,11 @@
   let layerFrame = null;
   let currentOrder = LAYER_KEYS;
   let secondaryMode = false;
+  const layout = { rings: true, windows: true };
+  let svgEl = null;
+  let visibleOuter = LAYERS_OUTER;
+  const CLOCK_EDGE = 416; // inner edge of the innermost ring layer
+  const CLOCK_ONLY_OUTER = 410; // just past the ghaṭī scale
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
 
   // Assigns each layer its radii for `order` (outside in; any missing or
@@ -268,22 +273,31 @@
     const valid = (order || []).filter(function (k, i, arr) { return LAYER_KEYS.indexOf(k) !== -1 && arr.indexOf(k) === i; });
     const full = valid.length === LAYER_KEYS.length ? valid : LAYER_KEYS;
     currentOrder = full;
-    let r = LAYERS_OUTER;
-    full.forEach(function (key) {
+    // Which layers are drawn. The Secondary yogas view is the Good / Bad Times
+    // ring alone; otherwise the "Toggle rings" / "Toggle windows" buttons decide.
+    const ringsOn = !secondaryMode && layout.rings, windowsOn = secondaryMode || layout.windows;
+    const active = full.filter(function (k) { return k === "switchable" ? ringsOn : windowsOn; });
+    const bothOn = ringsOn && windowsOn;
+    // The outermost thing drawn; the view is cropped to it so the clock face grows to fill the space.
+    visibleOuter = !active.length ? CLOCK_ONLY_OUTER : windowsOn ? LAYERS_OUTER : CLOCK_EDGE + LAYER_THICKNESS.switchable;
+    let r = visibleOuter;
+    active.forEach(function (key) {
       const prefix = LAYER_RADIUS_PREFIX[key];
+      // Rings off: the windows take both layers' room. Windows off: the rings
+      // keep their width and the clock face takes the rest (see the viewBox below).
+      const thickness = bothOn ? LAYER_THICKNESS[key] : key === "goodBad" ? LAYER_THICKNESS.goodBad + LAYER_THICKNESS.switchable + LAYER_GAP : LAYER_THICKNESS.switchable;
       R[prefix + "Outer"] = r;
-      R[prefix + "Inner"] = r - LAYER_THICKNESS[key];
+      R[prefix + "Inner"] = r - thickness;
       r = R[prefix + "Inner"] - LAYER_GAP;
     });
-    // Secondary yogas view: no switchable ring, so the Good / Bad Times ring
-    // takes both layers' room.
-    if (secondaryMode) {
-      R.goodBadRingOuter = LAYERS_OUTER;
-      R.goodBadRingInner = r + LAYER_GAP;
+    R.markerLineOuter = visibleOuter + 1;
+    if (svgEl) {
+      const half = visibleOuter + 5;
+      svgEl.setAttribute("viewBox", (CX - half) + " " + (CY - half) + " " + (half * 2) + " " + (half * 2));
     }
     if (layerFrame) {
       clearGroup(layerFrame);
-      (secondaryMode ? ["goodBad"] : LAYER_KEYS).forEach(function (key) {
+      active.forEach(function (key) {
         const prefix = LAYER_RADIUS_PREFIX[key];
         [R[prefix + "Outer"], R[prefix + "Inner"]].forEach(function (radius) {
           layerFrame.appendChild(el("circle", { cx: CX, cy: CY, r: radius, class: "ring-boundary" }));
@@ -295,6 +309,13 @@
   // Turns the Secondary yogas layout on or off. Callers re-render the rings.
   function setSecondaryMode(on) {
     secondaryMode = !!on;
+    setLayerOrder(currentOrder);
+  }
+
+  // "Toggle rings" / "Toggle windows": which layers show. Callers re-render the rings.
+  function setLayout(rings, windows) {
+    layout.rings = !!rings;
+    layout.windows = !!windows;
     setLayerOrder(currentOrder);
   }
 
@@ -373,6 +394,7 @@
 
   function buildStaticStructure(svg) {
     svg.innerHTML = "";
+    svgEl = svg;
     svg.setAttribute("viewBox", "0 0 " + (CX * 2) + " " + (CY * 2));
 
     const goodBadRingGroup = el("g", { class: "good-bad-ring" });
@@ -857,7 +879,7 @@
     R, CX, CY,
     LAYER_KEYS,
     clearGroup,
-    setLayerOrder, setSecondaryMode,
+    setLayerOrder, setSecondaryMode, setLayout,
     buildStaticStructure,
     renderOuterRing,
     renderGoodBadRing,
