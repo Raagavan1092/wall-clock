@@ -198,11 +198,10 @@
       if (m) out.push(win(m, name, "bad", muhTip[name]));
     });
 
-    // 1.38-39 bad sixteenths of the day.
-    const kTip = "A bad 16th of the daytime (1.38–39). Today's: " + M.badKalamsha[v].join(", ") + ". They include Kulika, Kaṇṭaka, Kālavelā, Ardhayāma and Yamaghaṇṭa counted in sixteenths.";
+    // 1.38-39 bad sixteenths of the day. The tooltip just says which one.
     M.badKalamsha[v].forEach(function (k) {
       const s = P.rise + (k - 1) * dayLen / 16;
-      out.push(win(iv(s, s + dayLen / 16), "Kalāṃśa", "bad", kTip));
+      out.push(win(iv(s, s + dayLen / 16), "Kalāṃśa", "bad", "Kalāṃśa " + k + " of 16"));
     });
 
     // 1.32 ten palas either side of midday and midnight.
