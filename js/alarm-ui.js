@@ -898,8 +898,12 @@
         const v = p[1].input.value;
         state[p[0]] = v === "" ? NaN : Number(v);
         renderFoot(); schedulePreview(); customPane.classList.toggle("invalid", !customValid());
+        if (state.cwhen === "next") { renderWhen(); renderCustom(); } // the "Every …" label and hint follow the fields
       });
-      p[1].input.addEventListener("blur", function () { p[1].input.value = isFinite(state[p[0]]) ? state[p[0]] : ""; });
+      p[1].input.addEventListener("blur", function () {
+        p[1].input.value = isFinite(state[p[0]]) ? state[p[0]] : "";
+        if (state.cwhen === "next") { renderWhen(); renderCustom(); }
+      });
     });
     labelInput.addEventListener("input", function () { state.label = labelInput.value; });
     soundBox.addEventListener("change", function () { state.sound = soundBox.checked; renderSound(); renderFoot(); });
