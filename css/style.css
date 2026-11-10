@@ -265,7 +265,7 @@ html, body {
   fill: var(--centre-clock-secondary);
 }
 
-#settings-toggle, #loc-toggle, #edit-toggle, #alarm-toggle {
+#settings-toggle, #edit-toggle, #alarm-toggle {
   flex: none;
   width: 44px;
   height: 44px;
@@ -278,9 +278,23 @@ html, body {
   backdrop-filter: blur(8px);
 }
 #settings-toggle:hover, #loc-toggle:hover, #edit-toggle:hover, #alarm-toggle:hover { background: rgba(42, 33, 19, 0.9); }
-#loc-toggle, #edit-toggle, #alarm-toggle { display: grid; place-items: center; padding: 0; }
-#loc-toggle svg, #edit-toggle svg, #alarm-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-#loc-toggle.on, #edit-toggle.on, #alarm-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
+/* Location: the place name with a drop-down arrow (as the old widget's chip), opening the place menu. */
+#loc-toggle {
+  flex: 0 1 auto; min-width: 0; max-width: 200px;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 44px; padding: 0 12px 0 11px;
+  border-radius: 999px; border: 1px solid var(--ring-stroke);
+  background: rgba(21, 18, 13, 0.7); backdrop-filter: blur(8px);
+  color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+#loc-toggle span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#loc-toggle svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#loc-toggle svg.lw-chev { width: 14px; height: 14px; stroke: #a99a7c; transition: transform 0.15s; }
+#loc-toggle.on { border-color: #6b5733; background: #2a2314; }
+#loc-toggle.on svg.lw-chev { transform: rotate(180deg); }
+#edit-toggle, #alarm-toggle { display: grid; place-items: center; padding: 0; }
+#edit-toggle svg, #alarm-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#edit-toggle.on, #alarm-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
 
 #settings-panel {
   position: fixed;

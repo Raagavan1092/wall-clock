@@ -1,4 +1,4 @@
-// The location drop-down (the pin button in the top row: recent places and
+// The location drop-down (the place name with a drop-down arrow in the top row: recent places and
 // Change location…) and its Change location dialog. Owns everything about
 // choosing a place: search, My location, recent places, Set as default and
 // Reset. app.js hands in the few things it needs (settings, setLocation).
@@ -74,7 +74,7 @@
     let locked = E.Settings.needsLocation();
 
     // ================= place menu =================
-    // A drop-down under the pin button: a tap anywhere else (or Esc) closes it,
+    // A drop-down under that button: a tap anywhere else (or Esc) closes it,
     // and opening the alarm list closes it.
     function menuOpen() { return !menu.hidden; }
     function setMenu(on) {
@@ -136,12 +136,14 @@
     }
     changeBtn.addEventListener("click", function () { setMenu(false); openDialog(); });
 
-    // The pin button's tooltip names the place on show.
+    // The button shows the name of the place on show.
+    const toggleName = $("loc-toggle-name");
     let lastTitle = "";
     function update() {
       const loc = api.getSettings().location;
-      const title = "Location: " + describe(loc.latitude, loc.longitude).short;
-      if (title !== lastTitle) { lastTitle = title; toggle.title = title; toggle.setAttribute("aria-label", title); }
+      const name = describe(loc.latitude, loc.longitude).short;
+      const title = "Location: " + name + " (" + dms(loc.latitude, loc.longitude) + ")";
+      if (title !== lastTitle) { lastTitle = title; toggleName.textContent = name; toggle.title = title; toggle.setAttribute("aria-label", title); }
     }
 
     // ================= dialog =================

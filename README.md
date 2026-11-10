@@ -32,7 +32,7 @@ Then visit <http://localhost:8000/>.
 | `js/engine/` | Panchanga calculations (sunrise, tithi, nakshatra, ghati, ...); `surya-siddhanta.js` = classical Sūrya Siddhānta positions for all grahas (empty bīja table; a historical Bentley preset is selectable under Settings > Calculation method, default Drik) |
 | `js/render/` | Dial drawing |
 | `js/alarms.js`, `alarm-ui.js`, `tunes.js` | Alarm engine, UI and sounds |
-| `js/location-ui.js` | Location drop-down (pin button) and the Change location dialog; edit mode (pencil button) is in `js/app.js` |
+| `js/location-ui.js` | Location drop-down (place name in the top row) and the Change location dialog; edit mode (pencil button) is in `js/app.js` |
 | `js/vendor/` | The bundled [Astronomy Engine](https://github.com/cosinekitty/astronomy) library |
 | `android/` | Android app (WebView plus native alarms); see [`android/README.md`](android/README.md) |
 | `test/` | Web tests |

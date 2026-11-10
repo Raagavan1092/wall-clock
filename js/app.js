@@ -659,7 +659,7 @@
 
     // Fills the form from `from` (the saved settings, or the defaults for
     // Reset to defaults); nothing is committed until Save. The location is not
-    // part of this form: it is changed from the pin button on the clock screen.
+    // part of this form: it is changed from the place name at the top of the clock screen.
     function populateForm(from) {
       ayanamsaSelect.value = from.ayanamsa;
       Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
