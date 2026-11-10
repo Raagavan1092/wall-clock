@@ -1233,3 +1233,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .al-wheel-band { position: absolute; left: 6px; right: 6px; top: 66px; height: 44px; border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold); border-radius: 8px; pointer-events: none; }
 .al-time-row:has(.al-wheel) { align-items: center; }
 .al-time-row:has(.al-wheel) .al-time-sep { padding-bottom: 0; margin-top: 20px; }
+.al-time-block { display: flex; align-items: center; gap: 14px; }
+.al-time-rows { flex: 0 1 auto; min-width: 0; }
+.al-seg-v { display: flex; flex-direction: column; flex: none; width: 104px; }
+.al-seg-v button { white-space: nowrap; }

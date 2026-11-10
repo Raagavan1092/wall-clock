@@ -202,6 +202,11 @@
     const out = [];
     const detail = customText(c);
     function add(fire) { out.push({ fire: fire, id: CUSTOM_ID, start: fire, end: fire, detail: detail }); }
+    if (c.kind === "every") {
+      // Repeating timer: every intervalMs after the moment it was set.
+      for (let k = Math.max(1, Math.floor((afterMs - c.anchor) / c.intervalMs) + 1); out.length < count; k++) add(c.anchor + k * c.intervalMs);
+      return out;
+    }
     if (c.date) {
       // One chosen IST date: the clock time on it, or the ghaṭī·pala of the Vedic day that sunrises on it.
       const dayStart = Date.parse(c.date + "T00:00:00Z") - IST_MS;
@@ -254,6 +259,10 @@
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   // "06:30 IST" or "Ghaṭī 12 · Pala 30 after sunrise".
   function customText(c) {
+    if (c.kind === "every") {
+      const sec = Math.round(c.intervalMs / 1000), hh = Math.floor(sec / 3600), mm = Math.floor(sec % 3600 / 60), ss = sec % 60;
+      return "Every " + [hh ? hh + " h" : "", mm ? mm + " min" : "", ss ? ss + " s" : ""].filter(Boolean).join(" ");
+    }
     const t = c.kind === "clock" ? pad2(c.hour) + ":" + pad2(c.minute) + " IST" : "Ghaṭī " + c.ghati + " · Pala " + c.pala + " after sunrise";
     if (!c.date) return t;
     return t + " · " + new Date(c.date + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
@@ -266,6 +275,11 @@
     if (c.kind === "clock") {
       const hour = whole(c.hour, 23), minute = whole(c.minute, 59);
       return hour == null || minute == null ? null : { kind: "clock", hour: hour, minute: minute, date: date };
+    }
+    if (c.kind === "every") {
+      const iv = Math.round(Number(c.intervalMs));
+      if (!isFinite(iv) || iv < MIN_MS || iv > 7 * DAY_MS) return null;
+      return { kind: "every", intervalMs: iv, anchor: isFinite(c.anchor) ? Number(c.anchor) : Date.now(), date: null };
     }
     if (c.kind === "ghati") {
       const ghati = whole(c.ghati, 59), pala = whole(c.pala, 59);
@@ -315,7 +329,7 @@
       offsetValue: value,
       offsetUnit: unit,
       offsetMs: offsetMs,
-      repeat: d.repeat === "once" || (custom && custom.date) ? "once" : "always",
+      repeat: custom && custom.kind === "every" ? "always" : d.repeat === "once" || (custom && custom.date) ? "once" : "always",
       label: typeof d.label === "string" ? d.label.trim().slice(0, 60) : "",
       sound: d.sound !== false,
       soundKind: validSoundKind(d.soundKind), // "bell", "track" (their own file) or "tune:<id>"
@@ -574,7 +588,7 @@
 
   // "15 min before the start", "At the end", "At the moment" ...
   function triggerText(a) {
-    if (a.custom) return "At " + customText(a.custom);
+    if (a.custom) return a.custom.kind === "every" ? customText(a.custom) : "At " + customText(a.custom);
     const instant = allInstants(a.events);
     if (a.mode === "before") return offsetText(a) + (instant ? " before" : " before the start");
     if (a.mode === "end") return instant ? "At the moment" : "At the end";

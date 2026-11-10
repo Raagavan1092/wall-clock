@@ -367,7 +367,7 @@
         toggle,
         h("div", { class: "alarm-row-main" },
           h("strong", { class: "alarm-row-title", text: a.title }),
-          h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : a.custom ? "every day" : "every time") }),
+          h("span", { class: "alarm-row-meta", text: a.triggerText + " · " + (a.repeat === "once" ? "just once" : a.custom ? (a.custom.kind === "every" ? "repeating" : "every day") : "every time") }),
           h("span", { class: "alarm-row-next", text: nextText })),
         h("div", { class: "alarm-row-actions" },
         canSkip ? h("button", { type: "button", class: "alarm-icon-btn alarm-skip", "aria-label": "Skip the next ring of " + a.title, title: "Skip next ring only", onclick: function () { Alarms.skipNext(a.id); } }, icon("skip")) : null,
@@ -406,13 +406,18 @@
       query: "",
       // A specific time instead of an event: IST clock time, or ghaṭī + pala after sunrise.
       customOn: !!(editing && editing.custom),
-      ckind: editing && editing.custom ? editing.custom.kind : "clock",
-      hour: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.hour : 6,
+      cwhen: editing && editing.custom && editing.custom.kind === "every" ? "next" : "time", // Time | Next
+      cunit: editing && editing.custom && editing.custom.kind === "ghati" ? "gp" : "hm", // Hr·Min | Ghaṭī·Pala, for both
+      nrepeat: editing && editing.custom && editing.custom.kind === "every" ? "always" : "once",
+      hour: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.hour : new Date(Date.now() + 19800000 + 3600000).getUTCHours(),
       minute: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.minute : 0,
-      date: editing && editing.custom && editing.custom.date ? editing.custom.date : "",
+      // New alarms start on today's date (clear it for "every day").
+      date: editing ? (editing.custom && editing.custom.date ? editing.custom.date : "") : new Date(Date.now() + 19800000).toISOString().slice(0, 10),
       ghati: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.ghati : 0,
       pala: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.pala : 0,
-      nextH: 0, nextM: 30, // "Next": ring after this long from now
+      nextH: editing && editing.custom && editing.custom.kind === "every" ? Math.floor(editing.custom.intervalMs / 3600000) : 0,
+      nextM: editing && editing.custom && editing.custom.kind === "every" ? Math.floor(editing.custom.intervalMs % 3600000 / 60000) : 30, // "Next": after this long from now
+      nextG: 1, nextP: 0,
     };
 
     // -- pieces that re-render --
@@ -506,7 +511,10 @@
     const tHour = timeInput("Hour (0–23)", 23), tMin = timeInput("Minute (0–59)", 59);
     const tGhati = timeInput("Ghaṭī (0–59)", 59), tPala = timeInput("Pala (0–59)", 59);
     const tNextH = timeInput("Hours", 23), tNextM = timeInput("Minutes", 59);
+    const tNextG = timeInput("Ghaṭī (0–59)", 59), tNextP = timeInput("Pala (0–59)", 59);
     const nextRow = h("div", { class: "al-time-row" }, tNextH.field, h("span", { class: "al-time-sep", text: ":" }), tNextM.field);
+    const nextGhatiRow = h("div", { class: "al-time-row" }, tNextG.field, h("span", { class: "al-time-sep", text: "·" }), tNextP.field);
+    const cunitEl = h("div", { class: "al-seg al-seg-v", role: "radiogroup", "aria-label": "Units" });
     const clockRow = h("div", { class: "al-time-row" }, tHour.field, h("span", { class: "al-time-sep", text: ":" }), tMin.field);
     const ghatiRow = h("div", { class: "al-time-row" }, tGhati.field, h("span", { class: "al-time-sep", text: "·" }), tPala.field);
     const customHint = h("p", { class: "al-hint" });
@@ -516,7 +524,7 @@
     const dateRow = h("div", { class: "al-date-row" }, h("span", { class: "al-date-label", text: "Date" }), dateInput, dateClear, h("span", { class: "al-sub", text: "Leave empty for every day" }));
     const customPane = h("div", { class: "al-custom-pane" },
       h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Time of day"),
-      customKindEl, clockRow, nextRow, ghatiRow, customHint, dateRow);
+      customKindEl, h("div", { class: "al-time-block" }, h("div", { class: "al-time-rows" }, clockRow, ghatiRow, nextRow, nextGhatiRow), cunitEl), customHint, dateRow);
     const repeatNum = h("span", { class: "al-step-n", text: "3" });
     const eventPane = h("div", { class: "al-event-pane" });
     const eventConfig = h("div", { class: "al-event-config" });
@@ -528,26 +536,33 @@
     notifyBox.checked = state.notify;
 
     // -- helpers --
+    function ckind() { return state.cwhen === "next" ? "next" : state.cunit === "gp" ? "ghati" : "clock"; }
+    // The "Next" length in ms (hours·minutes or ghaṭī·pala; a ghaṭī is 24 min, a pala 24 s).
+    function nextMs() { return state.cunit === "gp" ? state.nextG * 24 * 60000 + state.nextP * 24000 : (state.nextH * 60 + state.nextM) * 60000; }
     function customOf() {
-      if (state.ckind === "next") {
-        // "Next": a one-off clock alarm this long from now (IST), rounded up to the minute.
-        const t = Math.ceil((Date.now() + (state.nextH * 60 + state.nextM) * 60000) / 60000) * 60000 + 19800000;
+      if (ckind() === "next") {
+        if (state.nrepeat === "always") return { kind: "every", intervalMs: nextMs(), anchor: Date.now(), date: null };
+        // One-off: a clock alarm this long from now (IST), rounded up to the minute.
+        const t = Math.ceil((Date.now() + nextMs()) / 60000) * 60000 + 19800000;
         const d = new Date(t);
         return { kind: "clock", hour: d.getUTCHours(), minute: d.getUTCMinutes(), date: d.toISOString().slice(0, 10) };
       }
-      return state.ckind === "clock"
+      return ckind() === "clock"
         ? { kind: "clock", hour: state.hour, minute: state.minute, date: state.date || null }
         : { kind: "ghati", ghati: state.ghati, pala: state.pala, date: state.date || null };
     }
     function whole(v, max) { return typeof v === "number" && isFinite(v) && v >= 0 && v <= max && Math.floor(v) === v; }
     function customValid() {
-      if (state.ckind === "next") return whole(state.nextH, 23) && whole(state.nextM, 59) && state.nextH + state.nextM > 0;
-      return state.ckind === "clock" ? whole(state.hour, 23) && whole(state.minute, 59) : whole(state.ghati, 59) && whole(state.pala, 59);
+      if (ckind() === "next") {
+        const ok = state.cunit === "gp" ? whole(state.nextG, 59) && whole(state.nextP, 59) : whole(state.nextH, 23) && whole(state.nextM, 59);
+        return ok && nextMs() >= (state.nrepeat === "always" ? 60000 : 1);
+      }
+      return ckind() === "clock" ? whole(state.hour, 23) && whole(state.minute, 59) : whole(state.ghati, 59) && whole(state.pala, 59);
     }
     function draft() {
       if (state.customOn) {
         const c = customOf();
-        return { events: [], custom: c, mode: "start", repeat: c.date ? "once" : state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
+        return { events: [], custom: c, mode: "start", repeat: c.kind === "every" ? "always" : c.date ? "once" : state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
       }
       return {
         events: Array.from(state.selected), mode: state.mode, offsetValue: state.offsetValue, offsetUnit: state.offsetUnit,
@@ -681,7 +696,12 @@
       amountInput.max = String(UNIT_MAX[state.offsetUnit]);
       amountInput.classList.toggle("invalid", !amountValid());
 
-      segmented(repeatEl, state.customOn && (state.date || state.ckind === "next") ? [["once", "Just once"]] : [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+      if (state.customOn && ckind() === "next") {
+        const every = customValid() ? Alarms.customText({ kind: "every", intervalMs: nextMs() }) : "Every …";
+        segmented(repeatEl, [["once", "Just once"], ["always", every]], state.nrepeat, function (r) { state.nrepeat = r; renderAll(); });
+      } else {
+        segmented(repeatEl, state.customOn && state.date ? [["once", "Just once"]] : [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+      }
     });
 
     function renderAlerts() {
@@ -748,17 +768,20 @@
     }
 
     const renderCustom = focusKept(function () {
-      segmented(customKindEl, [["clock", "Time"], ["next", "Next"], ["ghati", "Ghaṭī · Pala"]], state.ckind, function (k) { state.ckind = k; renderAll(); });
-      clockRow.hidden = state.ckind !== "clock";
-      ghatiRow.hidden = state.ckind !== "ghati";
-      nextRow.hidden = state.ckind !== "next";
-      dateRow.hidden = state.ckind === "next";
-      [[tHour, state.hour], [tMin, state.minute], [tGhati, state.ghati], [tPala, state.pala], [tNextH, state.nextH], [tNextM, state.nextM]].forEach(function (p) {
+      segmented(customKindEl, [["time", "Time"], ["next", "Next"]], state.cwhen, function (k) { state.cwhen = k; renderAll(); });
+      segmented(cunitEl, [["hm", "Hr · Min"], ["gp", "Ghaṭī · Pala"]], state.cunit, function (k) { state.cunit = k; renderAll(); });
+      const nx = state.cwhen === "next", gp = state.cunit === "gp";
+      clockRow.hidden = nx || gp;
+      ghatiRow.hidden = nx || !gp;
+      nextRow.hidden = !nx || gp;
+      nextGhatiRow.hidden = !nx || !gp;
+      dateRow.hidden = nx;
+      [[tHour, state.hour], [tMin, state.minute], [tGhati, state.ghati], [tPala, state.pala], [tNextH, state.nextH], [tNextM, state.nextM], [tNextG, state.nextG], [tNextP, state.nextP]].forEach(function (p) {
         if (document.activeElement !== p[0].input) p[0].input.value = isFinite(p[1]) ? p[1] : "";
       });
-      customHint.textContent = state.ckind === "next"
-        ? "Rings once, this many hours and minutes from now."
-        : state.ckind === "clock"
+      customHint.textContent = nx
+        ? (state.nrepeat === "always" ? "Rings every " + Alarms.customText({ kind: "every", intervalMs: customValid() ? nextMs() : 3600000 }).slice(6) + " from now, until you turn it off." : "Rings once, this long from now.")
+        : !gp
         ? "24-hour clock, Indian Standard Time. Rings at this time " + (state.date ? "on that date." : "every day.")
         : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of " + (state.date ? "the Vedic day that begins on that date." : "every Vedic day.");
       customPane.classList.toggle("invalid", !customValid());
@@ -870,7 +893,7 @@
     });
     dateClear.addEventListener("click", function () { state.date = ""; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
     customToggle.addEventListener("click", function () { state.customOn = !state.customOn; renderAll(); });
-    [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala], ["nextH", tNextH], ["nextM", tNextM]].forEach(function (p) {
+    [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala], ["nextH", tNextH], ["nextM", tNextM], ["nextG", tNextG], ["nextP", tNextP]].forEach(function (p) {
       p[1].input.addEventListener("input", function () {
         const v = p[1].input.value;
         state[p[0]] = v === "" ? NaN : Number(v);
