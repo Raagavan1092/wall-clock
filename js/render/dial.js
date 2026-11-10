@@ -418,6 +418,8 @@
     palaHandGroup.appendChild(el("line", { x1: CX, y1: CY, x2: CX, y2: CY - R.palaHand, class: "pala-hand-line" }));
     handGroup.appendChild(el("line", { x1: CX, y1: CY, x2: CX, y2: CY - R.hand, class: "hand-line" }));
     handGroup.appendChild(el("circle", { cx: CX, cy: CY, r: R.hub, class: "hand-hub" }));
+    // Edit mode only (style.css): a knob at the tip to drag the hand by.
+    handGroup.appendChild(el("circle", { cx: CX, cy: CY - R.hand, r: 15, class: "hand-knob" }));
     // The centre text, then the "switch time convention" button under it, then
     // the hands on top of both (so they are never hidden by the readout).
     const centreGroup = el("g", { class: "centre-text" });

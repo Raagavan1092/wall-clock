@@ -265,7 +265,7 @@ html, body {
   fill: var(--centre-clock-secondary);
 }
 
-#settings-toggle, #loc-toggle, #alarm-toggle {
+#settings-toggle, #loc-toggle, #edit-toggle, #alarm-toggle {
   flex: none;
   width: 44px;
   height: 44px;
@@ -277,10 +277,10 @@ html, body {
   cursor: pointer;
   backdrop-filter: blur(8px);
 }
-#settings-toggle:hover, #loc-toggle:hover, #alarm-toggle:hover { background: rgba(42, 33, 19, 0.9); }
-#loc-toggle, #alarm-toggle { display: grid; place-items: center; padding: 0; }
-#loc-toggle svg, #alarm-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-#loc-toggle.on, #alarm-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
+#settings-toggle:hover, #loc-toggle:hover, #edit-toggle:hover, #alarm-toggle:hover { background: rgba(42, 33, 19, 0.9); }
+#loc-toggle, #edit-toggle, #alarm-toggle { display: grid; place-items: center; padding: 0; }
+#loc-toggle svg, #edit-toggle svg, #alarm-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#loc-toggle.on, #edit-toggle.on, #alarm-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
 
 #settings-panel {
   position: fixed;
@@ -438,10 +438,10 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
-body.secondary-view .rc-corner { display: none; }
+body.secondary-view .rc-corner:not(.rc-day) { display: none; }
 #btn-secondary-yogas[aria-pressed="true"], #btn-secondary-yogas[aria-pressed="true"]:hover { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
 body.fullview #ts-dialog,
-body.fullview .tc-row, body.fullview #loc-widget, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
+body.fullview .tc-row, body.fullview #loc-menu, body.fullview #edit-bar, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
   position: fixed;
@@ -894,36 +894,13 @@ body.fullview .gb-toggle { display: none; }
 .al-date-row[hidden], .al-link[hidden] { display: none; }
 
 /* ======================================================================
-   Location & time widget (pin button, second row) and Change location dialog
+   Location drop-down (pin button, top row) and Change location dialog
    ====================================================================== */
-#loc-widget {
-  position: absolute; top: 46px; right: 0; z-index: 8;
-  width: min(480px, 100%); overflow-y: auto;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-  padding: 12px 14px 14px;
-  background: #16130e;
-  border: 1px solid #3a3020;
-  border-radius: 22px;
-  color: var(--ink);
-}
-#loc-widget[hidden] { display: none; }
-.lw-top { position: relative; display: flex; align-items: center; gap: 8px; }
-#loc-chip {
-  display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; max-width: calc(50% - 50px);
-  height: 38px; padding: 0 12px 0 10px;
-  border-radius: 999px; border: 1px solid #3a3020; background: #1d1912; color: var(--ink);
-  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-}
-#loc-chip.open { border-color: #6b5733; background: #2a2314; }
-#loc-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#loc-chip svg { flex: none; width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-#loc-chip svg.lw-chev { width: 14px; height: 14px; stroke: #a99a7c; }
-.lw-coords { flex: none; margin-left: auto; text-align: right; white-space: nowrap; font-size: 11px; line-height: 1.45; color: #a99a7c; font-variant-numeric: tabular-nums; }
-
 #loc-menu {
-  position: absolute; left: 12px; top: 54px; width: min(300px, calc(100% - 24px)); z-index: 6;
-  padding: 8px; display: flex; flex-direction: column; gap: 2px;
+  position: absolute; top: 46px; right: 0; width: min(300px, 100%); z-index: 8;
+  padding: 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
   background: #1a160f; border: 1px solid #4a3d27; border-radius: 16px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  color: var(--ink);
 }
 #loc-menu[hidden] { display: none; }
 .lm-title { padding: 6px 10px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #a99a7c; }
@@ -943,26 +920,47 @@ body.fullview .gb-toggle { display: none; }
 }
 #loc-change svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
-.lw-arcwrap { position: relative; }
-#loc-arc { display: block; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; width: 100%; height: auto; margin: 6px 0 2px; font-family: inherit; font-variant-numeric: tabular-nums; }
-.lw-nav { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.lw-nav button, #loc-datebtn {
-  flex: none; height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid #3a3020;
-  background: transparent; color: var(--ink); font: inherit; font-size: 13.5px; cursor: pointer;
+/* ======================================================================
+   Edit mode (pencil button): day navigators in the clock's top corners
+   (the ring navigators turned upside down), Now and the date over the
+   clock in portrait / at its right in landscape, and a draggable day hand.
+   ====================================================================== */
+.rc-day { display: none; top: 0; bottom: auto; }
+body.edit-mode .rc-day { display: block; }
+.rc-day .rc-label { bottom: auto; top: 7%; }
+#edit-bar {
+  display: none;
+  position: absolute; z-index: 4;
+  bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  align-items: center; gap: 8px;
 }
-#loc-datebtn {
-  position: relative; flex: none; display: flex; align-items: center; justify-content: center; gap: 7px;
-  background: #1d1912; overflow: hidden;
+body.edit-mode #edit-bar { display: flex; }
+#edit-now, #edit-date {
+  height: 36px; padding: 0 13px 0 11px; border-radius: 999px; border: 1px solid var(--ring-stroke);
+  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+  background: var(--glass); color: var(--gold-hi); backdrop-filter: blur(8px);
+  font: inherit; font-size: 13px; cursor: pointer;
 }
-.lw-nav button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-.lw-nav button svg { width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-#loc-datebtn svg { width: 16px; height: 16px; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
-#loc-datebtn span { white-space: nowrap; pointer-events: none; }
-#loc-now { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; top: 50%; transform: translateY(-50%); z-index: 2; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; border: 1px solid #e8c77a; font: inherit; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; border-color: #e8c77a; background: #e8c77a; color: #1a1408; font-weight: 600; }
-#loc-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1f7a3d; }
-#loc-now.is-live { background: transparent; border-color: #3a3020; color: var(--muted); }
-#loc-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
-.lw-nav button:hover:not(#loc-now) { background: rgba(201, 168, 92, 0.14); }
+#edit-now { border-color: #e8c77a; background: #e8c77a; color: #1a1408; font-weight: 600; }
+#edit-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1f7a3d; }
+#edit-now.is-live { background: var(--glass); border-color: var(--ring-stroke); color: var(--muted); font-weight: 400; }
+#edit-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
+#edit-date svg { width: 16px; height: 16px; flex: none; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+#edit-date span { pointer-events: none; font-variant-numeric: tabular-nums; }
+#edit-date:hover { background: rgba(42, 33, 19, 0.9); }
+@media (orientation: portrait) {
+  /* Room above the clock for Now and the date. */
+  body.edit-mode:not(.fullview) #dial-wrap { padding-top: 48px; }
+}
+@media (orientation: landscape) {
+  #edit-bar { bottom: auto; top: 50%; left: calc(100% + 12px); transform: translateY(-50%); flex-direction: column; align-items: flex-start; }
+}
+/* The day hand: a knob at its tip shows it can be dragged. */
+.hand-knob { display: none; }
+body.edit-mode .hand-knob { display: inline; fill: var(--gold-hi); stroke: var(--dial-bg); stroke-width: 3; }
+body.edit-mode:not(.fullview) #dial { touch-action: none; }
+#dial.hand-grab { cursor: grab; }
+#dial.hand-dragging { cursor: grabbing; }
 
 /* Change location dialog */
 #loc-dialog {
@@ -1121,7 +1119,7 @@ body.fullview #mf-dialog { display: none; }
 /* No focus borders on the clock screen: a tapped button or the dial should not grow an outline. */
 #stage, #stage *, #stage *:focus, #stage *:focus-visible, #stage :focus-within { outline: none !important; -webkit-tap-highlight-color: transparent; }
 
-/* Alarm drop-down under the alarm button, and the plain buttons above the Location widget. */
+/* Alarm drop-down under the alarm button, and the plain buttons. */
 #alarm-section {
   position: absolute; top: 46px; right: 0; z-index: 8;
   width: min(360px, 100%); max-height: min(70dvh, 480px); overflow: hidden;
@@ -1137,23 +1135,20 @@ body.fullview #mf-dialog { display: none; }
 #alarm-section #alarm-reliable { background: transparent; color: var(--muted); border: 1px solid var(--ring-stroke); border-radius: 999px; padding: 6px 12px; font-size: 12px; }
 .tc-plain { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 
-/* Portrait on a short screen (e.g. with the Location widget open): the clock keeps a usable size and the page scrolls, rather than the clock shrinking to nothing or being cut off. */
+/* Portrait on a short screen: the clock keeps a usable size and the page scrolls, rather than the clock shrinking to nothing or being cut off. */
 @media (orientation: portrait) {
   #stage { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
   #dial-wrap { min-height: min(100vw, 170px); }
   body.fullview #dial-wrap { min-height: 0; }
 }
 
-/* Landscape phone: keep the Location & time widget compact so the controls fit beside the clock. */
+/* Landscape phone: the drop-downs fit beside the clock. */
 @media (orientation: landscape) {
   #stage { --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - min(540px, 48vw)))); grid-template-columns: minmax(0, 1fr) min(540px, 48vw); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
   #dial-wrap { grid-row: 1; }
   #top-controls { align-self: start; }
-  #alarm-section, #loc-widget { max-height: calc(100dvh - 76px); }
-  #loc-widget { padding: 8px 12px 10px; }
-  #loc-arc { max-height: min(190px, 28vh); }
+  #alarm-section, #loc-menu { max-height: calc(100dvh - 76px); }
 }
-#loc-arc { display: block; width: 100%; height: auto; }
 
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 

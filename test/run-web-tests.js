@@ -291,51 +291,41 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 25.3) < 0.5 &&
       /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name)));
 
-    // the pin button brings the widget into the second row
-    ok("widget: closed by default; the old day navigator and slider row are gone", await page.evaluate(() => document.getElementById("loc-widget").hidden && !document.getElementById("time-scrub") && !document.getElementById("day-buttons") && !document.getElementById("time-slider")));
-    await page.click("#loc-toggle");
-    ok("widget: the clock button opens it", await page.evaluate(() => !document.getElementById("loc-widget").hidden));
-    await page.click("#loc-toggle");
-    ok("widget: and closes it again, leaving just the buttons", await page.evaluate(() => document.getElementById("loc-widget").hidden && !!document.getElementById("btn-prev-display")));
-    await page.click("#loc-toggle");
-    await page.waitForTimeout(1200);
-    {
-      const box = await page.locator("#loc-arc").boundingBox();
-      const at = async (vx, vy) => {
-        await page.mouse.move(box.x + vx * box.width / 464, box.y + (vy - 14) * box.height / 190);
-        await page.mouse.down(); await page.mouse.up();
-        return page.evaluate(() => document.getElementById("loc-arc").getAttribute("aria-valuetext"));
-      };
-      const tickX = await page.evaluate(() => +Array.from(document.querySelectorAll("#loc-arc line")).filter(l => l.getAttribute("stroke") === "#6f80a8")[1].getAttribute("x1"));
-      const times = [await at(tickX + 0.2, 170), await at(tickX + 7, 170), await at(tickX + 10, 170)];
-      ok("widget: dragging sticks to an hour tick when close to it", /^\d\d:00$/.test(times[0]), times.join(" "));
-      ok("widget: away from the ticks any minute can be picked", times.slice(1).some(t => !/:00$/.test(t)), times.join(" "));
-    }
-    await page.click("#loc-now");
-    ok("widget: shows under the top row and above the plain buttons, with place, time and arc", await page.evaluate(() => {
-      const w = document.getElementById("loc-widget"), row = document.querySelector("#top-controls .tc-row");
-      return !w.hidden && w.nextElementSibling === document.querySelector("#top-controls .tc-plain") && row.nextElementSibling === document.getElementById("alarm-section") && row.contains(document.getElementById("loc-toggle")) &&
-        /Varanasi/.test(document.getElementById("loc-chip-name").textContent) && /N .* E/.test(document.getElementById("loc-coords").textContent) &&
-        /\d\d:\d\d/.test(document.getElementById("loc-arc").textContent) && !!document.querySelector("#loc-arc circle");
-    }));
-    ok("widget: the clock button sits beside Alarms, Settings and Full screen in the top row", await page.evaluate(() => {
+    // edit mode: day navigators, Now, the date field and the draggable day hand
+    ok("top row: no time widget; Full screen, Alarms, Location, Edit, Settings", await page.evaluate(() => {
       const ids = Array.from(document.querySelectorAll("#top-controls .tc-row > button")).map(b => b.id);
-      return ids.join() === "btn-fullview,alarm-toggle,loc-toggle,settings-toggle";
+      return !document.getElementById("loc-widget") && !document.getElementById("loc-arc") && ids.join() === "btn-fullview,alarm-toggle,loc-toggle,edit-toggle,settings-toggle";
     }));
-    await page.click("#loc-next");
+    ok("edit mode: off by default, its controls hidden", await page.evaluate(() =>
+      ["btn-prev-day", "btn-next-day", "edit-bar"].every(id => getComputedStyle(document.getElementById(id)).display === "none")));
+    await page.click("#edit-toggle");
+    ok("edit mode: the pencil shows the day buttons, Now and the date", await page.evaluate(() =>
+      ["btn-prev-day", "btn-next-day", "edit-bar"].every(id => getComputedStyle(document.getElementById(id)).display !== "none") &&
+      /\d{4}/.test(document.getElementById("edit-date-text").textContent) && document.getElementById("edit-now").classList.contains("is-live")));
+    await page.click("#btn-next-day .rc-label");
     await page.waitForTimeout(400);
-    ok("widget: Next goes to the next day's sunrise (Ghaṭī 0 · Pala 0)", await page.evaluate(() => /Ghaṭī 0 · Pala 0/.test(document.getElementById("dial").textContent)));
-    ok("widget: Next moves the clock one day on, Now returns to live", await page.evaluate(async () => {
-      const off = document.getElementById("loc-now").classList.contains("is-live");
-      document.getElementById("loc-now").click();
-      await new Promise(r => setTimeout(r, 300));
-      return off === false && document.getElementById("loc-now").classList.contains("is-live");
-    }));
+    ok("edit mode: Next day goes to the next day's sunrise (Ghaṭī 0 · Pala 0)", await page.evaluate(() => /Ghaṭī 0 · Pala 0/.test(document.getElementById("dial").textContent) && !document.getElementById("edit-now").classList.contains("is-live")));
+    {
+      // drag the day hand a quarter turn clockwise: 15 ghaṭīs on
+      const box = await page.locator("#dial").boundingBox();
+      const cx = box.x + box.width / 2, cy = box.y + box.height / 2, r = box.width * 0.22;
+      await page.mouse.move(cx, cy - r);
+      await page.mouse.down();
+      for (let i = 1; i <= 9; i++) { const a = i * Math.PI / 18; await page.mouse.move(cx + r * Math.sin(a), cy - r * Math.cos(a)); }
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+      ok("edit mode: dragging the day hand moves the clock (to about Ghaṭī 15)", await page.evaluate(() => /Ghaṭī 1[45] · Pala/.test(document.getElementById("dial").textContent)), await page.evaluate(() => (document.getElementById("dial").textContent.match(/Ghaṭī \d+ · Pala \d+/) || [""])[0]));
+    }
+    await page.click("#edit-now");
+    await page.waitForTimeout(300);
+    ok("edit mode: Now returns to live", await page.evaluate(() => document.getElementById("edit-now").classList.contains("is-live")));
+    await page.click("#edit-toggle");
+    ok("edit mode: the pencil again hides it all", await page.evaluate(() => getComputedStyle(document.getElementById("edit-bar")).display === "none"));
 
     // place menu -> Change location dialog
-    await page.click("#loc-chip");
-    ok("menu: lists the current place as selected, plus Change location", await page.evaluate(() =>
-      !document.getElementById("loc-menu").hidden && document.querySelectorAll("#loc-recent [aria-checked=true]").length === 1 && !!document.getElementById("loc-change")));
+    await page.click("#loc-toggle");
+    ok("menu: the pin button lists the current place as selected, plus Change location", await page.evaluate(() =>
+      /Varanasi/.test(document.getElementById("loc-toggle").title) && !document.getElementById("loc-menu").hidden && document.querySelectorAll("#loc-recent [aria-checked=true]").length === 1 && !!document.getElementById("loc-change")));
     await page.click("#loc-change");
     ok("dialog: Set as default and Reset are inactive while the location equals the default", await page.evaluate(() =>
       !document.getElementById("loc-dialog").classList.contains("hidden") && document.getElementById("loc-default").disabled && document.getElementById("loc-reset").disabled &&
@@ -355,7 +345,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.click("#loc-cancel");
     ok("dialog: Cancel closes without applying", await page.evaluate(() =>
       document.getElementById("loc-dialog").classList.contains("hidden") && Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 25.3) < 0.5));
-    await page.click("#loc-chip");
+    await page.click("#loc-toggle");
     await page.click("#loc-change");
     await page.click("#loc-reset");
     await page.click("#loc-apply");
@@ -373,8 +363,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
-    ok("second visit: no prompt, stays unlocked, widget starts closed", await page.evaluate(() =>
-      document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && document.getElementById("loc-widget").hidden));
+    ok("second visit: no prompt, stays unlocked, menu and edit mode start closed", await page.evaluate(() =>
+      document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && document.getElementById("loc-menu").hidden && !document.body.classList.contains("edit-mode")));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));
     await ctx.close();
   }

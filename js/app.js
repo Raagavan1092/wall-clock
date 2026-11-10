@@ -404,11 +404,9 @@
   }
 
   // ---- Day and time controls -----------------------------------------------
-  // They live in the Location & time widget (location-ui.js): Previous / Next /
-  // Pick date / Now, and dragging the sun along the arc. Live is the default.
-  // Moving off it holds the clock at that moment (it does not drift on) until
-  // Now is pressed. The day buttons change only the date: the clock time on
-  // show stays the same.
+  // They live in edit mode (wireEditMode): Previous / Next day, Now, the date
+  // field, and dragging the day hand. Live is the default. Moving off it
+  // holds the clock at that moment (it does not drift on) until Now is pressed.
 
   function syncTimeUi() {
     syncDayControls();
@@ -477,7 +475,109 @@
     syncDayControls = function () {
       if (!cachedSnapshot) return;
       if (locationUi) locationUi.update();
+      syncEditBar();
     };
+  }
+
+  // "YYYY-MM-DD" and "10 Nov 2026" for the IST calendar date `days` from the date on show.
+  function shownDate(days) {
+    const d = new Date(getNow().getTime() + IST_OFFSET_MS + (days || 0) * DAY_MS);
+    return {
+      iso: d.toISOString().slice(0, 10),
+      label: d.toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }),
+      short: d.toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short" }),
+    };
+  }
+
+  // ---- Edit mode -------------------------------------------------------------
+  // The pencil button in the top row. While on: day navigators in the clock's
+  // top corners (the ring navigators' look), Now and a date field over the
+  // clock (portrait) or at its right (landscape), and the day hand can be
+  // dragged round to any time; past sunrise it carries on into the next day.
+  let editMode = false;
+  let lastEditKey = null;
+  function syncEditBar() {
+    if (!editMode) return;
+    const live = isLive();
+    const cur = shownDate(0), prev = shownDate(-1), next = shownDate(1);
+    const key = live + "|" + cur.iso;
+    if (key === lastEditKey) return;
+    lastEditKey = key;
+    const nowBtn = document.getElementById("edit-now");
+    nowBtn.classList.toggle("is-live", live);
+    nowBtn.setAttribute("aria-pressed", String(live));
+    document.getElementById("edit-date-text").textContent = cur.label;
+    const pb = document.getElementById("btn-prev-day"), nb = document.getElementById("btn-next-day");
+    pb.querySelector(".rc-name").textContent = prev.short;
+    nb.querySelector(".rc-name").textContent = next.short;
+    pb.title = pb.ariaLabel = "Previous day (" + prev.label + ")";
+    nb.title = nb.ariaLabel = "Next day (" + next.label + ")";
+  }
+
+  function wireEditMode() {
+    const body = document.body, toggle = document.getElementById("edit-toggle"), svg = document.getElementById("dial");
+    const dateBtn = document.getElementById("edit-date");
+    function setEdit(on) {
+      editMode = on;
+      body.classList.toggle("edit-mode", on);
+      toggle.classList.toggle("on", on);
+      toggle.setAttribute("aria-pressed", String(on));
+      lastEditKey = null;
+      syncEditBar();
+    }
+    toggle.addEventListener("click", function () { setEdit(!editMode); });
+    document.getElementById("btn-prev-day").addEventListener("click", function () { goToSunrise(shownDayOffset() - 1); });
+    document.getElementById("btn-next-day").addEventListener("click", function () { goToSunrise(shownDayOffset() + 1); });
+    document.getElementById("edit-now").addEventListener("click", goLive);
+    dateBtn.addEventListener("click", function () {
+      E.DatePicker.open({ anchor: dateBtn, value: shownDate(0).iso, title: "Go to a date", onPick: goToDateString });
+    });
+
+    // Dragging the day hand. A press within a few degrees of the hand (outside
+    // the centre readout) takes hold of it; each move turns the clock by the
+    // angle moved (360 deg = 60 ghaṭīs = 24 h), so it runs on smoothly across
+    // sunrise into the next or previous day. Elsewhere a tap still shows the
+    // segment's tooltip.
+    const GRAB_DEG = 14, MIN_R = 0.13, MAX_R = 0.5;
+    function polar(e) {
+      const r = svg.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      return { a: (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360, d: Math.hypot(x, y) };
+    }
+    function nearHand(e) {
+      if (!editMode || body.classList.contains("fullview") || !cachedSnapshot) return false;
+      const p = polar(e);
+      const hand = E.Ghati.current(getNow(), cachedSnapshot.anchors).angleDeg;
+      return p.d >= MIN_R && p.d <= MAX_R && Math.abs(((p.a - hand + 540) % 360) - 180) <= GRAB_DEG;
+    }
+    let drag = null, justDragged = false;
+    svg.addEventListener("pointerdown", function (e) {
+      if (e.button || !nearHand(e)) return;
+      e.preventDefault();
+      drag = { id: e.pointerId, a: polar(e).a, t: getNow().getTime() };
+      try { svg.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+      svg.classList.add("hand-dragging");
+      setManualTime(new Date(drag.t));
+    }, true);
+    svg.addEventListener("pointermove", function (e) {
+      if (!drag) { svg.classList.toggle("hand-grab", nearHand(e)); return; }
+      const p = polar(e);
+      if (p.d < 0.03) return; // too near the centre for a steady angle
+      const delta = ((p.a - drag.a + 540) % 360) - 180;
+      drag.a = p.a;
+      drag.t += delta / 360 * DAY_MS;
+      setManualTime(new Date(Math.round(drag.t)));
+    });
+    function endDrag() {
+      if (!drag) return;
+      drag = null;
+      justDragged = true;
+      setTimeout(function () { justDragged = false; }, 0);
+      svg.classList.remove("hand-dragging");
+    }
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (t) { svg.addEventListener(t, endDrag); });
+    // The click that ends a drag is not a tap on a segment.
+    svg.addEventListener("click", function (e) { if (justDragged) { e.stopPropagation(); justDragged = false; } }, true);
   }
 
   function wireSettingsPanel() {
@@ -628,21 +728,10 @@
     closeBtn.addEventListener("click", saveAndClose);
   }
 
-  // The Location & time widget and its Change location dialog (location-ui.js).
+  // The location drop-down and its Change location dialog (location-ui.js).
   function wireLocation() {
     locationUi = E.LocationUI.init({
       getSettings: function () { return settings; },
-      getNow: getNow,
-      getAnchors: function () { return cachedSnapshot ? cachedSnapshot.anchors : null; },
-      isLive: isLive,
-      goLive: goLive,
-      shiftDay: function (delta) { goToSunrise(shownDayOffset() + delta); },
-      pickDate: goToDateString,
-      // Holds the clock at `hours` (0-24, IST) on the date on show.
-      setTimeOfDay: function (hours) {
-        const dayStart = istDayNumber(getNow().getTime()) * DAY_MS - IST_OFFSET_MS;
-        setManualTime(new Date(dayStart + Math.min(hours, 24 - 1 / 60) * 3600000));
-      },
       // Applies a place at once: the clock is recomputed for it and it is remembered.
       setLocation: function (loc) {
         settings = Object.assign({}, settings, {
@@ -741,6 +830,7 @@
     wireDayControls();
     wireSettingsPanel();
     wireLocation();
+    wireEditMode();
     wireFullView();
     wireAlarmMenu();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.

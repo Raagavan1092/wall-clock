@@ -1,15 +1,14 @@
-// The Location & time widget (the pin button in the top row shows it in the
-// second row) and its Change location dialog. Owns everything about choosing a
-// place: search, My location, recent places, Set as default and Reset. app.js
-// hands in the few things it needs (settings, the clock, day navigation).
+// The location drop-down (the pin button in the top row: recent places and
+// Change location…) and its Change location dialog. Owns everything about
+// choosing a place: search, My location, recent places, Set as default and
+// Reset. app.js hands in the few things it needs (settings, setLocation).
+// (Changing the day and time is edit mode's job, in app.js.)
 (function (global) {
   "use strict";
 
   const E = global.VedicEngine = global.VedicEngine || {};
-  const SHOWN_KEY = "vedicWallClock.locWidget";
   const RECENT_KEY = "vedicWallClock.recentLocations.v1";
   const MAX_RECENT = 4;
-  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
   const SVGNS = "http://www.w3.org/2000/svg";
 
   const $ = function (id) { return document.getElementById(id); };
@@ -18,11 +17,6 @@
   function dms(lat, lon) {
     return Math.abs(lat).toFixed(2) + "° " + (lat < 0 ? "S" : "N") + " · " + Math.abs(lon).toFixed(2) + "° " + (lon < 0 ? "W" : "E");
   }
-  function istHours(date) {
-    return (((date.getTime() + IST_OFFSET_MS) % 86400000) + 86400000) % 86400000 / 3600000;
-  }
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function hhmm(date) { const h = istHours(date); return pad(Math.floor(h)) + ":" + pad(Math.floor(h % 1 * 60)); }
 
   // ---- place naming ------------------------------------------------------
   function placeAt(lat, lon) {
@@ -57,17 +51,6 @@
     writeRecent(list.slice(0, MAX_RECENT));
   }
 
-  // ---- the sky arc -------------------------------------------------------
-  // Day from sunrise to sunset as an arc, the night as a line either side, hours
-  // 0-24 ticked along the whole thing. Same drawing as the design's E artboard.
-  const ARC = { r: 120, base: 170, left: 10, right: 452 };
-  function arcGeometry(sr, ss) {
-    const k = (ARC.right - ARC.left - 2 * ARC.r) / (sr + 24 - ss);
-    const srX = ARC.left + sr * k, cx = srX + ARC.r, ssX = cx + ARC.r;
-    return { k: k, srX: srX, cx: cx, ssX: ssX };
-  }
-  const f1 = function (n) { return Math.round(n * 10) / 10; };
-
   function el(name, attrs, text) {
     const n = document.createElementNS(SVGNS, name);
     Object.keys(attrs || {}).forEach(function (a) { n.setAttribute(a, attrs[a]); });
@@ -76,12 +59,8 @@
   }
 
   function init(api) {
-    const widget = $("loc-widget"), toggle = $("loc-toggle"), stage = $("stage");
-    const chip = $("loc-chip"), chipName = $("loc-chip-name"), coordsEl = $("loc-coords");
+    const toggle = $("loc-toggle"), stage = $("stage");
     const menu = $("loc-menu"), recentBox = $("loc-recent"), changeBtn = $("loc-change");
-    const arc = $("loc-arc");
-    const nowBtn = $("loc-now"), dateBtn = $("loc-datebtn");
-    let shownDate = null; // "YYYY-MM-DD" (IST) of the clock time on show
 
     const dlg = $("loc-dialog"), card = dlg.querySelector(".ld-card");
     const closeBtn = $("loc-close"), cancelBtn = $("loc-cancel"), applyBtn = $("loc-apply");
@@ -94,51 +73,24 @@
     // dismissed until a place is applied (that first place becomes the default).
     let locked = E.Settings.needsLocation();
 
-    // ================= widget =================
-    // Always closed when the app opens; the clock button opens it for the session.
-    let shown = false;
-
-    function setShown(on, persist) {
-      shown = on;
-      widget.hidden = !on;
-      toggle.setAttribute("aria-pressed", String(on));
-      toggle.classList.toggle("on", on);
-      document.body.classList.toggle("loc-on", on);
-      if (!on) closeMenu();
-      if (persist) { try { localStorage.setItem(SHOWN_KEY, on ? "1" : "0"); } catch (e) { /* storage unavailable */ } }
-      if (on) { document.dispatchEvent(new CustomEvent("dropdown-open", { detail: "loc" })); update(); }
-    }
-    // A drop-down: a tap anywhere else (or Esc) closes it, and opening the alarm list closes it.
-    document.addEventListener("pointerdown", function (e) {
-      if (!shown) return;
-      const path = e.composedPath ? e.composedPath() : [e.target]; // the arc redraws while dragged, so e.target may already be detached
-      if (!path.includes(widget) && !path.includes(toggle) && !path.includes(dlg)) setShown(false, false);
-    });
-    document.addEventListener("dropdown-open", function (e) { if (e.detail !== "loc" && shown) setShown(false, false); });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && shown && !menuOpen() && dlg.classList.contains("hidden")) { setShown(false, false); toggle.focus(); }
-    });
-    toggle.addEventListener("click", function () { setShown(!shown, true); });
-
-    // ---- place menu (recent places + Change location…)
+    // ================= place menu =================
+    // A drop-down under the pin button: a tap anywhere else (or Esc) closes it,
+    // and opening the alarm list closes it.
     function menuOpen() { return !menu.hidden; }
-    function openMenu() {
-      renderRecent();
-      menu.hidden = false;
-      chip.setAttribute("aria-expanded", "true");
-      chip.classList.add("open");
+    function setMenu(on) {
+      if (on) renderRecent();
+      menu.hidden = !on;
+      toggle.setAttribute("aria-expanded", String(on));
+      toggle.classList.toggle("on", on);
+      if (on) document.dispatchEvent(new CustomEvent("dropdown-open", { detail: "loc" }));
     }
-    function closeMenu() {
-      menu.hidden = true;
-      chip.setAttribute("aria-expanded", "false");
-      chip.classList.remove("open");
-    }
-    chip.addEventListener("click", function () { if (menuOpen()) closeMenu(); else openMenu(); });
+    toggle.addEventListener("click", function () { setMenu(!menuOpen()); });
     document.addEventListener("pointerdown", function (e) {
-      if (menuOpen() && !menu.contains(e.target) && !chip.contains(e.target)) closeMenu();
+      if (menuOpen() && !menu.contains(e.target) && !toggle.contains(e.target)) setMenu(false);
     });
-    widget.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && menuOpen()) { e.stopPropagation(); closeMenu(); chip.focus(); }
+    document.addEventListener("dropdown-open", function (e) { if (e.detail !== "loc" && menuOpen()) setMenu(false); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && menuOpen() && dlg.classList.contains("hidden")) { setMenu(false); toggle.focus(); }
     });
 
     function renderRecent() {
@@ -174,7 +126,7 @@
           b.appendChild(tick);
         }
         b.addEventListener("click", function () {
-          closeMenu();
+          setMenu(false);
           if (!selected) api.setLocation(r);
           pushRecent(r);
           update();
@@ -182,165 +134,14 @@
         recentBox.appendChild(b);
       });
     }
-    changeBtn.addEventListener("click", function () { closeMenu(); openDialog(); });
+    changeBtn.addEventListener("click", function () { setMenu(false); openDialog(); });
 
-    // ---- day navigation, same actions as the buttons above
-    $("loc-prev").addEventListener("click", function () { api.shiftDay(-1); });
-    $("loc-next").addEventListener("click", function () { api.shiftDay(1); });
-    nowBtn.addEventListener("click", function () { api.goLive(); });
-    dateBtn.addEventListener("click", function () {
-      E.DatePicker.open({ anchor: dateBtn, value: shownDate, title: "Go to a date", onPick: function (v) { api.pickDate(v); } });
-    });
-
-    // ---- the arc
-    let arcKey = null, sunEls = null;
-    function buildArc(sr, ss) {
-      const g = arcGeometry(sr, ss);
-      arc.textContent = "";
-      const R = ARC.r, base = ARC.base;
-      arc.appendChild(el("line", { x1: ARC.left, y1: base, x2: f1(g.srX), y2: base, stroke: "#4b5b80", "stroke-width": 5, "stroke-linecap": "round" }));
-      arc.appendChild(el("line", { x1: f1(g.ssX), y1: base, x2: ARC.right, y2: base, stroke: "#4b5b80", "stroke-width": 5, "stroke-linecap": "round" }));
-      arc.appendChild(el("line", { x1: f1(g.srX), y1: base, x2: f1(g.ssX), y2: base, stroke: "#3a3020", "stroke-width": 1, "stroke-dasharray": "3 5" }));
-      arc.appendChild(el("path", { d: "M" + f1(g.srX) + " " + base + " A" + R + " " + R + " 0 0 1 " + f1(g.ssX) + " " + base, fill: "none", stroke: "#f2b01e", "stroke-width": 6, "stroke-linecap": "round" }));
-      const onArc = function (h, rad) {
-        const th = Math.PI * (1 - (h - sr) / (ss - sr));
-        return { x: g.cx + rad * Math.cos(th), y: base - rad * Math.sin(th) };
-      };
-      for (let h = 0; h <= 24; h++) {
-        const major = h % 3 === 0, color = major ? "#a08a5c" : "#5c4e33", w = major ? 2 : 1.2;
-        if (h > sr && h < ss) {
-          const a = onArc(h, R + 6), b = onArc(h, R + (major ? 15 : 11));
-          arc.appendChild(el("line", { x1: f1(a.x), y1: f1(a.y), x2: f1(b.x), y2: f1(b.y), stroke: color, "stroke-width": w, "stroke-linecap": "round" }));
-          if (major) { const c = onArc(h, R + 26); arc.appendChild(el("text", { x: f1(c.x), y: f1(c.y), fill: "#c9b78f", "font-size": 11, "text-anchor": "middle", "dominant-baseline": "middle" }, String(h))); }
-        } else {
-          const x = h < sr ? ARC.left + h * g.k : g.ssX + (h - ss) * g.k;
-          const nc = major ? "#6f80a8" : "#46527a";
-          arc.appendChild(el("line", { x1: f1(x), y1: 176, x2: f1(x), y2: major ? 185 : 181, stroke: nc, "stroke-width": w, "stroke-linecap": "round" }));
-          if (major) arc.appendChild(el("text", { x: f1(x), y: 196, fill: "#8f9cc0", "font-size": 11, "text-anchor": "middle", "dominant-baseline": "middle" }, String(h)));
-        }
-      }
-      [g.srX, g.ssX].forEach(function (x) { arc.appendChild(el("circle", { cx: f1(x), cy: base, r: 4, fill: "#16130e", stroke: "#e8c77a", "stroke-width": 2 })); });
-      arc.appendChild(el("path", { d: "M30 146a9 9 0 1 0 10 12a7 7 0 0 1-10-12z", fill: "none", stroke: "#7d8db3", "stroke-width": 1.6, "stroke-linejoin": "round" }));
-      arc.appendChild(el("path", { d: "M424 146a9 9 0 1 0 10 12a7 7 0 0 1-10-12z", fill: "none", stroke: "#7d8db3", "stroke-width": 1.6, "stroke-linejoin": "round" }));
-      const srT = el("text", { x: f1(g.srX + 12), y: 152, fill: "#b3a586", "font-size": 12, "text-anchor": "start" });
-      const ssT = el("text", { x: f1(g.ssX - 12), y: 152, fill: "#b3a586", "font-size": 12, "text-anchor": "end" });
-      arc.appendChild(srT);
-      arc.appendChild(ssT);
-      const glow = el("circle", { r: 14, fill: "#f2b01e", opacity: 0.18 });
-      const sun = el("circle", { r: 8, fill: "#fff4dc", stroke: "#f2b01e", "stroke-width": 3 });
-      arc.appendChild(glow);
-      arc.appendChild(sun);
-      const time = el("text", { x: 232, y: 108, fill: "#f2b01e", "font-size": 34, "font-weight": 700, "text-anchor": "middle" });
-      const hm = el("tspan", {});
-      const sec = el("tspan", { "font-size": 20, fill: "#c9a24a" });
-      time.appendChild(hm);
-      time.appendChild(sec);
-      const date = el("text", { x: 232, y: 130, fill: "#b3a586", "font-size": 13, "text-anchor": "middle" });
-      arc.appendChild(time);
-      arc.appendChild(date);
-      sunEls = { g: g, sr: sr, ss: ss, onArc: onArc, glow: glow, sun: sun, hm: hm, sec: sec, date: date, srT: srT, ssT: ssT };
-    }
-
-    // ---- drag the sun (or use the arrow keys): it snaps to the hour ticks
-    arc.setAttribute("tabindex", "0");
-    arc.setAttribute("role", "slider");
-    arc.setAttribute("aria-valuemin", "0");
-    arc.setAttribute("aria-valuemax", "24");
-    // The time under the pointer, to the minute. Within 3 minutes of an hour tick
-    // (day or night alike) it sticks to that tick; anywhere else any minute can be picked.
-    const SNAP_MIN = 3;
-    function hourAt(clientX, clientY) {
-      const S = sunEls;
-      if (!S) return null;
-      const r = arc.getBoundingClientRect();
-      const x = (clientX - r.left) * 464 / r.width, y = 14 + (clientY - r.top) * 190 / r.height;
-      let h;
-      if (x <= S.g.srX) { h = (x - ARC.left) / S.g.k; }
-      else if (x >= S.g.ssX) { h = S.ss + (x - S.g.ssX) / S.g.k; }
-      else {
-        const dx = x - S.g.cx, dy = ARC.base - y;
-        const th = dy < 0 ? (dx < 0 ? Math.PI : 0) : Math.atan2(dy, dx);
-        h = S.sr + (1 - th / Math.PI) * (S.ss - S.sr);
-      }
-      h = Math.max(0, Math.min(24, h));
-      const tick = Math.round(h);
-      if (Math.abs(h - tick) * 60 <= SNAP_MIN) return tick;
-      return Math.round(h * 60) / 60;
-    }
-    let dragging = false, lastHour = null;
-    function dragTo(e) {
-      const h = hourAt(e.clientX, e.clientY);
-      if (h == null || h === lastHour) return;
-      lastHour = h;
-      api.setTimeOfDay(h);
-    }
-    arc.addEventListener("pointerdown", function (e) {
-      if (e.button) return;
-      dragging = true;
-      lastHour = null;
-      try { arc.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
-      dragTo(e);
-    });
-    arc.addEventListener("pointermove", function (e) { if (dragging) dragTo(e); });
-    ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (t) {
-      arc.addEventListener(t, function () { dragging = false; });
-    });
-    arc.addEventListener("keydown", function (e) {
-      const k = e.key;
-      if (["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].indexOf(k) === -1) return;
-      e.preventDefault();
-      const h = istHours(api.getNow());
-      let t;
-      if (k === "Home") t = 0;
-      else if (k === "End") t = 24;
-      else if (e.shiftKey) t = Math.round(h * 60) / 60 + ((k === "ArrowLeft" || k === "ArrowDown") ? -1 : 1) / 60;
-      else if (k === "ArrowLeft" || k === "ArrowDown") t = Math.ceil(h - 1e-9) - 1;
-      else t = Math.floor(h + 1e-9) + 1;
-      api.setTimeOfDay(Math.max(0, Math.min(24, t)));
-    });
-
-    let lastLabel = "";
+    // The pin button's tooltip names the place on show.
+    let lastTitle = "";
     function update() {
-      if (!shown) return;
       const loc = api.getSettings().location;
-      chipName.textContent = describe(loc.latitude, loc.longitude).short;
-      coordsEl.textContent = dms(loc.latitude, loc.longitude);
-
-      const now = api.getNow();
-      const anchors = api.getAnchors();
-      let sr = 6, ss = 18, srD = null, ssD = null;
-      if (anchors) {
-        srD = anchors.governingSunrise; ssD = anchors.sunsetToday;
-        const a = istHours(srD), b = istHours(ssD);
-        if (isFinite(a) && isFinite(b) && b - a > 6 && b - a < 18) { sr = a; ss = b; }
-      }
-      const key = f1(sr * 60) + "|" + f1(ss * 60);
-      if (key !== arcKey || !sunEls) { arcKey = key; buildArc(sr, ss); }
-
-      const h = istHours(now), S = sunEls, base = ARC.base;
-      let pos;
-      if (h >= sr && h <= ss) {
-        pos = S.onArc(h, ARC.r);
-      } else {
-        pos = { x: h < sr ? ARC.left + h * S.g.k : S.g.ssX + (h - ss) * S.g.k, y: base };
-      }
-      [S.glow, S.sun].forEach(function (c) { c.setAttribute("cx", f1(pos.x)); c.setAttribute("cy", f1(pos.y)); });
-      const t = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
-      S.hm.textContent = t.slice(0, 5);
-      S.sec.textContent = t.slice(5);
-      S.date.textContent = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", year: "numeric" });
-      S.srT.textContent = srD ? "↑ " + hhmm(srD) : "";
-      S.ssT.textContent = ssD ? hhmm(ssD) + " ↓" : "";
-      arc.setAttribute("aria-valuenow", String(Math.round(h * 100) / 100));
-      arc.setAttribute("aria-valuetext", t.slice(0, 5));
-      const label = "Time of day: drag, or use arrow keys (Shift for minutes). Day from sunrise " + (srD ? hhmm(srD) : "") + " to sunset " + (ssD ? hhmm(ssD) : "") + ". Now " + t.slice(0, 5) + ".";
-      if (label !== lastLabel) { lastLabel = label; arc.setAttribute("aria-label", label); }
-
-      const live = api.isLive();
-      nowBtn.classList.toggle("is-live", live);
-      nowBtn.setAttribute("aria-pressed", String(live));
-      const istDate = new Date(now.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
-      shownDate = istDate;
+      const title = "Location: " + describe(loc.latitude, loc.longitude).short;
+      if (title !== lastTitle) { lastTitle = title; toggle.title = title; toggle.setAttribute("aria-label", title); }
     }
 
     // ================= dialog =================
@@ -583,7 +384,7 @@
     });
 
     // ---- start
-    setShown(shown, false);
+    update();
     if (locked) openDialog();
     return { update: update, open: openDialog };
   }
