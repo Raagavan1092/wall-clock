@@ -198,6 +198,9 @@
       if (m) out.push(win(m, name, "bad", muhTip[name]));
     });
 
+    // Kalāṃśa (1.38-39), Madhyāhna and Ardharātra (1.32) windows are switched off for now (not shown); remove the
+    // comment markers below to bring them back.
+    /*
     // 1.38-39 bad sixteenths of the day. Back-to-back ones are one window
     // ("Kalāṃśas 2–4 of 16"); the tooltip just says which.
     const runs = [];
@@ -215,6 +218,7 @@
     const noon = (P.rise + P.set) / 2, midnight = (P.set + P.next) / 2;
     out.push(win(iv(noon - PALA10, noon + PALA10), "Madhyāhna", "bad", "10 palas before and after midday: avoid in all auspicious work (1.32)."));
     out.push(win(iv(midnight - PALA10, midnight + PALA10), "Ardharātra", "bad", "10 palas before and after midnight: avoid in all auspicious work (1.32)."));
+    */
 
     bhadraWindows(snapshot, data, P).forEach(function (w) { out.push(w); });
 

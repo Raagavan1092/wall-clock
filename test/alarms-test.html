@@ -111,8 +111,9 @@
   const sk = await A.preview({ events: ["marker:sankranti"], mode: "start" }, 2);
   check("saṅkrānti (about monthly) is found, with its rāśi", sk.length === 2 && /Saṅkrānti/.test(sk[0].detail), sk.map(x => x.detail).join(", "));
   check("no events / unknown id -> nothing", (await A.preview({ events: [] }, 1)).length === 0 && (await A.preview({ events: ["nope"] }, 1)).length === 0);
-  const dur = await A.preview({ events: ["win:kalamsha"], mode: "start" }, 14);
-  check("adjacent windows of one kind merge (back-to-back bad kalāṃśas)", dur.some(x => x.end - x.start > 80 * MIN) && dur.every(x => x.end - x.start < 160 * MIN));
+  // Kalāṃśa windows are switched off for now (mc-yogas.js), so their merge check is too.
+  //   const dur = await A.preview({ events: ["win:kalamsha"], mode: "start" }, 14);
+  //   check("adjacent windows of one kind merge (back-to-back bad kalāṃśas)", dur.some(x => x.end - x.start > 80 * MIN) && dur.every(x => x.end - x.start < 160 * MIN));
 
   // --- stored alarms: firing, once, grace, persistence --------------------------------
   const a1 = A.add({ events: ["win:rahu"], mode: "before", offsetValue: 10, offsetUnit: "min", repeat: "always", label: "  prep  " });

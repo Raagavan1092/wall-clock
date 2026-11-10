@@ -412,6 +412,7 @@
       date: editing && editing.custom && editing.custom.date ? editing.custom.date : "",
       ghati: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.ghati : 0,
       pala: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.pala : 0,
+      nextH: 0, nextM: 30, // "Next": ring after this long from now
     };
 
     // -- pieces that re-render --
@@ -443,12 +444,69 @@
     let trackMessage = ""; // the last problem choosing a file
     const customToggle = h("button", { type: "button", class: "al-link al-custom-toggle" });
     const customKindEl = h("div", { class: "al-seg", role: "radiogroup", "aria-label": "Time kind" });
+    // In the Android app the numbers are vertical wheels (swipe to roll), like the system clock;
+    // elsewhere plain number boxes. Both expose .input with .value and "input" events.
+    function wheelInput(label, max) {
+      const ITEM = 44;
+      const box = h("div", { class: "al-wheel", role: "spinbutton", "aria-label": label, "aria-valuemin": "0", "aria-valuemax": String(max), tabindex: "-1" });
+      const list = h("div", { class: "al-wheel-list" });
+      list.appendChild(h("div", { class: "al-wheel-pad" }));
+      const items = [];
+      for (let i = 0; i <= max; i++) {
+        const it = h("div", { class: "al-wheel-item", text: i < 10 ? "0" + i : String(i) });
+        items.push(it); list.appendChild(it);
+      }
+      list.appendChild(h("div", { class: "al-wheel-pad" }));
+      box.appendChild(list);
+      box.appendChild(h("div", { class: "al-wheel-band" }));
+      let value = 0, quiet = false, raf = 0, settle = 0;
+      function fade() {
+        raf = 0;
+        const pos = list.scrollTop / ITEM;
+        for (let i = 0; i < items.length; i++) {
+          const d = Math.abs(i - pos);
+          if (d > 3) { items[i].style.opacity = "0"; continue; }
+          items[i].style.opacity = String(Math.max(0.12, 1 - d * 0.38));
+          items[i].style.transform = "scale(" + Math.max(0.7, 1 - d * 0.14).toFixed(2) + ")";
+        }
+      }
+      list.addEventListener("scroll", function () {
+        if (!raf) raf = requestAnimationFrame(fade);
+        if (quiet) return;
+        clearTimeout(settle);
+        settle = setTimeout(function () {
+          const v = Math.max(0, Math.min(max, Math.round(list.scrollTop / ITEM)));
+          if (v !== value) { value = v; box.dispatchEvent(new Event("input")); }
+        }, 80);
+      }, { passive: true });
+      Object.defineProperty(box, "value", {
+        get: function () { return String(value); },
+        set: function (v) {
+          const n = Math.max(0, Math.min(max, Math.floor(Number(v)) || 0));
+          value = n; quiet = true;
+          list.scrollTop = n * ITEM;
+          fade();
+          setTimeout(function () { quiet = false; }, 120);
+        },
+      });
+      requestAnimationFrame(fade);
+      // A wheel in a hidden row can't scroll; put it at its value once it is shown.
+      if (global.ResizeObserver) new ResizeObserver(function () {
+        if (box.offsetHeight && Math.abs(list.scrollTop - value * ITEM) > 1) {
+          quiet = true; list.scrollTop = value * ITEM; fade(); setTimeout(function () { quiet = false; }, 120);
+        }
+      }).observe(box);
+      return { input: box, field: h("div", { class: "al-time-field" }, h("span", { text: label }), box) };
+    }
     function timeInput(label, max) {
+      if (global.AndroidAlarms) return wheelInput(label, max);
       const input = h("input", { type: "number", class: "al-amount al-time-input", min: "0", max: String(max), step: "1", inputmode: "numeric", "aria-label": label });
       return { input: input, field: h("label", { class: "al-time-field" }, h("span", { text: label }), input) };
     }
     const tHour = timeInput("Hour (0–23)", 23), tMin = timeInput("Minute (0–59)", 59);
     const tGhati = timeInput("Ghaṭī (0–59)", 59), tPala = timeInput("Pala (0–59)", 59);
+    const tNextH = timeInput("Hours", 23), tNextM = timeInput("Minutes", 59);
+    const nextRow = h("div", { class: "al-time-row" }, tNextH.field, h("span", { class: "al-time-sep", text: ":" }), tNextM.field);
     const clockRow = h("div", { class: "al-time-row" }, tHour.field, h("span", { class: "al-time-sep", text: ":" }), tMin.field);
     const ghatiRow = h("div", { class: "al-time-row" }, tGhati.field, h("span", { class: "al-time-sep", text: "·" }), tPala.field);
     const customHint = h("p", { class: "al-hint" });
@@ -458,7 +516,7 @@
     const dateRow = h("div", { class: "al-date-row" }, h("span", { class: "al-date-label", text: "Date" }), dateInput, dateClear, h("span", { class: "al-sub", text: "Leave empty for every day" }));
     const customPane = h("div", { class: "al-custom-pane" },
       h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Time of day"),
-      customKindEl, clockRow, ghatiRow, customHint, dateRow);
+      customKindEl, clockRow, nextRow, ghatiRow, customHint, dateRow);
     const repeatNum = h("span", { class: "al-step-n", text: "3" });
     const eventPane = h("div", { class: "al-event-pane" });
     const eventConfig = h("div", { class: "al-event-config" });
@@ -471,17 +529,25 @@
 
     // -- helpers --
     function customOf() {
+      if (state.ckind === "next") {
+        // "Next": a one-off clock alarm this long from now (IST), rounded up to the minute.
+        const t = Math.ceil((Date.now() + (state.nextH * 60 + state.nextM) * 60000) / 60000) * 60000 + 19800000;
+        const d = new Date(t);
+        return { kind: "clock", hour: d.getUTCHours(), minute: d.getUTCMinutes(), date: d.toISOString().slice(0, 10) };
+      }
       return state.ckind === "clock"
         ? { kind: "clock", hour: state.hour, minute: state.minute, date: state.date || null }
         : { kind: "ghati", ghati: state.ghati, pala: state.pala, date: state.date || null };
     }
     function whole(v, max) { return typeof v === "number" && isFinite(v) && v >= 0 && v <= max && Math.floor(v) === v; }
     function customValid() {
+      if (state.ckind === "next") return whole(state.nextH, 23) && whole(state.nextM, 59) && state.nextH + state.nextM > 0;
       return state.ckind === "clock" ? whole(state.hour, 23) && whole(state.minute, 59) : whole(state.ghati, 59) && whole(state.pala, 59);
     }
     function draft() {
       if (state.customOn) {
-        return { events: [], custom: customOf(), mode: "start", repeat: state.date ? "once" : state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
+        const c = customOf();
+        return { events: [], custom: c, mode: "start", repeat: c.date ? "once" : state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
       }
       return {
         events: Array.from(state.selected), mode: state.mode, offsetValue: state.offsetValue, offsetUnit: state.offsetUnit,
@@ -615,7 +681,7 @@
       amountInput.max = String(UNIT_MAX[state.offsetUnit]);
       amountInput.classList.toggle("invalid", !amountValid());
 
-      segmented(repeatEl, state.customOn && state.date ? [["once", "Just once"]] : [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+      segmented(repeatEl, state.customOn && (state.date || state.ckind === "next") ? [["once", "Just once"]] : [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
     });
 
     function renderAlerts() {
@@ -682,13 +748,17 @@
     }
 
     const renderCustom = focusKept(function () {
-      segmented(customKindEl, [["clock", "Clock time"], ["ghati", "Ghaṭī · Pala"]], state.ckind, function (k) { state.ckind = k; renderAll(); });
+      segmented(customKindEl, [["clock", "Time"], ["next", "Next"], ["ghati", "Ghaṭī · Pala"]], state.ckind, function (k) { state.ckind = k; renderAll(); });
       clockRow.hidden = state.ckind !== "clock";
       ghatiRow.hidden = state.ckind !== "ghati";
-      [[tHour, state.hour], [tMin, state.minute], [tGhati, state.ghati], [tPala, state.pala]].forEach(function (p) {
+      nextRow.hidden = state.ckind !== "next";
+      dateRow.hidden = state.ckind === "next";
+      [[tHour, state.hour], [tMin, state.minute], [tGhati, state.ghati], [tPala, state.pala], [tNextH, state.nextH], [tNextM, state.nextM]].forEach(function (p) {
         if (document.activeElement !== p[0].input) p[0].input.value = isFinite(p[1]) ? p[1] : "";
       });
-      customHint.textContent = state.ckind === "clock"
+      customHint.textContent = state.ckind === "next"
+        ? "Rings once, this many hours and minutes from now."
+        : state.ckind === "clock"
         ? "24-hour clock, Indian Standard Time. Rings at this time " + (state.date ? "on that date." : "every day.")
         : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of " + (state.date ? "the Vedic day that begins on that date." : "every Vedic day.");
       customPane.classList.toggle("invalid", !customValid());
@@ -800,7 +870,7 @@
     });
     dateClear.addEventListener("click", function () { state.date = ""; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
     customToggle.addEventListener("click", function () { state.customOn = !state.customOn; renderAll(); });
-    [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala]].forEach(function (p) {
+    [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala], ["nextH", tNextH], ["nextM", tNextM]].forEach(function (p) {
       p[1].input.addEventListener("input", function () {
         const v = p[1].input.value;
         state[p[0]] = v === "" ? NaN : Number(v);

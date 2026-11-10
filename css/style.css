@@ -1223,3 +1223,13 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .ld-body::-webkit-scrollbar-thumb, #mf-list::-webkit-scrollbar-thumb { background: #5a4a2a; border-radius: 999px; }
 .ld-body::-webkit-scrollbar-thumb:hover, #mf-list::-webkit-scrollbar-thumb:hover { background: #7a6538; }
 @media (hover: hover) { .tc-toggles .tc-chip[aria-pressed="true"]:hover { background: #f3d68f; } }
+
+/* Android: the alarm time fields are vertical wheels (swipe to roll the numbers). */
+.al-wheel { position: relative; width: 84px; height: 176px; border: 1px solid var(--ring-stroke); border-radius: 12px; background: rgba(255, 255, 255, 0.04); overflow: hidden; }
+.al-wheel-list { height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); }
+.al-wheel-list::-webkit-scrollbar { display: none; }
+.al-wheel-pad { height: 66px; }
+.al-wheel-item { height: 44px; display: flex; align-items: center; justify-content: center; scroll-snap-align: center; font-size: 24px; font-weight: 600; color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.al-wheel-band { position: absolute; left: 6px; right: 6px; top: 66px; height: 44px; border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold); border-radius: 8px; pointer-events: none; }
+.al-time-row:has(.al-wheel) { align-items: center; }
+.al-time-row:has(.al-wheel) .al-time-sep { padding-bottom: 0; margin-top: 20px; }

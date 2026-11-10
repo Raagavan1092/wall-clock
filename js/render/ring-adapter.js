@@ -531,7 +531,8 @@
     { id: "win:rahu", text: "Rāhu Kālam", goodBad: "bad", note: "Inauspicious eighth of the day" },
     { id: "win:kulika", text: "Kulika", goodBad: "bad", note: "Bad day muhūrta (Muhūrta Cintāmaṇi 1.37)" },
     { id: "win:yamaghanta", text: "Yamaghaṇṭa", goodBad: "bad", note: "Bad day muhūrta (Muhūrta Cintāmaṇi 1.37)" },
-    { id: "win:kalamsha", text: "Kalāṃśa", goodBad: "bad", note: "Bad sixteenths of the day (Muhūrta Cintāmaṇi 1.38–39)" },
+    // Switched off with the Kalāṃśa window (mc-yogas.js); restore both together.
+    // { id: "win:kalamsha", text: "Kalāṃśa", goodBad: "bad", note: "Bad sixteenths of the day (Muhūrta Cintāmaṇi 1.38–39)" },
     { id: "combo:marana", text: "Maraṇa Yogam", goodBad: "bad", note: "Weekday + nakṣatra, inauspicious" },
     { id: "combo:visha", text: "Viṣa Yoga", goodBad: "bad", note: "Weekday + tithi, inauspicious" },
     { id: "win:abhijit", text: "Abhijit", goodBad: "good", note: "The midday muhūrta" },
