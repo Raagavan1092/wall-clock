@@ -344,7 +344,11 @@
   function renderList() {
     if (!listEl) return;
     const now = Date.now();
-    const items = Alarms.list();
+    // Soonest to ring first; ones still being worked out, then ones not due soon, then switched-off ones.
+    function rank(a) { return !a.enabled ? 3 : a.next === undefined ? 1 : a.next === null ? 2 : 0; }
+    const items = Alarms.list().sort(function (a, b) {
+      return rank(a) - rank(b) || (rank(a) === 0 ? a.next.fireAt - b.next.fireAt : 0);
+    });
     listEl.innerHTML = "";
     if (!items.length) return;
     items.forEach(function (a) {
@@ -520,8 +524,7 @@
     const customHint = h("p", { class: "al-hint" });
     // A button that opens the themed date picker (date-picker.js).
     const dateInput = h("button", { type: "button", class: "al-date-input", "aria-label": "Date (optional)" });
-    const dateClear = h("button", { type: "button", class: "al-link", text: "Clear" });
-    const dateRow = h("div", { class: "al-date-row" }, h("span", { class: "al-date-label", text: "Date" }), dateInput, dateClear, h("span", { class: "al-sub", text: "Leave empty for every day" }));
+    const dateRow = h("div", { class: "al-date-row" }, h("span", { class: "al-date-label", text: "Date" }), dateInput);
     const customPane = h("div", { class: "al-custom-pane" },
       h("div", { class: "al-step" }, h("span", { class: "al-step-n", text: "1" }), "Time of day"),
       customKindEl, h("div", { class: "al-time-block" }, h("div", { class: "al-time-rows" }, clockRow, ghatiRow, nextRow, nextGhatiRow), cunitEl), customHint, dateRow);
@@ -562,7 +565,7 @@
     function draft() {
       if (state.customOn) {
         const c = customOf();
-        return { events: [], custom: c, mode: "start", repeat: c.kind === "every" ? "always" : c.date ? "once" : state.repeat, label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
+        return { events: [], custom: c, mode: "start", repeat: c.date ? "once" : "always", label: state.label, sound: state.sound, soundKind: state.soundKind, notify: state.notify };
       }
       return {
         events: Array.from(state.selected), mode: state.mode, offsetValue: state.offsetValue, offsetUnit: state.offsetUnit,
@@ -700,7 +703,15 @@
         const every = customValid() ? Alarms.customText({ kind: "every", intervalMs: nextMs() }) : "Every …";
         segmented(repeatEl, [["once", "Just once"], ["always", every]], state.nrepeat, function (r) { state.nrepeat = r; renderAll(); });
       } else {
-        segmented(repeatEl, state.customOn && state.date ? [["once", "Just once"]] : [["always", state.customOn ? "Every day" : "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+        if (state.customOn) {
+          // Just once = on the chosen date; Every day = no date. Picking one sets or clears the date.
+          segmented(repeatEl, [["always", "Every day"], ["once", "Just once"]], state.date ? "once" : "always", function (r) {
+            state.date = r === "once" ? (state.date || new Date(Date.now() + 19800000).toISOString().slice(0, 10)) : "";
+            renderAll();
+          });
+        } else {
+          segmented(repeatEl, [["always", "Every time it occurs"], ["once", "Just once"]], state.repeat, function (r) { state.repeat = r; renderWhen(); schedulePreview(); });
+        }
       }
     });
 
@@ -786,7 +797,6 @@
         : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of " + (state.date ? "the Vedic day that begins on that date." : "every Vedic day.");
       customPane.classList.toggle("invalid", !customValid());
       dateInput.textContent = state.date ? new Date(state.date + "T00:00:00Z").toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "Any day";
-      dateClear.hidden = !state.date;
     });
     function renderView() {
       customToggle.textContent = state.customOn ? "← Back to events" : "Or set a specific time…";
@@ -891,7 +901,6 @@
         onPick: function (v) { state.date = v; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); },
       });
     });
-    dateClear.addEventListener("click", function () { state.date = ""; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); });
     customToggle.addEventListener("click", function () { state.customOn = !state.customOn; renderAll(); });
     [["hour", tHour], ["minute", tMin], ["ghati", tGhati], ["pala", tPala], ["nextH", tNextH], ["nextM", tNextM], ["nextG", tNextG], ["nextP", tNextP]].forEach(function (p) {
       p[1].input.addEventListener("input", function () {
