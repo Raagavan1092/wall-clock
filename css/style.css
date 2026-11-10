@@ -175,7 +175,7 @@ html, body {
 /* A bad yoga in a part the text relaxes or a good yoga cancels: the segment
    keeps its colour and borders, and that part is crossed out (dial.js). */
 .relief-hatch { fill: url(#relief-hatch); stroke: none; pointer-events: none; }
-.relief-hatch-line { stroke: var(--bad-label); stroke-width: 1.8; stroke-opacity: 0.8; }
+.relief-hatch-line { stroke: #2a0d06; stroke-width: 2; stroke-opacity: 0.55; } /* dark, so the white label stays readable over it */
 /* Good Times / Bad Times rings: a faint full-ring background behind the
    per-event lanes (dial.js renderEventRing). */
 .ring-segment.event-ring-bg { fill: var(--ring-neutral); stroke: none; }

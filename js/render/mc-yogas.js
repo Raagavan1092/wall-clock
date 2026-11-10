@@ -198,10 +198,16 @@
       if (m) out.push(win(m, name, "bad", muhTip[name]));
     });
 
-    // 1.38-39 bad sixteenths of the day. The tooltip just says which one.
-    M.badKalamsha[v].forEach(function (k) {
-      const s = P.rise + (k - 1) * dayLen / 16;
-      out.push(win(iv(s, s + dayLen / 16), "Kalāṃśa", "bad", "Kalāṃśa " + k + " of 16"));
+    // 1.38-39 bad sixteenths of the day. Back-to-back ones are one window
+    // ("Kalāṃśas 2–4 of 16"); the tooltip just says which.
+    const runs = [];
+    M.badKalamsha[v].slice().sort(function (a, b) { return a - b; }).forEach(function (k) {
+      const last = runs[runs.length - 1];
+      if (last && last[1] === k - 1) last[1] = k; else runs.push([k, k]);
+    });
+    runs.forEach(function (r) {
+      const s = P.rise + (r[0] - 1) * dayLen / 16;
+      out.push(win(iv(s, P.rise + r[1] * dayLen / 16), "Kalāṃśa", "bad", r[0] === r[1] ? "Kalāṃśa " + r[0] + " of 16" : "Kalāṃśas " + r[0] + "–" + r[1] + " of 16"));
     });
 
     // 1.32 ten palas either side of midday and midnight.
@@ -318,10 +324,11 @@
       // by day, or a first-half one by night, is harmless.
       reliefs.push({ span: firstHalf ? P.night : P.day, reason: (firstHalf ? "a first-half Bhadrā at night" : "a second-half Bhadrā by day") + " is harmless (1.44)" });
       if (abode !== "bhūmi") reliefs.push({ span: iv(s, e), reason: "Bhadrā in " + abode + ": urgent work may be done (1.45)" });
-      const cutOut = [mouth].concat(krishna ? [tail] : []);
-      complement(iv(s, e), cutOut).forEach(function (part) {
-        relieve(win(part, "Bhadrā", "bad", base), reliefs).forEach(function (w) { out.push(w); });
-      });
+      // One Bhadrā window, not cut round its mouth or tail: the mouth is its
+      // own window beside it, and a Kṛṣṇa Bhadrā's good tail is crossed out.
+      const tailIn = krishna && overlap(tail, iv(s, e));
+      if (tailIn) reliefs.push({ span: tailIn, reason: "its tail is good for all work (1.44)" });
+      relieve(win(iv(s, e), "Bhadrā", "bad", base), reliefs).forEach(function (w) { out.push(w); });
       const m = overlap(mouth, iv(s, e));
       if (m) out.push(win(m, "Bhadrā mukha", "bad", "Bhadrā's mouth: the first 5 ghaṭīs (of the tithi's 60) of its " + mt[0] + "th prahara. Bad for all work (1.44).\n" + base));
       const tl = overlap(tail, iv(s, e));
