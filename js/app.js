@@ -364,7 +364,6 @@
 
     const secBtn = document.getElementById("btn-secondary-yogas");
     function syncSecondaryButton() {
-      secBtn.setAttribute("aria-pressed", String(secondaryView));
       secBtn.textContent = secondaryView ? "Main view" : "Secondary yogas";
       secBtn.title = secondaryView ? "Back to the daily windows and the switchable rings" : "Show the tithi-vāra-nakṣatra yogas";
     }

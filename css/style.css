@@ -453,11 +453,10 @@ html, body {
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
 body.secondary-view .rc-corner:not(.rc-day) { display: none; }
-#btn-secondary-yogas[aria-pressed="true"], #btn-secondary-yogas[aria-pressed="true"]:hover { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
 /* Toggle rings / Toggle windows: a full-width pair under the three buttons, same look; gold when on. */
 .tc-toggles { flex-wrap: nowrap; }
 .tc-toggles .tc-chip { flex: 1 1 0; justify-content: center; align-self: stretch; padding: 6px 10px; }
-.tc-toggles .tc-chip[aria-pressed="true"], .tc-toggles .tc-chip[aria-pressed="true"]:hover { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
+.tc-toggles .tc-chip[aria-pressed="true"] { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
 body.secondary-view .tc-toggles { display: none; }
 body.rings-off .rc-corner:not(.rc-day) { display: none; }
 body.fullview #ts-dialog,
@@ -1223,3 +1222,4 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .ld-body::-webkit-scrollbar-track, #mf-list::-webkit-scrollbar-track { background: transparent; }
 .ld-body::-webkit-scrollbar-thumb, #mf-list::-webkit-scrollbar-thumb { background: #5a4a2a; border-radius: 999px; }
 .ld-body::-webkit-scrollbar-thumb:hover, #mf-list::-webkit-scrollbar-thumb:hover { background: #7a6538; }
+@media (hover: hover) { .tc-toggles .tc-chip[aria-pressed="true"]:hover { background: #f3d68f; } }
