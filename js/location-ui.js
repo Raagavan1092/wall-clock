@@ -33,6 +33,19 @@
     return { name: "Custom location", short: "Custom location", sub: fmtCoords(lat, lon) };
   }
 
+  // Whether (lat, lon) is the saved default place, and the "(Default)" tag shown after its name.
+  function isDefault(lat, lon) {
+    if (E.Settings.needsLocation()) return false;
+    const d = E.Settings.defaultLocation();
+    return near(d.latitude, lat) && near(d.longitude, lon);
+  }
+  function defaultTag() {
+    const t = document.createElement("span");
+    t.className = "loc-default-tag";
+    t.textContent = " (Default)";
+    return t;
+  }
+
   // ---- recent places -----------------------------------------------------
   function readRecent() {
     try {
@@ -114,6 +127,7 @@
         const n = document.createElement("span");
         n.className = "lm-name";
         n.textContent = r.name || describe(r.latitude, r.longitude).name;
+        if (isDefault(r.latitude, r.longitude)) n.appendChild(defaultTag());
         const c = document.createElement("span");
         c.className = "lm-sub";
         c.textContent = dms(r.latitude, r.longitude);
@@ -297,6 +311,7 @@
       }
       const info = describe(lat, lon);
       curName.textContent = !placeAt(lat, lon) && chosenName ? chosenName : info.name;
+      if (!locked && isDefault(lat, lon)) curName.appendChild(defaultTag());
       curSub.textContent = info.sub + (isFinite(elev) ? " · " + elev + " m" : "");
       const same = near(lat, d.latitude) && near(lon, d.longitude) && isFinite(elev) && Math.abs(elev - d.elevation) < 0.5;
       defaultBtn.disabled = locked || same || !isFinite(elev) || elev < 0;

@@ -53,7 +53,7 @@
     </div>
     <div class="tc-plain">
       <button type="button" id="btn-secondary-yogas" class="tc-chip">Secondary yogas</button>
-      <button type="button" id="btn-todays-specialities" class="tc-chip">Today Special</button>
+      <button type="button" id="btn-todays-specialities" class="tc-chip">Today Details</button>
       <button type="button" id="btn-next-muhurta" class="tc-chip">Find muhurta</button>
     </div>
     <div class="tc-foot">
@@ -82,7 +82,7 @@
   <section>
     <details>
     <summary><h3>Yogas</h3></summary>
-    <p class="settings-note">The yogas follow Muhūrta Cintāmaṇi. Daily windows show on the Good / Bad Times ring; tithi-vāra-nakṣatra yogas in the Secondary yogas view; details in Today Special.</p>
+    <p class="settings-note">The yogas follow Muhūrta Cintāmaṇi. Daily windows show on the Good / Bad Times ring; tithi-vāra-nakṣatra yogas in the Secondary yogas view; details in Today Details.</p>
     <label><input type="checkbox" id="set-yoga-regional"> Apply the text's regional limits (a rule the text confines to some lands shows only for places there; regions are estimated from the nearest district)</label>
     <p class="settings-note">Local practices, shown in the Secondary yogas view only if ticked.</p>
     <label><input type="checkbox" id="set-yoga-asal-vakya"> Asal Vākya Pañcāṅga (Kumārasvāmīyam): Amṛta / Maraṇa Yogam by weekday and nakṣatra</label>
@@ -149,15 +149,19 @@
     </div>
     <div class="ld-body">
       <div class="ld-label">EVENT</div>
-      <div class="mf-combo">
-        <label class="ld-search" for="mf-search">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
-          <input type="text" id="mf-search" role="combobox" aria-expanded="false" aria-controls="mf-list" aria-autocomplete="list" placeholder="Type or choose: marriage, upanayana, travel…" autocomplete="off" spellcheck="false">
-          <button type="button" id="mf-search-clear" class="mf-x" aria-label="Clear the event" title="Clear" hidden>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-          </button>
-        </label>
-        <ul id="mf-list" role="listbox" aria-label="Events" hidden></ul>
+      <div class="mf-searchrow">
+        <div class="mf-combo">
+          <label class="ld-search" for="mf-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
+            <input type="text" id="mf-search" role="combobox" aria-expanded="false" aria-controls="mf-list" aria-autocomplete="list" placeholder="Type or choose: marriage, upanayana, travel…" autocomplete="off" spellcheck="false">
+            <button type="button" id="mf-search-clear" class="mf-x" aria-label="Clear the event" title="Clear" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </label>
+          <ul id="mf-list" role="listbox" aria-label="Events" hidden></ul>
+        </div>
+        <button type="button" id="mf-find" class="mf-find" title="Find the next suitable times">Find</button>
+        <button type="button" id="mf-clear" class="mf-clear">Clear</button>
       </div>
       <p class="ld-note" id="mf-ref"></p>
       <div class="ld-label">WHEN</div>
@@ -169,10 +173,6 @@
         </div>
         <button type="button" id="mf-date" class="mf-date" aria-haspopup="dialog" aria-expanded="false">pick a date</button>
       </div>
-      <div class="mf-actions">
-        <button type="button" id="mf-find" class="mf-find">Find the next suitable times</button>
-        <button type="button" id="mf-clear" class="mf-clear">Clear</button>
-      </div>
       <div id="mf-results" aria-live="polite"></div>
     </div>
   </div>
@@ -181,7 +181,7 @@
 <div id="ts-dialog" class="hidden">
   <div class="ld-card" role="dialog" aria-modal="true" aria-labelledby="ts-title">
     <div class="ld-head">
-      <h2 id="ts-title">Today Special</h2>
+      <h2 id="ts-title">Today Details</h2>
       <button type="button" id="ts-close" aria-label="Close">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>

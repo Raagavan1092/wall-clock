@@ -135,7 +135,7 @@
       { id: "dance", name: "Starting dance", ref: "2.25", naks: N("Anuradha Hasta dhruva Dhanishtha Shatabhisha Revati Pushya Mrigashira Jyeshtha") },
       { id: "service", name: "Entering service", ref: "2.26", naks: N("kshipra mitra"), varas: [0, 3, 4, 5], checkNote: "The Sun or Mars in the 10th or 11th; friendly yonis of master and servant." },
       { id: "ploughing", name: "First ploughing", ref: "2.28", naks: N("Mula Vishakha Magha chara dhruva mridu kshipra"), badVaras: [0, 6], badTithis: T("rikta 6 8"), badLagnas: [4, 10, 3, 0, 9, 6], checkNote: "Jupiter in the lagna; the Moon in a watery navāṃśa." },
-      { id: "sowing", name: "Sowing seed", ref: "2.29", naks: N(SOWING), badVaras: [2], badTithis: T("rikta 6 8"), chakra: { name: "Hala cakra", good: [[4, 11], [21, 28]] }, checkNote: "Rāhu (phaṇi) cakra is shown in Today Special." },
+      { id: "sowing", name: "Sowing seed", ref: "2.29", naks: N(SOWING), badVaras: [2], badTithis: T("rikta 6 8"), chakra: { name: "Hala cakra", good: [[4, 11], [21, 28]] }, checkNote: "Rāhu (phaṇi) cakra is shown in Today Details." },
       { id: "transplanting", name: "Transplanting", ref: "2.32", naks: N("Vishakha Purvabhadrapada Mula Rohini Shatabhisha Uttaraphalguni"), badVaras: [6, 2] },
       { id: "harvest", name: "Harvesting", ref: "2.31", naks: N("tikshna Purvabhadrapada Krittika Mrigashira uttaras Hasta Dhanishtha Shravana Svati Purvashadha Bharani Chitra Pushya"), badVaras: [6, 2], badTithis: T("rikta"), lagnas: FIXED },
       { id: "threshing", name: "Threshing", ref: "2.32", naks: N("Purvaphalguni Uttaraphalguni Shravana Magha Jyeshtha Rohini Mula Anuradha Revati") },

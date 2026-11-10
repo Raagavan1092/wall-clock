@@ -1,4 +1,4 @@
-// The Today Special dialog: the day's tithi and nakṣatra details, activities,
+// The Today Details dialog: the day's tithi and nakṣatra details, activities,
 // planetary bars and regional notes from Muhūrta Cintāmaṇi
 // (mc-yogas.js todaySpecial), for the Vedic day on show.
 (function (global) {
@@ -33,7 +33,7 @@
     try {
       sections = VedicEngine.MCYogas.todaySpecial(snapshot, data, opts);
     } catch (err) {
-      console.error("Today Special failed:", err);
+      console.error("Today Details failed:", err);
       sections = [{ title: "Could not work out today's details", sub: "", items: [String(err && err.message || err)] }];
     }
     const day = snapshot.anchors.governingSunrise.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long", year: "numeric" });

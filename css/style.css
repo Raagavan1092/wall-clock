@@ -927,6 +927,7 @@ body.fullview .gb-toggle { display: none; }
 .lm-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lm-sub { font-size: 12px; color: #a99a7c; font-variant-numeric: tabular-nums; }
 .lm-tick { flex: none; width: 18px; height: 18px; fill: none; stroke: #f2b01e; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.loc-default-tag { font-weight: 500; color: #c9a24a; }
 .lm-sep { height: 1px; margin: 6px 4px; background: #2b2418; }
 #loc-change {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 0; border-radius: 10px;
@@ -983,7 +984,7 @@ body.edit-mode:not(.fullview) #dial { touch-action: none; }
   background: rgba(5, 4, 3, 0.72);
 }
 #loc-dialog.hidden { display: none; }
-/* Today Special dialog: shares the location dialog's card. */
+/* Today Details dialog: shares the location dialog's card. */
 #ts-dialog {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
   padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
@@ -1004,6 +1005,7 @@ body.edit-mode:not(.fullview) #dial { touch-action: none; }
 #mf-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .mf-combo { display: flex; flex-direction: column; gap: 4px; }
 #mf-list {
+  scrollbar-width: thin; scrollbar-color: #5a4a2a transparent;
   /* In the flow (not floating), so it can't be clipped by the scrolling dialog body. */
   max-height: min(320px, 45vh); overflow-y: auto;
   margin: 0; padding: 6px; list-style: none; background: #16130e; border: 1px solid #5a4a2a; border-radius: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
@@ -1022,10 +1024,14 @@ body.edit-mode:not(.fullview) #dial { touch-action: none; }
   height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #3a3020; background: #1d1912;
   color: var(--gold-hi); font: inherit; font-size: 13.5px; cursor: pointer;
 }
-.mf-find { align-self: flex-start; background: #e8c77a; border-color: #e8c77a; color: #1a1408; font-weight: 600; }
+.mf-find { flex: none; background: #b8975a; border-color: #b8975a; color: #1a1408; font-weight: 600; }
+.mf-find:hover:not(:disabled) { background: #c6a666; }
 .mf-find:disabled { opacity: 0.5; cursor: default; }
 .mf-go { height: 32px; font-size: 12.5px; align-self: flex-start; }
-.mf-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* The event search with Find and Clear beside it. */
+.mf-searchrow { display: flex; align-items: flex-start; gap: 8px; }
+.mf-searchrow .mf-combo { flex: 1; min-width: 0; }
+.mf-searchrow .mf-find, .mf-searchrow .mf-clear { flex: none; height: 46px; }
 .mf-clear { height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: var(--ink); font: inherit; font-size: 13.5px; cursor: pointer; }
 .mf-clear:hover, .mf-x:hover { background: rgba(201, 168, 92, 0.14); }
 .mf-x { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #b3a586; cursor: pointer; }
@@ -1070,7 +1076,7 @@ body.fullview #mf-dialog { display: none; }
 }
 #loc-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 #loc-close:disabled, #loc-cancel:disabled { opacity: 0.3; cursor: default; }
-.ld-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.ld-body { padding: 16px 18px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #5a4a2a transparent; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .ld-note { margin: 0; font-size: 13px; line-height: 1.4; color: #d9c58f; }
 .ld-note:empty { display: none; }
 .ld-searchwrap { position: relative; }
@@ -1205,3 +1211,9 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .dp-day.is-selected { background: #e8c77a; border-color: #e8c77a; color: #1a1408; font-weight: 700; }
 .dp-day:focus-visible, .dp-nav:focus-visible, .dp-today:focus-visible, .dp-cancel:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
 .dp-foot { display: flex; align-items: center; justify-content: space-between; }
+
+/* Themed scroll bars in the dialogs (Find muhurta, Today Details, …) and the event list. */
+.ld-body::-webkit-scrollbar, #mf-list::-webkit-scrollbar { width: 8px; }
+.ld-body::-webkit-scrollbar-track, #mf-list::-webkit-scrollbar-track { background: transparent; }
+.ld-body::-webkit-scrollbar-thumb, #mf-list::-webkit-scrollbar-thumb { background: #5a4a2a; border-radius: 999px; }
+.ld-body::-webkit-scrollbar-thumb:hover, #mf-list::-webkit-scrollbar-thumb:hover { background: #7a6538; }

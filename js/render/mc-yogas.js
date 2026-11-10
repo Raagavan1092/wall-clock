@@ -3,7 +3,7 @@
 //   mainWindows()  small daily windows, for the Good / Bad Times ring
 //   secondary()    tithi-vāra-nakṣatra yogas, for the Secondary yogas view
 //   todaySpecial() tithi / nakṣatra details and planetary bars, for the
-//                  Today Special dialog
+//                  Today Details dialog
 // Each window is { startTime, endTime, text, goodBad, tip }, goodBad being
 // "good" or "bad". A bad yoga the text relaxes in part (acceptable if the
 // work is urgent, or cancelled by a good yoga) stays whole and carries
@@ -524,7 +524,7 @@
   function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
 
   // =========================================================================
-  // Today Special: details for the day
+  // Today Details: details for the day
   // =========================================================================
   function todaySpecial(snapshot, data, opts) {
     const M = D(), ctx = ctxFor(snapshot, opts), P = dayParts(snapshot);
