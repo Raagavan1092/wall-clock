@@ -496,7 +496,7 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
   cursor: pointer;
 }
 .tc-chip[hidden] { display: none; }
-.tc-chip:hover { background: rgba(42, 33, 19, 0.9); }
+@media (hover: hover) { .tc-chip:hover { background: rgba(42, 33, 19, 0.9); } } /* not on touch screens, where :hover sticks after a tap */
 /* Good / Bad times: round coloured check boxes at the clock's top corners (good left, bad right).
    Retired for now (commented out in app.html and app.js); kept for later. */
 .gb-toggle {

@@ -372,6 +372,7 @@
       secondaryView = !secondaryView;
       try { localStorage.setItem(SECONDARY_KEY, secondaryView ? "1" : "0"); } catch (e) { /* storage unavailable */ }
       syncSecondaryButton();
+      secBtn.blur();
       render();
     });
     syncSecondaryButton();
@@ -382,6 +383,7 @@
       b.addEventListener("click", function () {
         t[3](!t[2]());
         b.setAttribute("aria-pressed", String(t[2]()));
+        b.blur();
         try { localStorage.setItem(t[1], t[2]() ? "1" : "0"); } catch (e) { /* storage unavailable */ }
         render();
       });
