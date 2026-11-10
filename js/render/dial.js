@@ -377,6 +377,13 @@
 
     const goodBadRingGroup = el("g", { class: "good-bad-ring" });
     svg.appendChild(goodBadRingGroup);
+    // Cross-hatching for the relaxed (possibly cancelled) parts of a bad
+    // yoga: drawn over the segment, so its colour and borders stay as they are.
+    const defs = el("defs");
+    const hatch = el("pattern", { id: "relief-hatch", patternUnits: "userSpaceOnUse", width: 12, height: 12 });
+    hatch.appendChild(el("path", { d: "M0 0L12 12M12 0L0 12", class: "relief-hatch-line" }));
+    defs.appendChild(hatch);
+    svg.appendChild(defs);
     const outerRingGroup = el("g", { class: "outer-ring" });
     svg.appendChild(outerRingGroup);
 
@@ -663,6 +670,12 @@
       });
       attachTooltip(path, segmentTooltip(ev));
       g.appendChild(path);
+      // Relaxed parts: crossed out, not cut off or recoloured.
+      (ev.relief || []).forEach(function (r) {
+        const rs = angularSpanClockwise(r.startAngle, r.endAngle);
+        if (rs <= 0.0001 || rs > span + 0.001) return;
+        g.appendChild(el("path", { d: annularSectorPath(laneInner, laneOuter, r.startAngle, rs), class: "relief-hatch" }));
+      });
       const midRadius = (laneInner + laneOuter) / 2;
       const size = Math.min(MAX_LANE_FONT, laneWidth * LANE_FONT_RATIO, fittedCurvedFont(ev.text, span, midRadius));
       if (size < MIN_LANE_FONT) return;

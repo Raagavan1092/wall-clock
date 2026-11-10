@@ -219,8 +219,10 @@
     // Bad windows.
     const cuts = [];
     if (auspicious && E.MCYogas) {
-      E.MCYogas.mainWindows(snapshot, data, opts).forEach(function (w) { if (w.goodBad === "bad") cuts.push({ s: ms(w.startTime), e: ms(w.endTime) }); });
-      E.MCYogas.secondary(snapshot, data, opts).windows.forEach(function (w) { if (w.goodBad === "bad") cuts.push({ s: ms(w.startTime), e: ms(w.endTime) }); });
+      // A bad yoga's relaxed (crossed-out) parts are not cut, only the rest.
+      const cutBad = function (w) { if (w.goodBad === "bad") E.MCYogas.unrelieved(w).forEach(function (p) { cuts.push({ s: ms(p.startTime), e: ms(p.endTime) }); }); };
+      E.MCYogas.mainWindows(snapshot, data, opts).forEach(cutBad);
+      E.MCYogas.secondary(snapshot, data, opts).windows.forEach(cutBad);
       cache.sankrantis.forEach(function (x) { if (x.t > P.rise - 8 * GH * 2 && x.t < P.next + 16 * GH) cuts.push({ s: x.t - 16 * GH, e: x.t + 16 * GH }); });
     }
     if (ev.noTripushkara && E.MCYogas) E.MCYogas.secondary(snapshot, data, opts).windows.forEach(function (w) { if (w.text === "Tripuṣkara") cuts.push({ s: ms(w.startTime), e: ms(w.endTime) }); });

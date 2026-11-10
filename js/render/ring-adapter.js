@@ -86,6 +86,13 @@
       seg.endGhatiPala = ghatiPalaLabel(seg.endTime, anchors);
       seg.startDateNote = dateNote(seg.startTime, anchors);
       seg.endDateNote = dateNote(seg.endTime, anchors);
+      // A bad yoga's relaxed parts (mc-yogas.js relieve), clipped to the segment.
+      if (seg.relief) {
+        seg.relief = seg.relief.map(function (r) {
+          const s = Math.max(r.startTime, seg.startTime), e = Math.min(r.endTime, seg.endTime);
+          return e > s ? { startTime: new Date(s), endTime: new Date(e), startAngle: angleOf(new Date(s), anchors), endAngle: angleOf(new Date(e), anchors) } : null;
+        }).filter(Boolean);
+      }
     });
     return segments;
   }
@@ -357,6 +364,7 @@
         endTime: new Date(Math.min(hi, iv.endTime.getTime())),
         text: iv.text, goodBad: iv.goodBad, contested: false,
         extraTooltip: iv.tip || undefined,
+        relief: iv.relief ? iv.relief.slice() : undefined,
       };
     }).filter(function (ev) { return ev.endTime > ev.startTime; })
       .sort(function (a, b) { return a.startTime - b.startTime || b.endTime - a.endTime; });
@@ -368,8 +376,10 @@
     const events = [];
     clipped.forEach(function (ev) {
       const joinable = events.find(function (e) { return e.text === ev.text && e.goodBad === ev.goodBad && e.extraTooltip === ev.extraTooltip && Math.abs(ev.startTime - e.endTime) <= JOIN_SLACK_MS; });
-      if (joinable) joinable.endTime = ev.endTime;
-      else events.push(ev);
+      if (joinable) {
+        joinable.endTime = ev.endTime;
+        if (ev.relief) joinable.relief = (joinable.relief || []).concat(ev.relief);
+      } else events.push(ev);
     });
     events.sort(function (a, b) { return a.startTime - b.startTime || b.endTime - a.endTime; });
 
@@ -395,8 +405,8 @@
   }
 
   // The Secondary yogas view: tithi-vāra-nakṣatra yogas (mc-yogas.js
-  // secondary), drawn on the same two-sided ring. "mild" windows (a bad
-  // yoga in a part the text relaxes) go on the bad side, lighter.
+  // secondary), drawn on the same two-sided ring. A bad yoga's relaxed
+  // parts are crossed out within its segment (dial.js).
   function buildSecondaryYogas(snapshot, data, opts) {
     const MC = VedicEngine.MCYogas;
     const res = MC ? MC.secondary(snapshot, data, opts) : { windows: [] };
@@ -412,7 +422,7 @@
       finalizeSegments(laid.events, a);
       return { ringKey: key, title: key === "goodTimes" ? "Good Times" : "Bad Times", segments: laid.events, laneCount: laid.laneCount };
     }
-    return { good: ring("goodTimes", ["good"]), bad: ring("badTimes", ["bad", "mild"]) };
+    return { good: ring("goodTimes", ["good"]), bad: ring("badTimes", ["bad"]) };
   }
 
   function statusFor(ringDescriptor, now) {

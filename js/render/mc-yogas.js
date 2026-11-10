@@ -5,9 +5,11 @@
 //   todaySpecial() tithi / nakṣatra details and planetary bars, for the
 //                  Today Special dialog
 // Each window is { startTime, endTime, text, goodBad, tip }, goodBad being
-// "good", "bad", or "mild" (a bad yoga in a part the text relaxes: acceptable
-// if the work is urgent). Apavādas (relaxations) and cancellations are
-// applied here; the reasons go into `tip`, shown in the segment's tooltip.
+// "good" or "bad". A bad yoga the text relaxes in part (acceptable if the
+// work is urgent, or cancelled by a good yoga) stays whole and carries
+// `relief`: [{ startTime, endTime, reasons }], drawn crossed out on the dial.
+// Apavādas (relaxations) and cancellations are applied here; the reasons go
+// into `tip`, shown in the segment's tooltip.
 //
 // Ghaṭīs here are clock ghaṭīs (24 minutes) unless a rule says the span is
 // scaled to the tithi (Bhadrā's mouth and tail, 1.44).
@@ -128,26 +130,37 @@
   }
   function name28(data, i) { return i === 21 ? "Abhijit" : data.nakshatra.names[i < 21 ? i : i - 1]; }
 
-  // Splits `w` over `reliefs` ([{ span, reason }]): parts covered by a
-  // relief turn "mild", with the reasons added to the tip.
+  // Applies `reliefs` ([{ span, reason }]) to the bad window `w` without
+  // cutting it: it stays one window, keeps its colour, and gets a `relief`
+  // list ([{ startTime, endTime, reasons }]) of the parts a relief covers,
+  // which the dial draws crossed out. The reasons, with their times, go in
+  // the tip. Returns a one-element array (callers forEach over it).
   function relieve(w, reliefs) {
     const cuts = [ms(w.startTime), ms(w.endTime)];
     reliefs.forEach(function (r) {
       [ms(r.span.startTime), ms(r.span.endTime)].forEach(function (t) { if (t > cuts[0] && t < cuts[1] && cuts.indexOf(t) === -1) cuts.push(t); });
     });
     cuts.sort(function (a, b) { return a - b; });
-    const out = [];
+    const parts = [];
     for (let i = 0; i + 1 < cuts.length; i++) {
       const mid = (cuts[i] + cuts[i + 1]) / 2;
       const why = reliefs.filter(function (r) { return mid >= ms(r.span.startTime) && mid < ms(r.span.endTime); }).map(function (r) { return r.reason; });
-      const uniq = why.filter(function (x, j) { return why.indexOf(x) === j; });
-      const piece = win(iv(cuts[i], cuts[i + 1]), w.text, uniq.length ? "mild" : w.goodBad, w.tip + (uniq.length ? "\nRelaxed here: " + uniq.join("; ") : ""));
-      const last = out[out.length - 1];
-      if (last && last.goodBad === piece.goodBad && last.tip === piece.tip) last.endTime = piece.endTime;
-      else out.push(piece);
+      const reasons = why.filter(function (x, j) { return why.indexOf(x) === j; });
+      if (!reasons.length) continue;
+      const last = parts[parts.length - 1];
+      if (last && ms(last.endTime) === cuts[i] && last.reasons.join("|") === reasons.join("|")) last.endTime = new Date(cuts[i + 1]);
+      else parts.push({ startTime: new Date(cuts[i]), endTime: new Date(cuts[i + 1]), reasons: reasons });
     }
-    return out;
+    const out = win(w, w.text, w.goodBad, w.tip);
+    if (parts.length) {
+      out.relief = parts;
+      out.tip += parts.map(function (p) { return "\nRelaxed " + hhmm(p.startTime) + "–" + hhmm(p.endTime) + " (crossed out): " + p.reasons.join("; "); }).join("");
+    }
+    return [out];
   }
+  function hhmm(d) { return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }); }
+  // The parts of a window no relief covers (the whole window if it has none).
+  function unrelieved(w) { return w.relief ? complement(iv(ms(w.startTime), ms(w.endTime)), w.relief) : [w]; }
   function complement(span, parts) { // parts of `span` not covered by `parts`
     let pieces = [span];
     parts.forEach(function (p) {
@@ -777,5 +790,5 @@
     return items;
   }
 
-  VedicEngine.MCYogas = { regionsFor: regionsFor, mainWindows: mainWindows, secondary: secondary, todaySpecial: todaySpecial };
+  VedicEngine.MCYogas = { regionsFor: regionsFor, mainWindows: mainWindows, unrelieved: unrelieved, secondary: secondary, todaySpecial: todaySpecial };
 })(typeof window !== "undefined" ? window : globalThis);

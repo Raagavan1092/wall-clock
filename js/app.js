@@ -92,12 +92,15 @@
 
   // "Show good times" / "Show bad times": which halves of the Good / Bad
   // Times ring are drawn. A viewing preference, remembered across reloads.
-  const SHOW_GOOD_KEY = "vedicWallClock.showGood", SHOW_BAD_KEY = "vedicWallClock.showBad";
+  // The check buttons that switched them are retired for now (commented out
+  // here, in wireInput / applyFixedRingVisibility, and in app.html), so both
+  // halves always show; uncomment those blocks to bring them back.
   const show = { good: true, bad: true };
+  /* const SHOW_GOOD_KEY = "vedicWallClock.showGood", SHOW_BAD_KEY = "vedicWallClock.showBad";
   try {
     if (localStorage.getItem(SHOW_GOOD_KEY) === "0") show.good = false;
     if (localStorage.getItem(SHOW_BAD_KEY) === "0") show.bad = false;
-  } catch (e) { /* storage unavailable */ }
+  } catch (e) { } */
   let lastShowKey = null;
 
   // "Secondary yogas": the dial shows the tithi-vāra-nakṣatra yogas on the
@@ -150,10 +153,13 @@
           { text: "Ghaṭī " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
           { text: clockText, emphasis: "clock-secondary" },
         ];
-    // Vāra and the tithi holding right now share a line ("Ravivāra ·
-    // Saptamī (kṛṣṇa)"), since together they name the day.
+    // Then the day: date and vāra on one line ("10 Nov 2026 · Ravivāra"),
+    // the tithi (with pakṣa) and nakṣatra holding right now on the next.
+    const dateText = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+    const nak = snapshot.nakshatraSequence.find(function (n) { return n.segStart <= now && now < n.segEnd; }) || snapshot.nakshatraSequence[0];
     const lines = timeLines.concat([
-      { text: varaName + " · " + E.RingAdapter.tithiNameAt(snapshot, data, now) },
+      { text: dateText + " · " + varaName },
+      { text: E.RingAdapter.tithiNameAt(snapshot, data, now) + " · " + data.nakshatra.names[nak.index] },
     ]);
 
     // A blank line, then the Good / Bad Times ring's status: bad first (the one people check),
@@ -299,9 +305,11 @@
       groups[k].style.display = settings.hiddenRings.indexOf(k) === -1 ? "" : "none";
     });
     // With the Good / Bad Times ring hidden in Settings its toggles have nothing to do.
+    /* Retired good/bad check buttons:
     const goodBadOn = settings.hiddenRings.indexOf("goodBad") === -1;
     document.getElementById("btn-show-good").hidden = !goodBadOn;
     document.getElementById("btn-show-bad").hidden = !goodBadOn;
+    */
   }
 
   function cycleRing(delta) {
@@ -314,9 +322,10 @@
     // Tapping the dial itself no longer cycles the ring (per the project
     // owner) - so a tap on a segment just shows its tooltip. The buttons
     // below / beside the clock and arrow keys do it instead (no swiping).
+    /* Retired good/bad check buttons:
     function setShown(kind, on) {
       show[kind] = on;
-      try { localStorage.setItem(kind === "good" ? SHOW_GOOD_KEY : SHOW_BAD_KEY, on ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+      try { localStorage.setItem(kind === "good" ? SHOW_GOOD_KEY : SHOW_BAD_KEY, on ? "1" : "0"); } catch (e) { }
       syncShowButtons();
       render();
     }
@@ -324,6 +333,7 @@
       document.getElementById("btn-show-good").setAttribute("aria-checked", String(show.good));
       document.getElementById("btn-show-bad").setAttribute("aria-checked", String(show.bad));
     }
+    */
     const switchBtn = document.getElementById("btn-switch-time");
     switchBtn.addEventListener("click", toggleTimeMode);
     switchBtn.addEventListener("keydown", function (e) {
@@ -331,9 +341,11 @@
     });
     document.getElementById("btn-next-display").addEventListener("click", function () { cycleRing(1); });
     document.getElementById("btn-prev-display").addEventListener("click", function () { cycleRing(-1); });
+    /* Retired good/bad check buttons:
     document.getElementById("btn-show-good").addEventListener("click", function () { setShown("good", !show.good); });
     document.getElementById("btn-show-bad").addEventListener("click", function () { setShown("bad", !show.bad); });
     syncShowButtons();
+    */
 
     const secBtn = document.getElementById("btn-secondary-yogas");
     function syncSecondaryButton() {

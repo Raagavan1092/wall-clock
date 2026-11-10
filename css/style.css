@@ -29,8 +29,6 @@
   --bad-label: #fff3ec;
   --good-fill: #2f86c9;
   --good-label: #f2f8ff;
-  --mild-fill: #8a6a3e;
-  --mild-label: #fff6e6;
   /* Highlight for whatever is active right now (dial.js updateTimeState). */
   --active-outline: #ffe08a;
   --centre-bad: #ff8d6e;
@@ -174,9 +172,10 @@ html, body {
    so they win the (equal-specificity) cascade regardless of position. */
 .ring-segment.bad { fill: var(--bad-fill); }
 .ring-segment.good { fill: var(--good-fill); }
-/* A bad yoga in a part the text relaxes (acceptable if the work is urgent):
-   on the bad side, paler. */
-.ring-segment.mild { fill: var(--mild-fill); }
+/* A bad yoga in a part the text relaxes or a good yoga cancels: the segment
+   keeps its colour and borders, and that part is crossed out (dial.js). */
+.relief-hatch { fill: url(#relief-hatch); stroke: none; pointer-events: none; }
+.relief-hatch-line { stroke: var(--bad-label); stroke-width: 1.8; stroke-opacity: 0.8; }
 /* Good Times / Bad Times rings: a faint full-ring background behind the
    per-event lanes (dial.js renderEventRing). */
 .ring-segment.event-ring-bg { fill: var(--ring-neutral); stroke: none; }
@@ -195,7 +194,6 @@ html, body {
 .timed.is-active .dial-label { fill: #ffffff; font-weight: 700; }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
-.mild-label { fill: var(--mild-label); font-weight: 600; }
 
 .tick-major { stroke: var(--tick-major); stroke-width: 2.5; }
 .tick-minor { stroke: var(--tick-minor); stroke-width: 1; }
@@ -479,7 +477,8 @@ body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
 }
 .tc-chip[hidden] { display: none; }
 .tc-chip:hover { background: rgba(42, 33, 19, 0.9); }
-/* Good / Bad times: round coloured check boxes at the clock's top corners (good left, bad right). */
+/* Good / Bad times: round coloured check boxes at the clock's top corners (good left, bad right).
+   Retired for now (commented out in app.html and app.js); kept for later. */
 .gb-toggle {
   position: absolute;
   top: 0;
