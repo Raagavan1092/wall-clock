@@ -121,7 +121,7 @@
   let lastLayoutKey = null;
 
   function yogaOpts() {
-    return { yogaSets: settings.yogaSets, regionalLimits: settings.regionalLimits !== false };
+    return { yogaSets: settings.yogaSets, regionalLimits: settings.regionalLimits !== false, descriptive: !!settings.descriptiveTips };
   }
 
   let data = null;
@@ -701,6 +701,7 @@
       workingHiddenMarkers = from.hiddenMarkers.slice();
       document.getElementById("set-yoga-asal-vakya").checked = !!(from.yogaSets && from.yogaSets.asalVakya);
       document.getElementById("set-yoga-regional").checked = from.regionalLimits !== false;
+      document.getElementById("set-yoga-descriptive").checked = !!from.descriptiveTips;
       renderRingOrderList();
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
@@ -736,6 +737,7 @@
         hiddenMarkers: workingHiddenMarkers.slice(),
         yogaSets: { asalVakya: document.getElementById("set-yoga-asal-vakya").checked },
         regionalLimits: document.getElementById("set-yoga-regional").checked,
+        descriptiveTips: document.getElementById("set-yoga-descriptive").checked,
         layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);

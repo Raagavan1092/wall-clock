@@ -71,6 +71,10 @@
       // Apply the text's regional limits (a rule the text confines to some
       // lands is shown only for places there). On by default.
       regionalLimits: true,
+      // Descriptive mode: a yoga's tooltip gives its description, cause,
+      // commentators' views, verse and the reasons it is relaxed. Off (the
+      // default): just its name and, for a relaxed bad yoga, when.
+      descriptiveTips: false,
       // Physical order of the ring layers, outside in (Dial.LAYER_KEYS).
       layerOrder: VedicEngine.Dial.LAYER_KEYS.slice(),
     };
@@ -121,6 +125,7 @@
       hiddenMarkers: sanitizeKeys(saved.hiddenMarkers, VedicEngine.RingAdapter.MARKER_TITLES),
       yogaSets: { asalVakya: !!(saved.yogaSets && saved.yogaSets.asalVakya) },
       regionalLimits: saved.regionalLimits !== false,
+      descriptiveTips: saved.descriptiveTips === true,
       layerOrder: d.layerOrder,
     };
   }

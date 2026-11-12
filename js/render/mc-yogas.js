@@ -9,7 +9,9 @@
 // work is urgent, or cancelled by a good yoga) stays whole and carries
 // `relief`: [{ startTime, endTime, reasons }], drawn crossed out on the dial.
 // Apavādas (relaxations) and cancellations are applied here; the reasons go
-// into `tip`, shown in the segment's tooltip.
+// into `tip`, shown in the segment's tooltip. With opts.descriptive false
+// (Settings > Yogas > Descriptive mode off) the tip is cut down to nothing
+// but "Relaxed <from>–<to>" for a bad yoga's relaxed parts (see brief()).
 //
 // Ghaṭīs here are clock ghaṭīs (24 minutes) unless a rule says the span is
 // scaled to the tithi (Bhadrā's mouth and tail, 1.44).
@@ -159,6 +161,23 @@
     return [out];
   }
   function hhmm(d) { return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }); }
+  // Descriptive mode off: the tooltip is the yoga's name alone, so the tip
+  // drops the description, causes, commentators and verses. A bad yoga that
+  // is relaxed keeps one line saying when, without the reasons; parts
+  // relaxed back to back for different reasons read as one stretch.
+  function brief(windows, opts) {
+    if (!opts || opts.descriptive !== false) return windows;
+    windows.forEach(function (w) {
+      const runs = [];
+      (w.relief || []).forEach(function (p) {
+        const last = runs[runs.length - 1];
+        if (last && ms(last.endTime) === ms(p.startTime)) last.endTime = p.endTime;
+        else runs.push({ startTime: p.startTime, endTime: p.endTime });
+      });
+      w.tip = runs.map(function (r) { return "Relaxed " + hhmm(r.startTime) + "–" + hhmm(r.endTime); }).join("\n");
+    });
+    return windows;
+  }
   // The parts of a window no relief covers (the whole window if it has none).
   function unrelieved(w) { return w.relief ? complement(iv(ms(w.startTime), ms(w.endTime)), w.relief) : [w]; }
   function complement(span, parts) { // parts of `span` not covered by `parts`
@@ -297,6 +316,7 @@
     // 1.35 mahāpāta (the Sun and Moon at equal declination).
     mahapata(snapshot).forEach(function (w) { out.push(w); });
 
+    brief(out, opts);
     out.suppressed = uniq(ctx.suppressed);
     return out;
   }
@@ -529,6 +549,7 @@
     });
     suppressedKu.forEach(function (s) { ctx.suppressed.push(s); });
     goodOut.forEach(function (g) { out.push(g); });
+    brief(out, opts);
     return { windows: out, suppressed: uniq(ctx.suppressed), region: ctx.region };
   }
   function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
