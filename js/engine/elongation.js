@@ -14,7 +14,7 @@
   // Returns { index, startTime, endTime, progress } where index = floor(elongation / stepDeg),
   // in [0, 360/stepDeg), startTime/endTime bracket the current step, and progress in [0,1).
   function currentStep(date, stepDeg, method) {
-    if (VedicEngine.Sidereal.isSuryaSiddhanta(method)) return currentStepFromFormula(date, stepDeg, method);
+    if (VedicEngine.Sidereal.usesFormula(method)) return currentStepFromFormula(date, stepDeg, method);
     const stepsPerCircle = 360 / stepDeg;
     const elong = Astronomy.MoonPhase(date);
     const index = Math.floor(elong / stepDeg);

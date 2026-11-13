@@ -34,9 +34,7 @@
 //  - The BIJA table is deliberately EMPTY: bija values and their epoch differ by
 //    school (Vakya, Parahita, Rashtriya...) and must come from the text the
 //    department follows. With it empty, results are pure Surya Siddhanta.
-//    (Burgess prints the historical set attributed to Bentley, as changes to the
-//    revolution counts: Mercury -16, Venus -12, Jupiter -8, Saturn +12, Moon's apsis
-//    -4, node +4, Sun/Moon/Mars 0. Not loaded here; see bija docs below.)
+//    Bija can be entered as a table (see below) or, later, as a named rule-set.
 //  - Positions are for the instant, not for a local sunrise: SS's desantara /
 //    bhujantara / cara corrections convert a local-time ahargana; since this
 //    takes an absolute instant (UTC) they are not needed here.
@@ -162,24 +160,10 @@
     Object.keys(BIJA).forEach(function (k) { delete BIJA[k]; });
   }
 
-  // Historical set printed by Burgess (attributed to Bentley, "Hindu Astronomy" p.179) as
-  // changes to the revolution counts per mahayuga. In use from about the 1500s. Sun, Moon
-  // and Mars are unchanged, so for the Sun and Moon the only effect is on the Moon's apsis.
-  // NOT the table of any particular present-day almanac.
-  const BIJA_PRESETS = {
-    bentley: {
-      mercury: { revsPerMahayuga: -16 },
-      venus: { revsPerMahayuga: -12 },
-      jupiter: { revsPerMahayuga: -8 },
-      saturn: { revsPerMahayuga: 12 },
-      moonApogee: { revsPerMahayuga: -4 },
-      rahu: { revsPerMahayuga: 4 },
-    },
-  };
-  Object.keys(BIJA_PRESETS).forEach(function (k) {
-    Object.keys(BIJA_PRESETS[k]).forEach(function (b) { Object.freeze(BIJA_PRESETS[k][b]); });
-    Object.freeze(BIJA_PRESETS[k]);
-  });
+  // Named bija rule-sets, selectable per call with opts.bija = "<name>". EMPTY until a
+  // school's table is supplied and checked (e.g. Ranganatha Daivajna's).
+  const BIJA_PRESETS = {};
+  Object.freeze(BIJA_PRESETS);
 
   // The table in force for a call: opts.bija (a preset name or a table object) if given,
   // else the global, user-editable BIJA table.
@@ -311,7 +295,7 @@
   // Sidereal longitude in degrees [0,360) at `date`.
   // opts.exactSine: use Math.sin/asin instead of the SS sine table (default false).
   // opts.applyBija: include bīja at all (default true; the global table is empty today).
-  // opts.bija: a preset name ("bentley") or a table object, used instead of the global table.
+  // opts.bija: a named rule-set (none exist yet) or a table object, used instead of the global table.
   function trueLongitude(body, date, opts) {
     opts = opts || {};
     const exact = !!opts.exactSine;

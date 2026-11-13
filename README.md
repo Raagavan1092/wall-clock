@@ -29,7 +29,7 @@ Then visit <http://localhost:8000/>.
 | --- | --- |
 | `index.html` | Tiny shell that loads everything listed in `app-files.json` |
 | `app.html`, `css/` | The app's markup and styles |
-| `js/engine/` | Panchanga calculations (sunrise, tithi, nakshatra, ghati, ...); `surya-siddhanta.js` = classical Sūrya Siddhānta positions for all grahas (empty bīja table; a historical Bentley preset is selectable under Settings > Calculation method, default Drik) |
+| `js/engine/` | Panchanga calculations (sunrise, tithi, nakshatra, ghati, ...); `surya-siddhanta.js` = classical Sūrya Siddhānta positions for all grahas (empty bīja table). Settings > Calculation method lists five options: plain ephemeris (default), plain Sūrya Siddhānta, and three greyed ones (Raṅganātha's bīja rules, Vākyakaraṇa, Ketkar) waiting for their rules |
 | `js/render/` | Dial drawing |
 | `js/alarms.js`, `alarm-ui.js`, `tunes.js` | Alarm engine, UI and sounds |
 | `js/location-ui.js` | Location drop-down (place name in the top row) and the Change location dialog; edit mode (pencil button) is in `js/app.js` |

@@ -355,6 +355,8 @@ html, body {
 }
 #settings-panel .settings-note code { background: #262019; padding: 0 4px; border: 1px solid #3a3022; border-radius: 3px; font-size: 11px; color: var(--numeral); }
 #stage[inert] { opacity: 0.2; transition: opacity 0.3s; }
+#settings-panel label.pending { opacity: 0.6; }
+#settings-panel .pending-tag { font-size: 11px; color: #a89a78; border: 1px solid #3a3022; border-radius: 3px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
 #settings-panel .settings-note { font-size: 12px; color: #a89a78; margin: 6px 0 0; }
 #settings-panel button {
   background: #332817;

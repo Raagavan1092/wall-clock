@@ -17,8 +17,8 @@
     },
     ayanamsa: "lahiri",
     sunriseEdge: "upper-limb", // "upper-limb" (default) or "disc-centre"
-    // Where the Sun and Moon positions come from: "drik" (modern ephemeris, default)
-    // or "ss-bentley" (classical Surya Siddhanta + historical bija). See sidereal.js.
+    // Where the Sun and Moon positions come from: "drik" (modern ephemeris, default) or "ss"
+    // (plain Surya Siddhanta). Three more are planned; see Sidereal.METHODS in sidereal.js.
     method: "drik",
   };
 

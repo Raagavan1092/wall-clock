@@ -35,7 +35,7 @@
   // a name via panchanga-data.json's amantaMasa.names (engine stays data-free).
   function amantaMasaForDate(date, ayanamsaName, method) {
     let newMoonDate;
-    if (Sidereal.isSuryaSiddhanta(method)) {
+    if (Sidereal.usesFormula(method)) {
       // No library search for a formula-defined Moon: scan the elongation for its next zero.
       newMoonDate = Util.findAngleCrossing(function (d) { return Sidereal.elongation(d, method); }, date, 0,
         { direction: 1, stepMinutes: 360, maxDays: 40 });

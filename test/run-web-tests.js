@@ -102,7 +102,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         saturn: diff(el("saturn").mean, asec(3, 20, 11, 13)),
         node: diff(SS.meanLongitude("rahu", b60), asec(9, 24, 26, 4)),
       };
-      // Same date with the historical bija (Bentley, as printed by Burgess), supplied here as test data only.
+      // Same date with the historical bija set Burgess prints (from Bentley), used here ONLY as test data
+      // for the bija mechanism; it is not offered as a calculation method.
       const bentley = { mercury: -16, venus: -12, jupiter: -8, saturn: 12 };
       Object.keys(bentley).forEach(k => SS.bija.set(k, { revsPerMahayuga: bentley[k] }));
       const burgessBija = {
@@ -145,15 +146,19 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const plain = E.Panchanga.compute(when, { location: loc });
       const drik = E.Panchanga.compute(when, { location: loc, method: "drik" });
       const t0 = performance.now();
-      const ss = E.Panchanga.compute(when, { location: loc, method: "ss-bentley" });
+      const ss = E.Panchanga.compute(when, { location: loc, method: "ss" });
       const ms = performance.now() - t0;
       const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
       const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
       const bad = E.Panchanga.mergeSettings({ method: "nonsense" }).method;
+      const pendingFallback = E.Sidereal.PENDING_METHODS.map(m => E.Panchanga.mergeSettings({ method: m }).method);
+      const pendingLoaded = E.Sidereal.PENDING_METHODS.map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
+      const radios = Array.from(document.getElementsByName("calcMethod")).map(r => r.value + (r.disabled ? ":off" : ":on"));
+      const pureSS = E.Sidereal.longitude("moon", when, "lahiri", "ss") === E.SuryaSiddhanta.trueLongitude("moon", when, { applyBija: false });
       // Settings: persisted, and a bad saved value falls back to Drik.
       const key = E.Settings.STORAGE_KEY;
       const old = localStorage.getItem(key);
-      localStorage.setItem(key, JSON.stringify({ method: "ss-bentley" }));
+      localStorage.setItem(key, JSON.stringify({ method: "ss" }));
       const loadedSS = E.Settings.load().method;
       localStorage.setItem(key, JSON.stringify({ method: "bogus" }));
       const loadedBad = E.Settings.load().method;
@@ -168,7 +173,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         seqs: seqOk(ss.tithiSequence) && seqOk(ss.nakshatraSequence) && seqOk(ss.yogaSequence) && seqOk(ss.karanaSequence),
         masa: ss.tithiSequence[0].amantaMasaRashiIndex >= 0 && ss.tithiSequence[0].amantaMasaRashiIndex < 12,
         sunriseSame: ss.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
-        ms, bad, loadedSS, loadedBad,
+        ms, bad, loadedSS, loadedBad, pendingFallback, pendingLoaded, radios, pureSS, methods: E.Sidereal.METHODS.join(","),
       };
     });
     ok("method: Drik is the default and the setting default", r.defaultIsDrik);
@@ -181,7 +186,10 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: sunrise is unchanged by the method", r.sunriseSame);
     ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
     ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
-    ok("method: a saved choice is loaded back", r.loadedSS === "ss-bentley");
+    ok("method: the five options are listed, the three pending ones disabled", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:off,vakya:off,ketkar:off", r.radios.join(","));
+    ok("method: pending methods cannot be selected or loaded (fall back to Drik)", r.pendingFallback.every(m => m === "drik") && r.pendingLoaded.every(m => m === "drik") && r.methods === "drik,ss");
+    ok("method: 'ss' is pure Surya Siddhanta (no bija)", r.pureSS);
+    ok("method: a saved choice is loaded back", r.loadedSS === "ss");
     ok("method: no page errors", errors.length === 0, errors.join("; "));
     await page.close();
   }
