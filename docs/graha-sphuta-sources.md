@@ -4,10 +4,10 @@ For the three pending Settings > Calculation method options (`ss-ranganatha`, `v
 These are working notes written for Claude to read later. Units: r/s = rāśi (sign), ° ′ ″. KD = Kali days.
 "VERIFY" marks a reading I wasn't sure of.
 
-## Status (2026-11-13)
-- **Vākyakaraṇa** (Sarma & Sastri ed., 1962, `Vakya Karana.pdf`): **done.** Rules plus all tables: 248 Moon vākyas; planet mahāvākyas for Mars (15 cycles), Mercury (22), Jupiter (11), Venus (5), Saturn (29); śodhya/maṇḍala constants. Constants were checked numerically.
-- **Ketakī Grahagaṇita** (`Ketaki Graha Ganitam - Venkatesh Dattaraja.pdf`, PDF page = book page + 7): **partly done.** Ahargaṇa, kṣepakas, dhruvakas, mean motions, secular corrections, Jupiter–Saturn great inequality, Sun's true position, ayanāṁśa and cara are done. NOT YET READ: Moon corrections (book p.120–151), planets (pañcatārā, p.156–201: manda tables, heliocentric→geocentric śīghra step), latitudes.
-- **Sūrya Siddhānta with Raṅganātha's Gūḍhārthaprakāśikā** (`Surya Siddhanta with Gudartha Prakashika.pdf`, 270 pp): **NOT YET READ.** I still need Raṅganātha's bīja corrections and the ch.1–2 constants as printed in this edition.
+## Status (2026-11-14)
+- **Vākyakaraṇa**: complete. Rules and all tables are done, and the constants were checked numerically.
+- **Ketakī Grahagaṇita**: complete for sphuṭa: mean motions, secular (karṣa) corrections, Jupiter–Saturn inequality, Sun, ayanāṁśa and cara. Moon: the four sunrise corrections, evection, variation, equation of centre, reduction to the ecliptic, and the daily-motion tables. Planets: heliocentric manda equation, radius vectors, latitudes, and conversion to geocentric. Reproduces the book's Śaka 1815 example: mean positions to the arc-second, geocentric positions within ~2′ (Mars ~6′).
+- **Sūrya Siddhānta + Raṅganātha**: plain constants confirmed. Raṅganātha's quoted bīja (Bījopanayana, commentary on ch.14 v.23) is transcribed and decoded. The mean-longitude bīja reads clearly. The epicycle bīja numbers and one divisor word are flagged VERIFY.
 
 Reading tip: the PDFs are scanned images. Render pages with PyMuPDF (pip install in a scratch venv). For tables, crop out the word column and montage 4 pages per image.
 
@@ -82,7 +82,7 @@ Saturn: sodhya 1589474-28 (-326); 570534-8 (+5), 182994-23 (-13), 21551-0 (+43),
 Derived (self-consistent) mean at Kali epoch: Ma 347.117 (11r17°7'), Ju 12.85 (0r12°51'), Sa 354.583 (11r24°35'), Sun 0; inner sighra: Me 249.41°, Ve 41.06° (Table V print shows 3r7°8', 4r5°22' — inconsistent with sodhyas).
 
 ---
-# B. KETAKĪ GRAHAGAṆITA (partial)
+# B. KETAKĪ GRAHAGAṆITA
 
 # Ketaki notes (PDF page = book page + 7)
 ## Madhyama 1-2 (p.44-45) ahargana
@@ -147,6 +147,84 @@ Sp.9 Cara samskara (at true sunrise): cara palas = vikalas for Sun (add as compu
  Ex: true Sun 11s19°10'37" + cara -13" -> 11s19°10'24" at true sunrise.
 Sp.10 Sun daily true motion (arcmin) by manda-kendra (k from ucca, decades 0..180): 57.1,57.2,57.3,57.4,57.6,57.8,58.1,58.4,58.7,59.1,59.4,59.7,60.1,60.4,60.7,60.9,61.0,61.1,61.1 ... (mean 59.1'). 
 Sp.11 Sun diameter (arcmin) = 31.5 + (dm - 57)/4 ; horizontal parallax 9".
+## MOON (book p.120ff)
+Order: mean Moon (Lanka/Ujjain mean sunrise) -> rekhantara (desantara) -> cara (2*cara palas/9 arcmin, same sign as Sun's) -> bhujantara: -(Sun manda-phala)/16 [the 1/16 combines the 1/27 true bhujantara with the -1/10 of Sun eq that sits inside Moon's 1st correction: -1/10+1/27 ≈ -1/16; so Moon's main correction tables already contain +1/10 of Sun eq] -> udayantara -> = mean Moon at true local sunrise; then tithi/other corrections (below) -> true Moon.
+Sp.15 Udayantara for Moon (arcmin) by bhuja of SAYANA Sun, per 10°: 0,2,3,5,4,4,2,0  [bhuja 0..90 deg? 8 values for 0..70?? -> "0r 2 3 5 5 4 2 0 kala" printed list: 0,2,3,5,5,4,2,0]. Sign: sayana Sun in odd quadrant (1st,3rd) -> negative; even quadrant -> positive.
+ Ex: sayana Sun 0s11°32' -> bhuja 11.5° -> 2' (neg). Corrections in example: rekhantara 0, cara -2'53", bhujantara -7'11", udayantara -2'0" -> total -12'4"; mean Moon 5s12°12'46" -> 5s11°59'42"? (printed 5|11|59|42).
+Moon's 1st correction (prathama-saṁskāra) = -657" sin(Sun's manda-kendra) ≈ -(Sun eq)/10.5 — Ketaki merges this into bhujantara (see above): net Moon bhujantara = -SunEq/16.
+Sp.16: 'mean Sun' for these is sayana-mean concept; day reckoned from mean sunrise.
+Sp.17-18 CYUTI (evection) on mean Moon: kendra E = Moon + Moon-ucca - 2*mean Sun (Moon here = mean Moon after the 4 sunrise corrections). Correction = 74.45' sin E  (4467"); sign: E in 0-6s -> NEGATIVE; 6-12s -> POSITIVE. Table (5° steps? verse gives decades): E=0..180 step 10: 0,13,25,37,47,56,64,69,73,74,73,70,65,57,48,38,26,13,0 (arcmin). Table p.126 at 5°: 5→6.4,10→12.7,15→18.9,20→25.0,25→31.0,30→36.6,35→42.1,40→47.3,45→52.1,50→56.4,55→60.4,60→63.9,65→66.9,70→69.5,75→71.5,80→73.0,85→73.9,90→74.3,95→74.2,100→73.4,105→72.1,110→70.2,115→67.8,120→64.8,125→61.4,130→57.4,135→53.1,140→48.1,145→43.2,150→37.7,155→31.9,160→25.8,165→19.5,170→13.1,175→6.6,180→0.  (slightly asymmetric — includes a 2E term; use table).
+ Ex: Moon 5s11°59'42" + ucca 7s7°19'36" - 2*Sun(11s17°15'46"x2 = 11s4°31'32"... ) -> E = 1s14°47'46" -> -51'22".
+Sp.19 TITHI correction (variation): D = Moon - Sun; = +36' sin(2D)? "dhanam kham ca" ... max 36' at pada-middles; zero at amavasya/purnima. (table next page)
+Commentary: Ketaki gives NO bija.
+Sp.19-20 TITHI (variation): D = Moon - mean Sun (tithi-kendra). If D<=180 use table directly (signed); if D>180 use 360-D and REVERSE sign. Table arcmin D=0..180 step 10: 0,+12,+22,+30,+34,+34,+29,+21,+10,-2,-14,-25,-33,-36,-36,-32,-24,-13,0. 5° table (p.129): 5 6.1,10 11.9,15 17.4,20 22.4,25 26.6,30 30.1,35 32.5,40 33.9,45 34.3?,50 33.6,55 31.8,60 29.0,65 25.4,70 20.9,75 15.7,80 10.1,85 4.1,90 -2.1,95 -8.2,100 -14.2,105 -19.9,110 -24.8,115 -29.1,120 -32.6,125 -35.1,130 -36.6,135 -37.1,140 -36.5,145 -34.7,150 -32.0,155 -28.3,160 -23.7,165 -18.4,170 -12.6,175 -6.4,180 0. (basis +2145" sin 2D + secondary term)
+ Ex: D = 5s24°43'56" -> -6'50".
+Sp.21-22 MOON MANDA phala (equation of centre), applied after cyuti+tithi: kendra = Moon(after those) - Moon ucca; if >180 use 360-k. arcmin, k=0..180 step 10: 0,61,121,178,231,277,316,347,367,378,376,363,339,303,256,201,138,70,0. Sign as Sun: kendra 0-6s NEGATIVE, Tula-6 POSITIVE.
+Moon manda basis: e=0.0549; eq = 377.4' sin k + 12.9' sin 2k + 0.6' sin 3k (k from perigee basis; use table with sign rule). 5° table p.136 (k: arcmin): 5 30.9,10 61.4,15 91.6,20 121.5,25 150.5,30 178.5,35 205.3,40 230.9,45 254.9,50 277.3,55 297.8,60 316.4,65 332.7,70 346.8,75 358.4,80 367.5,85 373.9,90 377.6,95 378.4,100 376.3,105 371.3,110 363.4,115 352.5,120 338.7,125 322.1,130 302.8,135 280.8,140 256.4,145 229.7,150 201.0,155 170.4,160 138.2,165 104.8,170 70.4,175 35.4,180 0.
+Sp.23 Example: mean Moon at sunrise 5s11°59'42"; cyuti -51'22"; tithi -6'50" -> 5s11°1'30"; - ucca 7s7°19'36" = kendra 10s3°41'54" (>6s, 12s-k = 1s26°18'6") -> manda +5°1'34" (Tula-6 -> plus) -> true Moon in its orbit 5s16°3'4".
+Sp.24 Reduction to ecliptic (parinati): u = Moon(orbit) - Rahu; table arcmin (per 10° of bhuja of u, 0..90): 0,2,4,6,7,7,6,4,2,0. Sign: u in odd quadrant (1st,3rd) NEGATIVE; even quadrant POSITIVE. Ex: Moon 5s16°3'4" - Rahu 0s7°22'19" = 5s8°40'50", bhuja 21°19' -> 4' plus -> true ecliptic Moon 5s16°7'4". (formula -6.4'*sin 2u  ~ tan^2(i/2) sin2u, i=5°9')
+Moon orbital period 27.32166 d -> mean dm 790.6'.
+Moon DAILY MOTION corrections (arcmin), true dm = 791' + sum of three (Sp.25-29):
+ cyuti-motion by cyuti-kendra E (0..180 step10, 0-6s as printed / 6-12 continue): verse list E=0..360 step 20?: printed: ṛṇa 15,15,14,14,11,9,6,4,1; dhana 1,4,7,9,11,13,14,16,16,16 . 5° table p.140 (E: value, sign + = add): 0 -15.5,5 -15.3,10 -15.0,15 -14.6,20 -14.2,25 -13.5,30 -12.9,35 -11.8,40 -10.8,45 -9.8,50 -8.8,55 -7.4,60 -6.3,65 -5.0,70 -3.9,75 -2.6,80 -1.4,85 0.0,90 +1.4,95 +2.8,100 +4.2,105 +5.5,110 +6.7,115 +8.0,120 +9.2,125 +10.3,130 +11.4,135 +12.3,140 +13.2,145 +14.1,150 +14.7,155 +15.2,160 +15.6,165 +16.0,170 +16.3,175 +16.3,180 +16.2? (the column is defined over 0..180; for E>180 use 360-E, same value — VERIFY).
+ tithi-motion by D: 5° table p.141: 0 +14.4,5 +13.7,10 +12.4,15 +10.8,20 +8.8,25 +6.5,30 +4.1,35 +1.6,40 -1.0,45 -3.5,50 -6.0,55 -8.2,60 -10.3,65 -12.0,70 -13.3,75 -14.3,80 -14.9,85 -15.0,90 -14.6,95 -13.8,100 -12.5,105 -11.0,110 -9.0,115 -6.8,120 -4.4,125 -1.9,130 +0.8,135 +3.5,140 +6.0,145 +8.5,150 +10.5,155 +12.3,160 +13.7,165 +14.9,170 +15.4,175 +15.6,180 +15.2.
+ manda-motion by Moon manda-kendra k (from ucca, 0..180; if k in Tula-6 add 13° to k first, then use 360-k): 5° table p.142: 0 -80.2,5 -79.5,10 -78.1,15 -76.1,20 -73.7,25 -70.7,30 -67.3,35 -63.8,40 -59.2,45 -54.5,50 -49.2,55 -43.8,60 -37.9,65 -31.7,70 -25.0,75 -18.0,80 -10.9,85 -3.5,90 +4.0,95 +11.6,100 +19.3,105 +26.9,110 +34.5,115 +42.0,120 +49.1,125 +55.9,130 +62.6,135 +68.5,140 +74.0,145 +78.9,150 +83.1,155 +86.4,160 +89.2,165 +91.1,170 +92.2,175 +92.5,180 +91.7.
+ Ex: -10 +15 -56 -> 791-51 = 740'.
+Moon diameter = sqrt(dm) + sqrt(dm)/9 ... (Sp.30, eclipses; skip).
+# PANCATARA (planets) chapter (book p.156ff). Planets' mean longitudes are HELIOCENTRIC.
+Step 1 manda (heliocentric true): g = mean(after karsa) - ucca (aphelion); if g>180 use 360-g; phala sign: g in 0-6s NEGATIVE, 6-12s POSITIVE. Tables in 'asu' = 0.1 deg (6 arcmin), g = 0..180 step 10; interpolate:
+ Mars: 0,17,33,48,63,76,87,96,103,106,107,104,98,88,75,59,41,21,0     formula 643.3' sin g + 37.5' sin2g + 3.0' sin3g
+ Mercury: 0,32,65,96,125,152,178,(196),(213),... (table partly illegible)  formula 1406.2' sin g + 178.9' sin2g + 31.5' sin3g  -> USE FORMULA
+ Jupiter: 0,9,18,26,34,41,46,51,54,55,55,53,49,44,37,29,20,10,0     formula 330.4' sin g + 10.0' sin2g + 0.4' sin3g
+ Saturn: 0,10,21,30,39,47,54,59,63,64,64,62,58,52,45,34,24,12,0     formula 386.? (≈386.2)' sin g + 13.6' sin2g + 0.7' sin3g
+ Venus: 0,1,2,3,4,5,6,7,7,8,8,8,7,7,6,5,3,2,1,0 (approx; 'sita' list)  formula 47.3' sin g + 0.2' sin2g
+ (formula: + sign means add to the 'g measured from perihelion'; with g from aphelion use the table sign rule above.)
+ Examples (Saka 1815 Caitra 15, mean sunrise): Mars mean 1s29°19'37", ucca 4s11°41'0" -> g 9s17°38'37" -> +9°45'54" -> helio true 2s9°5'31".
+  Mercury mean 4s26°14'10", ucca 7s23°26'0" -> g 9s2°48'10" -> +22°33'50" -> 5s18°47'50" (? printed 5|18|47|50).
+  Jupiter (karsa'd) 0s11°1'28", ucca 5s20°13'0" -> g 6s20°48'28" -> +2°4'22" -> 0s13°5'50".
+  Venus 11s0°19'50", ucca 9s17°40'0" -> g 1s12°39'50" -> -0°31'36" -> 10s29°48'14".
+  Saturn (karsa'd) 5s10°56'50", ucca 8s8°27'0" -> g 9s2°29'50" -> +6°22'30" -> 5s17°19'20".
+Saturn extra small corrections (optional): (1) uses 2*Jupiter - 5*Saturn type kendra... 'gurudvighna-mandena ... 15 bhāge vihīno' : K1 = 2*Jup - Sat?(mean) - 15°; corr1 = (bhuja/32 * bhuja/5?) arcmin... Ex: corr1 -4'12", corr2 -4'19" -> total -8'31" applied to Saturn (Saturn 5s17°19'20" -> 5s17°10'49"? printed). Small; VERIFY before use.
+Sp.6 mean radius vectors (manda-karna, Sun-Earth = 100): Mars 152, Mercury 39, Jupiter 520, Venus 72, Saturn 954.
+Sp.7 kaksa-cyuti (a*e, AU=100): Mars 14, Mercury 8, Jupiter 25, Venus 1/2, Saturn 54; Sun 1.5 (1 1/2). Radius vector r = a - (a*e)·cos(g) with g from aphelion? -> r = a + ae*cos(g_from_aphelion) (aphelion largest).
+Sp.8 radius vector: r = a + ae*cos(g + phala/2) with g = manda-kendra from APHELION (so r max at g=0). Equivalent text: kendra + half its mandaphala -> koti-jya * cyuti / R added for 'nakra-ṣaḍbha' (Makara-6, i.e. koti positive) else subtracted. Only Mars & Mercury need true r (others use mean a: Jup 520, Ven 72, Sat 954, Earth 100).
+Sp.11-13 tables of true r by kendra 0..180 step 10 (kendra from ucca):
+ Mars: 166,166,166,165,164,162,160,158,156,154,151,149,146,144,142,140,139,138,138
+ Mercury: 47,47,46,46,45,45,44,43,42,40,39,38,37,35,33,32,32,31,31
+ Ex: Mars kendra 9s17° -> 158 ; Mercury kendra 9s3° -> 41.
+Sp.14-15 heliocentric latitude: beta_h(arcmin) = (Moon-latitude-type value: 309' * sin(lam_h - node)) * k/309 with k = Mars 111, Mercury 420, Jupiter 79, Venus 203, Saturn 150 (i.e. inclinations i: Ma 1°51', Me 7°0', Ju 1°19', Ve 3°23', Sa 2°30'). Node = pata (ksepaka - C*dhruva). North if (lam - node) 0-6s. Geocentric latitude = beta_h * r / rho (r = manda-karna, rho = sighra-karna).
+ Ex: Mars 2s9°5' - node 0s26°26' -> beta_h 75'0" N; Mercury 245'42" N; Jupiter 70'36" S; Venus 200'55" S; Saturn 145'25" N.
+Sp.42-49 GEOCENTRIC (bhūmadhya) conversion — triangle Sun–Earth–planet. Equivalent modern form (use this):
+ Earth helio longitude = true Sun + 180; R = Sun's true distance (100 * (1 ± 0.0167..) ; Ketaki uses Sun mandakarna 100 ± 1.5·cos);
+ x = r cos(lh) - R cos(S+180) ... i.e. geocentric λ = atan2(r sin lh + R sin S, r cos lh + R cos S) where S = true geocentric Sun (Earth at S+180).
+ Text rule (outer, Ma Ju Sa): sighra-kendra K = helio true planet - true Sun; A = R·sin K... 'spar\u015b\u0101' (tangent) method: tan(phala) = R sin K / (r + R cos K); phala subtracted if K in 0-6s ('tulādau dhanam, ajādau ṛṇam' => K 6-12s add, 0-6s subtract) -> geocentric = helio - phala. Inner (Me, Ve): K = helio - true Sun; tan(phala) = r sin K / (R - ... ) (same triangle) — just use atan2.
+ sighra-karna rho = sqrt(r^2 + R^2 + 2rR cos K).
+Tables of sighra phala per planet follow p.171ff (not transcribed — formula is exact equivalent).
+Sp.30-31 Final example (geocentric nirayana, Saka 1815 Caitra 15 Sat, Bagalkot mean sunrise), Sun used = true Sun 11s19°10'37":
+ Mars 2s9°5'31" - 29°10'40" = 1s9°54'51"; Mercury 11s19°10'37" + 0°14'52" = 11s19°25'29"; Jupiter 0s13°5'50" - 3°47'7" = 0s9°18'43"; Venus 11s19°10'37" - 8°8'13" = 11s11°2'24"; Saturn 5s17°19'21" - 0°11'23"(?) = 5s17°5'58".
+ Geo latitudes: Mars 58' N, Mercury 157' N, Jupiter 60' S, Venus 87' S, Saturn 162' N.
+ VERIFIED: atan2(r sin lh + 100 sin S, r cos lh + 100 cos S) with r = Ma 158, Me 41, Ju 520, Ve 72, Sa 954 reproduces these within ~2' (Mars 6' — Ketaki refines Mars/Mercury via sighra-karna correction 'kaujam' rule Sp.31: phala_true = phala * rho/(rho + r_true - r_mean) for Mars; Mercury phala * r_true/r_mean). So: implement with exact vector formula using true r (manda-karna formula r = a + ae cos(g+phala/2)) and R = Sun distance (100 + 1.5 cos(Sun kendra from ucca... ) or 100).
+ Sighra-karna (Sp.30): rho = 100 + mean r - tabulated 'ank' (e.g. Mars 152+100-56 = 196) — equivalent to |vector|.
+
+---
+# D. SŪRYA SIDDHĀNTA — RAṄGANĀTHA
+
+# SURYA SIDDHANTA (Khemraj ed.: Gudhartha-prakasika of Ranganatha + Hindi tika of Baldevprasad Mishra). PDF page = book page + 10 (approx).
+Plain SS constants (ch.1 v.29-44, verified in this edition; already in the app's plain 'ss' method): mahayuga revolutions Sun/Me/Ve mean 4,320,000; Moon 57,753,336; Mars 2,296,832; Mercury sighra 17,937,060; Jupiter 364,220; Venus sighra 7,022,376; Saturn 146,568; Moon apogee 488,203; Moon node 232,238 (retro); civil days 1,577,917,828. Mean positions at Kali epoch: all 0 except apogee 90°, node 180° (and kalpa-revolution mandocca/pata, ch.1 v.41-44).
+## Ranganatha's bija (Bijopanayana) — quoted in his commentary on ch.14 v.23 (book p.246-247, PDF ~257-258)
+Ranganatha says these verses appear at the end of the Manadhyaya in some MSS and that their placement there is incongruous (asamanjasam), so the uttara-khanda has no ganita; he still quotes the whole passage (21 verses), and it is the standard SS bija of the 16th c.
+v5: the mean planet (from revolutions) and true (from epicycles) drift from observation with time, hence the bija.
+v6-7 (bija base B, in DEGREES):  A = years elapsed since creation (srsti; kalpa-elapsed years to Kali start = 1,955,880,000 per SS ch.1 v.21-24 incl. 47,400 divine-yr creation deduction; + Kali years elapsed);
+  r = (A * 91) mod 259,890,012   ["indu-randhra-ghno bhakto nakshatra-kakshaya"; 259,890,012 = bha-kaksha yojanas, SS 12.80]
+  m = min(r, 259,890,012 - r)     ["shesham nakshatra-kakshayas tyajec, sheshakayos tayor yad alpam"]
+  B = m / (259,890,012 * 15)  degrees   ["bhajed bhanam kakshaya tithi-nighnaya"; print reads 'bhajed-danank-kakshaya', taken as 'bhānāṃ kakṣayā' — VERIFY]
+  -> today m/P ≈ 0.1506, so B ≈ 0.01004° ≈ 0.60'. (B changes extremely slowly under this reading — VERIFY vs. other editions/Burgess appendix.)
+v7-9 bija applied to MEAN longitudes:  Sun +B ("kārayet tad dhanaṁ ravau") ; Moon −3B ("triguṇaṁ śodhayed indau"); Mars +24B ("jina-ghnaṁ bhūmije kṣipet"); Mercury sighra −22B ("dṛg-yama-ghnam ṛṇaṁ jñocce"); Jupiter −30B ("kha-rāma-ghnaṁ gurāv ṛṇam"); Venus sighra −90B ("ṛṇaṁ vyoma-nava-ghnaṁ dānavejya-calocchake"); Saturn +7B ("dhanaṁ saptāhataṁ mande" — mande = Saturn).
+v10-15 manda epicycles (degrees): even-quadrant-end (yugmānta) values as in SS ch.2 are fixed; odd-quadrant-end (ojānta) values are 'nirbījaka' + bija:
+  nirbijaka ojanta: Sun 14°−18'?, Moon 32°−25'? ("sūryendvor manavo dantā dhṛti-tattva-kalonitāḥ": 14 and 32, less 18' and 25' — VERIFY), Mars 65 ('bāṇa-tarkāḥ'), Mercury 27 ('acala-bāhavaḥ'), Jupiter 28 ('aṣṭa-netrāṇi'), Venus 10 ('vyoma-śītāṁśavaḥ'), Saturn 'sūrya-tarkau' (6? 12?) — VERIFY.
+  bija additions to these: Sun −B/3 ('agny-uddhṛtaṁ śodhyaṁ ... bhāsvataḥ'), Moon +12B ('ina'), Mars +7B ('aśva'), Mercury +1B ('candra'), Jupiter +14B ('indra'), Venus + (bhuvā? ...)·B ('dhanaṁ bhṛgor ...'), Saturn −12B ('ravi-ghnaṁ śodhayec chaneḥ').
+v16-18 sighra epicycles ojanta (nirbijaka): Mars 230 ('abhra-guṇākṣīṇi'), Mercury 134 ('abdhi-guṇendavaḥ'), Jupiter 55 ('bāṇākṣāḥ'), Venus 261 ('indu-ṣaḍ-yamāḥ'), Saturn 41 ('candrābdhayaḥ'); bija: Mars +2B, Mercury −2B, Jupiter (anya-ṣaṭ-chinnaṁ? ... ) , Venus −1B ('indughnaṁ śodhayet kaveḥ'), Saturn −1B ('candraghnam ṛṇam ārkeḥ'). "etad bījaṁ mayākhyātam" — secret, give only to tested pupils.
+STATUS: bija text located and transcribed; the epicycle bija numbers and the divisor word need a second reading against another edition (Burgess, 'Bijopanayana' appendix) before implementing. The mean-longitude bija (v7-9) reading is fairly clear.
+Worked example (Hindi, book p.250-255): Saka 1817 Caitra start, full plain-SS computation (ahargana 714402..., mean & true planets) — useful as a test vector for the plain SS method.
 
 ---
 # C. VĀKYA TABLE DATA
