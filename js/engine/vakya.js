@@ -14,8 +14,9 @@
 //  - The reductions to LOCAL TRUE sunrise (I.14b-16: cara, deśāntara, bhujāntara) are
 //    conversions of clock time, not changes to the positions. This engine takes an absolute
 //    instant, so they are not applied.
-//  - Mars..Saturn (ch. II, the mahāvākya cycle tables) are transcribed in the notes but
-//    not wired in yet: trueLongitude() throws for them.
+//  - Mars..Saturn (ch. II): śodhya and maṇḍalas give the total dhruva and the day within a
+//    synodic cycle; the mahāvākya for that day (js/data/vakya-planets.js, generated from the
+//    notes), corrected by its corrector x the dhruva, plus the dhruva, is the true planet.
 (function (global) {
   "use strict";
 
@@ -110,7 +111,64 @@
     return Util.normDeg(360 - x / 566 * 30);
   }
 
-  const BODIES = ["sun", "moon", "rahu", "ketu"];
+  // ---- Mars, Mercury, Jupiter, Venus, Saturn (ch. II) ---------------------------
+  // dn(days, nāḍīs) -> days. Each entry: [days, dhruva in arcminutes].
+  const dn = function (d, n) { return d + n / 60; };
+  // śodhya: the planet's own epoch. maṇḍalas: periods of whole synodic revolutions, largest
+  // first, each shifting the planet by its dhruva. cycle: the synodic cycle in whole days.
+  // apogee: the value at day 0 of the first cycle. (Readings corrected against the
+  // arithmetic are listed in the notes: Jupiter 974875 and 125648, Venus 437945.)
+  const PLANETS = {
+    mars: { sodhya: [dn(1552827, 35), -402], cycle: 780, apogee: 118,
+      mandalas: [[dn(634089, 9), 4], [dn(132589, 21), 27], [dn(28857, 41), 133], [dn(17158, 37), -504], [dn(11699, 4), 638]] },
+    mercury: { sodhya: [dn(1592740, 22), -32], cycle: 116, apogee: 210,
+      mandalas: [[dn(16801, 54), -1], [dn(4750, 53), 149], [dn(2549, 15), -447]] },
+    jupiter: { sodhya: [dn(1570425, 17), -261], cycle: 399, apogee: 180,
+      mandalas: [[dn(974875, 27), 0], [dn(125648, 50), -9], [dn(65018, 17), 133], [dn(30315, 17), -71], [dn(21539, 48), -619], [dn(4387, 44), 274]] },
+    venus: { sodhya: [dn(1561937, 44), 17], cycle: 584, apogee: 90,
+      mandalas: [[dn(437945, 9), 0], [dn(174594, 8), 29], [dn(88756, 53), -58], [dn(44962, 23), 2103], [dn(2919, 38), -144]] },
+    saturn: { sodhya: [dn(1589474, 28), -326], cycle: 378, apogee: 236,
+      mandalas: [[dn(570534, 8), 5], [dn(182994, 23), -13], [dn(21551, 0), 43], [dn(10964, 32), 401]] },
+  };
+
+  // II.1-6a: total dhruva (arcminutes), cycle index and day within the cycle.
+  function planetReduce(body, t) {
+    const P = PLANETS[body], nCycles = VedicEngine.VakyaPlanets[body].length;
+    let r = t - P.sodhya[0], dhruva = P.sodhya[1];
+    P.mandalas.forEach(function (m) { const q = Math.floor(r / m[0]); r -= q * m[0]; dhruva += q * m[1]; });
+    // The cycles tabulated cover the smallest maṇḍala (Saturn's runs 2.5 days past its 29
+    // cycles; those days continue the last cycle).
+    const cycle = Math.min(Math.floor(r / P.cycle), nCycles - 1);
+    return { dhruva: dhruva, cycle: cycle, day: r - cycle * P.cycle };
+  }
+
+  // II.6b-11: true planet in degrees.
+  function planet(body, t) {
+    const P = PLANETS[body], cycles = VedicEngine.VakyaPlanets[body];
+    const k = planetReduce(body, t);
+    const width = body === "venus" ? 4 : 3;
+    // Venus has two correctors: the first for a positive dhruva, the second for a negative one.
+    const corrAt = body === "venus" && k.dhruva < 0 ? 3 : 2;
+    const rows = cycles[k.cycle], n = rows.length / width;
+    // Day 0 of a cycle is the last vākya of the cycle before; day 0 of the first cycle is the
+    // apogee, with the corrector of the very last vākya (II.10-11).
+    const prevRows = cycles[k.cycle === 0 ? cycles.length - 1 : k.cycle - 1];
+    const lastOfPrev = prevRows.length - width;
+    const day = function (i) { return i < 0 ? 0 : rows[i * width]; };
+    // Vākya i corrected: value + corrector x dhruva-in-degrees, arcminutes (II.6b-9).
+    const value = function (i) {
+      const base = i >= 0 ? rows[i * width + 1] : k.cycle === 0 ? P.apogee * 60 : prevRows[lastOfPrev + 1];
+      const corr = i >= 0 ? rows[i * width + corrAt] : prevRows[lastOfPrev + corrAt];
+      return base + corr * k.dhruva / 60;
+    };
+    let a = -1;
+    while (a + 1 < n - 1 && day(a + 1) <= k.day) a++;       // last row at or before the day, keeping a next row
+    const span = day(a + 1) - day(a);
+    const step = ((value(a + 1) - value(a) + 10800) % 21600 + 21600) % 21600 - 10800;   // retrograde = negative
+    return Util.normDeg((k.dhruva + value(a) + step * (k.day - day(a)) / span) / 60);
+  }
+
+  const BODIES = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn", "rahu", "ketu"];
 
   // Sidereal longitude in degrees [0,360) at `date`.
   function trueLongitude(body, date) {
@@ -119,7 +177,8 @@
     if (body === "moon") return moon(t);
     if (body === "rahu") return rahu(t);
     if (body === "ketu") return Util.normDeg(rahu(t) + 180);
-    throw new Error("Vakya: '" + body + "' is not implemented yet. Available: " + BODIES.join(", "));
+    if (PLANETS[body]) return planet(body, t);
+    throw new Error("Unknown body '" + body + "'. Available: " + BODIES.join(", "));
   }
 
   function positions(date) {
@@ -133,6 +192,6 @@
     kaliDays: kaliDays,
     trueLongitude: trueLongitude,
     positions: positions,
-    _internals: { meshaSankramana: meshaSankramana, sun: sun, moon: moon, moonAtDay: moonAtDay, rahu: rahu, MOON_VAKYA: MOON_VAKYA },
+    _internals: { meshaSankramana: meshaSankramana, sun: sun, moon: moon, moonAtDay: moonAtDay, rahu: rahu, MOON_VAKYA: MOON_VAKYA, planet: planet, planetReduce: planetReduce, PLANETS: PLANETS },
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -201,9 +201,10 @@
   // So Makaranda's Sun and Moon differ from plain SS only through the Moon's apogee.
   // (The notes also quote "civil days -26, Moon -1" from the paper's decimal column; the
   // digits themselves do not give that, and the digits are what the tables hold.)
-  // JUPITER: the digit string in the notes (0;4,59,8,48,56,31,30) works out to SS's own
-  // Jupiter, but the same paper, and every statement of this bīja, gives Jupiter -8
-  // revolutions. The string looks mis-transcribed, so Jupiter is set from -8 below.
+  // JUPITER: the paper prints 0;4,59,8,48,56,31,30, which is not a whole number of
+  // revolutions (364,220.12) and contradicts its own "-8" column. With 24 for 48 the
+  // string is exactly 364,212 revolutions (-8), tail digits included; so 48 is a misprint
+  // and 24 is used here.
   // Everything else is plain SS: the Kali midnight epoch with every mean planet at 0 Aries
   // (Moon's apogee 90, Rāhu 180), the planets' apsides, the epicycles and the equations.
   // Makaranda's "three-step" true planet (half śīghra, his combined manda table, whole
@@ -217,7 +218,7 @@
     moonNode: [0, 3, 10, 44, 43, 51, 0, 31],   // retrograde
     mars: [0, 31, 26, 28, 11, 8, 56, 30],
     mercurySighra: [4, 5, 32, 21, 29, 9, 48, 30],
-    jupiter: [0, 4, 59, 8, 48, 56, 31, 30],    // not used: see JUPITER above
+    jupiter: [0, 4, 59, 8, 24, 56, 31, 30],    // paper prints 48 for 24: see JUPITER above
     venusSighra: [1, 36, 7, 43, 1, 47, 58, 48],
     saturn: [0, 2, 0, 23, 28, 54, 40, 42],
   };
@@ -226,7 +227,6 @@
     MAKARANDA_RATE[k] = MAKARANDA_DAILY[k].reduceRight(function (acc, digit) { return digit + acc / 60; }, 0);
   });
   MAKARANDA_RATE.moonNode = -MAKARANDA_RATE.moonNode;
-  MAKARANDA_RATE.jupiter = (REVS.jupiter - 8) * 360 / CIVIL_DAYS_PER_MAHAYUGA;
   const MAKARANDA_EPOCH_DEG = { moonApogee: 90, moonNode: 180 };
 
   // Longitude of a Makaranda mean element `days` after the Kali epoch. Whole and

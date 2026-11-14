@@ -12,6 +12,7 @@
     "js/engine/sunrise.js",
     "js/engine/sidereal.js",
     "js/engine/surya-siddhanta.js",
+    "js/data/vakya-planets.js",
     "js/engine/vakya.js",
     "js/engine/ketaki.js",
     "js/engine/elongation.js",

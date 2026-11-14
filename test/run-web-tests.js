@@ -247,7 +247,18 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         const s = sw(VK.trueLongitude("moon", b) - VK.trueLongitude("moon", a));
         if (s < 2.8 || s > 3.9) moonStep++;
       }
-      let planetThrows = false; try { VK.trueLongitude("mars", vkDate); } catch (e) { planetThrows = /not implemented/.test(e.message); }
+      // Planets (ch. II): the book's Mars and Venus examples for the same day, Saturn's reduction
+      // for the Mesha sankramana of Saka 1869, and each sodhya against the mean Sun there.
+      const VI = VK._internals, P5 = ["mars", "mercury", "jupiter", "venus", "saturn"];
+      const vkp = {
+        mars: asec(VK.trueLongitude("mars", vkDate), deg(3, 11, 13, 55)), venus: asec(VK.trueLongitude("venus", vkDate), deg(6, 2, 26, 27)),
+        marsRed: VI.planetReduce("mars", 1844004), venusRed: VI.planetReduce("venus", 1844004), saturnRed: VI.planetReduce("saturn", VI.meshaSankramana(5048)),
+        counts: P5.map(b => V.VakyaPlanets[b].length + ":" + V.VakyaPlanets[b].reduce((n, c) => n + c.length, 0) / (b === "venus" ? 4 : 3)).join(","),
+        sodhya: Math.max.apply(null, P5.map(b => { const p = VI.PLANETS[b]; return Math.abs(sw((p.sodhya[0] / 365.258681 % 1) * 360 - (p.apogee + p.sodhya[1] / 60))); })),
+        covered: P5.every(b => { const p = VI.PLANETS[b]; return V.VakyaPlanets[b].length * p.cycle >= p.mandalas[p.mandalas.length - 1][0] - 3; }),
+        keys: Object.keys(VK.positions(vkDate)).sort().join(","),
+      };
+      let unknownThrows = false; try { VK.trueLongitude("pluto", vkDate); } catch (e) { unknownThrows = /Unknown body/.test(e.message); }
       // --- Ketaki: Saka 1815 Caitra purnima, Saturday 1 Apr 1893, Ujjain mean sunrise (ahargana 5477) ---
       const kDate = new Date(Date.UTC(1878, 3, 3) + (0.25 - UJ + 5477) * 86400000);
       const KI = K._internals;
@@ -282,7 +293,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       for (let y = 1900; y <= 2100; y += 2) for (let m = 0; m < 12; m += 1) {
         const d = new Date(Date.UTC(y, m, 11, 3));
         ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"].forEach(b => { kWorst[b] = Math.max(kWorst[b] || 0, Math.abs(sw(K.trueLongitude(b, d) - (modern(b, d) - K.ayanamsa(d))))); });
-        ["sun", "moon"].forEach(b => { vWorst[b] = Math.max(vWorst[b], Math.abs(sw(VK.trueLongitude(b, d) - (modern(b, d) - V.Ayanamsa.lahiri(d))))); });
+        ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"].forEach(b => { vWorst[b] = Math.max(vWorst[b] || 0, Math.abs(sw(VK.trueLongitude(b, d) - (modern(b, d) - V.Ayanamsa.lahiri(d))))); });
       }
       // Ketaki's mean places step by a few arcseconds where a 6940-day cycle ends (next: 2030); nothing larger.
       let kJump = 0;
@@ -308,7 +319,11 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
           && V.Sidereal.longitude("sun", d0, "lahiri", "ketkar") === K.trueLongitude("sun", d0),
         ignoresBija: (() => { SS.bija.set("moon", { constantArcmin: 60 }); const x = mk("moon"); SS.bija.clear(); return x === mk("moon"); })(),
       };
-      return { vk, moonStep, planetThrows, kt, kWorst, vWorst, kJump, mkr };
+      // No planet jumps: day-to-day motion stays within its natural range for 60 years.
+      const vkSteps = {};
+      { const lim = { mars: 1.0, mercury: 2.6, jupiter: 0.35, venus: 1.5, saturn: 0.2 };
+        P5.forEach(b => { let bad = 0, prev = VI.planet(b, 1840000); for (let t = 1840001; t < 1862000; t++) { const x = VI.planet(b, t); if (Math.abs(sw(x - prev)) > lim[b]) bad++; prev = x; } vkSteps[b] = bad; }); }
+      return { vk, vkp, vkSteps, moonStep, unknownThrows, kt, kWorst, vWorst, kJump, mkr };
     });
     ok("Vakya: Kali day count and weekday of the worked example (1844004, Saturday)", Math.abs(r.vk.kaliDays - 1844004) < 1e-6 && r.vk.weekday === 6, r.vk.kaliDays + " / " + r.vk.weekday);
     ok("Vakya: Mesha sankramana of Kali 5048 = 1843823 d 40 n 19 v", Math.abs(r.vk.mesha - (1843823 + 40 / 60 + 19 / 3600)) < 1 / 3600, String(r.vk.mesha));
@@ -317,7 +332,14 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("Vakya: Rahu = book's 1r1°6'34\" (within 2\")", r.vk.rahu <= 2, r.vk.rahu.toFixed(1) + '"');
     ok("Vakya: ketu opposite rahu; 248 Moon vakyas loaded", Math.abs(r.vk.ketu) < 1e-9 && r.vk.vakya154);
     ok("Vakya: Moon moves 11.2-15.6 deg/day everywhere through 300 days (no jumps at cycle joins)", r.moonStep === 0, r.moonStep + " bad steps");
-    ok("Vakya: planets say 'not implemented' instead of returning a number", r.planetThrows);
+    ok("Vakya: true Mars = book's 3r11°13'55\" (within 2\"); dhruva -852', 12th cycle, day 259.1", r.vkp.mars <= 2 && r.vkp.marsRed.dhruva === -852 && r.vkp.marsRed.cycle === 11 && Math.abs(r.vkp.marsRed.day - 259.1) < 0.001, r.vkp.mars.toFixed(1) + '"');
+    ok("Vakya: true Venus = book's 6r2°26'27\" (within 2\"); dhruva -876', 3rd cycle, day 29.45", r.vkp.venus <= 2 && r.vkp.venusRed.dhruva === -876 && r.vkp.venusRed.cycle === 2 && Math.abs(r.vkp.venusRed.day - 29.45) < 0.001, r.vkp.venus.toFixed(1) + '"');
+    ok("Vakya: Saturn reduction = book's dhruva -210', 18th cycle, day 275-49-19", r.vkp.saturnRed.dhruva === -210 && r.vkp.saturnRed.cycle === 17 && Math.abs(r.vkp.saturnRed.day - (275 + 49 / 60 + 19 / 3600)) < 0.001, JSON.stringify(r.vkp.saturnRed));
+    ok("Vakya: mahavakya tables complete (cycles:vakyas Ma 15:570, Me 22:528, Ju 11:231, Ve 5:195, Sa 29:551) and cover the smallest mandala", r.vkp.counts === "15:570,22:528,11:231,5:195,29:551" && r.vkp.covered, r.vkp.counts);
+    ok("Vakya: at each sodhya the mean Sun equals apogee + dhruva (within 0.02 deg)", r.vkp.sodhya < 0.02, r.vkp.sodhya.toFixed(3));
+    ok("Vakya: no planet jumps day to day over 60 years (table slips would show here)", Object.keys(r.vkSteps).every(b => r.vkSteps[b] === 0), JSON.stringify(r.vkSteps));
+    ok("Vakya: planets within the text's known drift of modern, 1900-2100 (Ma 12, Me 28, Ju 4, Ve 12, Sa 12 deg)", r.vWorst.mars < 12 && r.vWorst.mercury < 28 && r.vWorst.jupiter < 4 && r.vWorst.venus < 12 && r.vWorst.saturn < 12, ["mars", "mercury", "jupiter", "venus", "saturn"].map(b => r.vWorst[b].toFixed(1)).join(" "));
+    ok("Vakya: positions() covers every graha; an unknown body throws", r.vkp.keys === "jupiter,ketu,mars,mercury,moon,rahu,saturn,sun,venus" && r.unknownThrows, r.vkp.keys);
     ok("Vakya: Sun within 1 deg and Moon within 5 deg of modern (Lahiri), 1900-2100", r.vWorst.sun < 1 && r.vWorst.moon < 5, r.vWorst.sun.toFixed(2) + " / " + r.vWorst.moon.toFixed(2));
     ok("Ketaki: epoch is a Wednesday, the example day a Saturday with ahargana 5477", r.kt.epochWeekday === 3 && r.kt.weekday === 6 && Math.abs(r.kt.ahargana - 5477) < 1e-6);
     Object.keys(r.kt.mean).forEach(k => ok("Ketaki mean '" + k + "' = book's example (within 12\")", r.kt.mean[k] <= 12, r.kt.mean[k].toFixed(1) + '"'));

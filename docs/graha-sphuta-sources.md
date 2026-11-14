@@ -13,11 +13,15 @@ These are working notes written for Claude to read later. Units: r/s = rāśi (s
 ## Implementation status (2026-11-14)
 All three options are now selectable. Tests: `test/run-web-tests.js`, section 6 (the worked examples below).
 - **`ss-ranganatha`** → `js/engine/surya-siddhanta.js`, `opts.school = "makaranda"` (section E). All grahas.
-- **`vakya`** → `js/engine/vakya.js`. Sun, Moon, Rāhu done; reproduces the KD 1844004 examples to 1″. KD N is the sunrise of the day N days after the epoch Friday (KD 1844004 = Saturday 11 Oct 1947; checked against the modern Moon). **Still to do: the planets** (ch. II; the mahāvākya tables in section C need turning into a data file).
+- **`vakya`** → `js/engine/vakya.js`. All grahas. Sun, Moon, Rāhu, Mars and Venus reproduce the KD 1844004 examples to 1″; Saturn's reduction (Ex10) matches. KD N is the sunrise of the day N days after the epoch Friday (KD 1844004 = Saturday 11 Oct 1947; checked against the modern Moon). Planet tables: `js/data/vakya-planets.js`, generated from section C by `tools/build-vakya-planets.py` (edit the md, then rebuild).
+  - Maṇḍalas are taken off largest first, as in the examples. Saturn's smallest maṇḍala runs 2.5 days past its 29 cycles; those days continue the last cycle.
+  - Checks made: at every śodhya the text's mean Sun equals apogee + dhruva to 0.01°, and the real sky had the conjunction there (Mercury 2 Nov 1259 within 1.2°, Venus 3 Jul 1175 within 0.5°). So the epochs are read correctly.
+  - Against the modern ephemeris today the planets are far off near conjunction/opposition: Mercury up to 26°, Venus 11°, Mars 11°, Saturn 11° (5.5° mean), Jupiter 3°. This is the text's own drift, not a slip: its synodic periods differ from the true ones (Table V), which since the śodhyas adds up to about 5 days of phase for Mercury and 2.4 for Venus.
+  - **Table readings corrected (2026-11-14)** after scanning every vākya against its neighbours; each is marked CORRECTED in section C with the original reading: Mars C8 day 550 (0 3 57 → 0 0 57), Mars C15 day 330 (9 9 0 → 9 8 0), Mercury C8 day 24 (10 26 15 → 10 29 15), Jupiter C10 day 289 (4 14 13 → 4 15 13), Jupiter C10 day 399 (4 3 42 → 5 3 42), Venus C2 day 320 (7 11 19 → 7 13 19). These are inferred from smoothness, not re-read from the scan: check them against the book. Venus C4 day 276 is left as read but marked VERIFY. Slips smaller than about 0.4° cannot be found this way.
 - **`ketkar`** → `js/engine/ketaki.js`. All grahas. Mean places use the book's procedure (cycles × dhruvaka + the short rule for the remaining days); that reproduces the Śaka 1815 example (Sun, Moon, apogee, Mars, Venus within 1″; Rāhu, Mercury, Jupiter ~10″). True Sun exact. Geocentric planets within ~2′ of the book, Mars 12′ (the book rounds the radius vector to a whole number; the engine does not). Against the modern ephemeris 1900–2100: Sun 0.02°, Moon 0.24°, planets under 1.5°. Not applied: Saturn's two small extra corrections, latitudes.
 - For all three: the reductions to local true sunrise (deśāntara, cara, bhujāntara/udayāntara as equation of time) are not applied, because the engines take an absolute instant. Ketkar's Moon bhujāntara is split: the annual-equation part (−657″ per 115.2′ of the Sun's equation) is applied, the equation-of-time part is not.
 - **Makaranda finding — read before trusting E2's last two columns.** The sexagesimal daily motions in E2 are whole revolutions in the SS's own 1,577,917,828 civil days, to 4 decimal places of a revolution: Sun 4,320,000; Moon 57,753,336 (**unchanged, not −1**); apogee 488,199 (−4); Mars 2,296,832; Mercury 17,937,076 (+16); Venus 7,022,364 (−12); Saturn 146,580 (+12); Rāhu 232,238.23. So "civil days −26" and "Moon −1" do not follow from the digits (the Sun's digits are exactly the SS rate; the decimal 0.98560267 printed beside them is not the value of those digits). The engine uses the digits. Effect: Makaranda's Sun = SS's Sun, and its Moon differs from SS only through the apogee (about 0.15° today).
-- **Jupiter digits VERIFY.** The E2 string for Jupiter (0;4,59,8,48,56,31,30) gives 364,220.12 revolutions, i.e. SS's own Jupiter, while the revolutions column and every statement of the bīja say −8 (364,212 → 0;4,59,8,24,54…). The string looks mis-transcribed. The engine uses −8 revolutions for Jupiter. Check against the paper's Table 5.1.
+- **Jupiter digits: resolved.** The paper's Table 5.1 was re-read: it does print 0;4,59,8,48,56,31,30 for Jupiter (the notes copied it correctly), next to "364,212.0116, −8". That string is 364,220.12 revolutions, not a whole number and not −8. With **24 for 48** it is exactly 364,212.0000 revolutions, tail digits 56,31,30 included. So 48 is a misprint in the paper; the engine uses 0;4,59,8,24,56,31,30. The paper's "−26 civil days" comes from its own decimal for the Sun (0.98560267), which is not the value of the digits it prints (0;59,8,10,10,24,12,30 = 0.98560265 = the SS rate, from the table's 9|51|21|41|44|02|05 ÷ 10).
 - Makaranda's "three steps" (E3) are arithmetically the SS four steps: MPH2 = f(MK1 − ½MPH1) is SS steps 2 and 3 folded into one table. The engine reuses the SS routine.
 
 Reading tip: the PDFs are scanned images. Render pages with PyMuPDF (pip install in a scratch venv). For tables, crop out the word column and montage 4 pages per image.
@@ -576,7 +580,7 @@ C8
 495 10 27 54 +13
 510 11 6 31 +10
 530 11 18 34 +6
-550 0 3 57 +2
+550 0 0 57 +2 (CORRECTED 2026-11-14; read 0 3 57, 3° off the line through days 530 and 570)
 570 0 13 24 +1
 600 1 2 4 -4
 630 1 20 32 -5
@@ -831,7 +835,7 @@ C15
 285 8 18 48 +12
 300 8 26 15 +16
 315 9 2 54 +18
-330 9 9 0 +22
+330 9 8 0 +22 (CORRECTED 2026-11-14; read 9 9 0, daily motion requires 9 8 0)
 340 9 10 22 +28
 350 9 11 35 +32 vakra
 360 9 11 32 +36
@@ -1056,7 +1060,7 @@ C7
 C8
 8 10 2 57 -0
 16 10 16 41 -0 udaya
-24 10 26 15 +1
+24 10 29 15 +1 (CORRECTED 2026-11-14; read 10 26 15, 3° off the line; 9 taken for 6)
 30 11 7 26 +1
 36 11 13 58 +2
 40 11 17 2 +3
@@ -1699,12 +1703,12 @@ C10
 234 4 15 16 -5
 249 4 14 21 -5
 269 4 14 13 -5 (?suspect, see 289)
-289 4 14 13 -5 nivrtti (as printed; smooth curve suggests ~4 15 13 — check)
+289 4 15 13 -5 nivrtti (CORRECTED 2026-11-14; printed 4 14 13, same as day 269, 1° off the curve)
 309 4 17 28 -5
 339 4 21 34 -4
 369 4 27 18 -4
 384 - - - astam
-399 4 3 42 -4 (as printed; must be 5 3 42 — rasi misprint)
+399 5 3 42 -4 (CORRECTED 2026-11-14; printed 4 3 42 — rasi misprint)
 C11
 15 - - - udaya
 30 5 10 12 -5
@@ -1808,7 +1812,7 @@ C2
 302 7 12 54 +6.5 +1
 308 7 11 26 +7 +1
 314 7 11 43 +5.5 +1.5
-320 7 11 19 +5 +1 nivrtti
+320 7 13 19 +5 +1 nivrtti (CORRECTED 2026-11-14; read 7 11 19, which puts a 1.9° kink between days 314 and 326)
 326 7 16 9 +5 +2
 332 7 19 54 +4 +2
 338 7 24 24 +3 +2
@@ -1887,7 +1891,7 @@ C4
 258 10 11 35 +2 +4.5
 264 10 14 18 +1.5 +5
 270 10 15 55 +1? +6 vakra (first corrector illegible)
-276 10 15 2 +1.5 +7
+276 10 15 2 +1.5 +7 (VERIFY: about 0.9° below the curve; 10 15 52 would fit)
 282 10 14 25 +2 +7.5
 287 - - - - - astam
 288 10 11 17 +2 +8
