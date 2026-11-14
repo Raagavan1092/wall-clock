@@ -2596,7 +2596,7 @@ C29
 ```
 
 ---
-# E. MAKARANDA SĀRIṆĪ (Saurapakṣa tables) — candidate for the `ss-ranganatha` option
+# E. MAKARANDA SĀRIṆĪ (Saurapakṣa tables) — chosen for the `ss-ranganatha` option
 
 **Who wrote it.** The Makaranda sāriṇī (MKS) is by **Makaranda, son of Ānanda, at Kāśī, 1478 CE (Śaka 1400)**. It is not by Raṅganātha. Raṅganātha wrote the Gūḍhārthaprakāśikā commentary on the Sūrya Siddhānta in 1603, ~125 years later. The two belong to the same Saurapakṣa almanac tradition of Kāśī. The MKS is the standard "updated Sūrya Siddhānta" used by Saurapakṣa pañcāṅga makers (Bihar, Bengal, Varanasi, north India). Its main commentary, with worked examples, is Viśvanātha Daivajña's *Udāharaṇa* (Śaka 1540 = 1618 CE). Others: Divākara's *Makaranda-vivaraṇa*, Gokulanātha's *Upapatti* (1766 CE) and Nārāyaṇa Śarmā's *Makarandaprakāśa* (1909 CE). Printed edition: *Sodāharaṇa Makaranda sāriṇī*, Śrī Veṅkaṭeśvara Press, Bombay, 1913.
 
@@ -2710,9 +2710,10 @@ Conclusions:
 - For the app, the options are:
   - (a) Bentley/Burgess bīja, the "SS with bīja" of 19th-century almanacs;
   - (b) Makaranda's exact vāṭikā motions with the 3-step true-planet procedure (E3).
-  Either is a defensible "updated SS". Decide which the `ss-ranganatha` option means.
+  Either is a defensible "updated SS".
+- **DECIDED (user, 2026-11-14): `ss-ranganatha` = option (b), Makaranda.** Use the E2 vāṭikā motions (Moon −1, apogee −4, Rāhu +0.57, Mars 0, Mercury +16, Jupiter −8, Venus −12, Saturn +12, civil days −26) and the E3 three-step true planet, as in E5. Do not use the Bentley/Burgess values for this option.
 
-## E5. How to implement `ss-ranganatha` (if MKS is the intended "updated SS")
+## E5. How to implement `ss-ranganatha` (Makaranda; decided 2026-11-14)
 1. Take the plain SS pipeline as it is.
 2. Replace the mean-motion rates with the MKS rates in E2: civil days/MY 1,577,917,802 and revolutions per the table. Epoch values unchanged.
 3. Replace SS steps 2–3 (½ manda, then full manda recomputed) with Makaranda's single combined MPH2 (E3).
