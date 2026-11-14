@@ -2678,6 +2678,40 @@ Plain SS (Spaṣṭādhikāra) uses four steps:
 - Tithi, nakṣatra and yoga "kanda/vallī" tables per 16 or 24 years (calendar only, not needed for sphuṭa).
 - Ayanāṁśa in Viśvanātha's MKS example: 16°39′54″ for Śaka 1534 (1612 CE). That is SS-style trepidation: Kali 3600 = 0, 54″/yr, ±27°. Check: (4713 − 3600)·54″ = 16°41′, close.
 
+## E6. Which bīja is "Raṅganātha's"? (checked 2026-11-14)
+A claim was circulating (an AI search summary) that Raṅganātha's 1603 commentary gives the bīja Moon −1, apogee −4, Rāhu +4, Mars +4, Mercury +16, Jupiter −8, Venus −12, Saturn +12. **That claim is not supported by the sources.**
+
+- **Raṅganātha's Gūḍhārthaprakāśaka itself** (this folder's Khemraj edition, plus a text search of the 1859 Bibliotheca Indica edition, Hall & Bāpū Deva Śāstrī) gives no revolution-number bīja in ch.1. The only bīja passage is the Bījopanayana he quotes under ch.14 v.23 (section D), and he calls its placement in the text incongruous. No mention of Makaranda was found (the 1859 text layer is OCR, so this is not certain).
+- **Burgess, *Translation of the Sūrya-Siddhānta*** (JAOS 6, 1860), note to i.29–34, pp.163–164, gives "Mean motions of the planets as corrected by the bīja". He takes them from Bentley (*Hindu Astronomy*, p.179), not from Raṅganātha. They were first applied about the beginning of the 16th century; Burgess's own analysis puts it at ~A.D. 1541. All are multiples of 4, per 4,320,000 years.
+- **Makaranda's** values (section E2) come from his vāṭikā daily motions (Rupa et al. 2014).
+
+| Body | SS revs/MY | Bentley/Burgess bīja (corrected revs) | Makaranda (revs) | AI summary's "Raṅganātha" |
+|---|---|---|---|---|
+| Sun | 4,320,000 | 0 | 0 (civil days −26) | 0 |
+| Moon | 57,753,336 | **0** | −1 (57,753,335.09) | −1 |
+| Moon's apogee | 488,203 | −4 (488,199) | −4 (488,199.00) | −4 |
+| Rāhu | 232,238 | **+4** (232,242) | +0.57 (232,238.57) | +4 |
+| Mars | 2,296,832 | **0** | 0 | +4 ✗ |
+| Mercury śīghra | 17,937,060 | **−16** (17,937,044) | **+16** (17,937,075.72) | +16 |
+| Jupiter | 364,220 | −8 (364,212) | −8 | −8 |
+| Venus śīghra | 7,022,376 | −12 (7,022,364) | −12 | −12 |
+| Saturn | 146,568 | +12 (146,580) | +12 | +12 |
+
+Burgess's corrected daily motions (p.164): Sun 0°59′8″10‴.4, Mercury 4°5′32″19‴54.5, Venus 1°36′7″43‴1.8, Mars 0°31′26″28‴11.1, Jupiter 0°4′59″8‴24.9, Saturn 0°2′0″23‴28.9, Moon 13°10′34″52‴3.8, apsis 0°6′40″58‴30.7, node 0°3′10″44‴55.0.
+
+Conclusions:
+- Bentley's bīja and Makaranda's agree for the apogee (−4), Jupiter (−8), Venus (−12), Saturn (+12) and Mars (0).
+- They differ in three places:
+  - **Mercury's sign:** Bentley −16, Makaranda +16. Makaranda's tabulated Mercury motion 4°5′32″21‴29 is faster than SS, and Bentley's 4°5′32″19‴54 is slower. Burgess also notes (xii.90) that the −16 value reproduces the text's Mercury orbit.
+  - **Moon:** Bentley 0, Makaranda −1.
+  - **Rāhu:** Bentley +4, Makaranda ≈ +0.6.
+- Makaranda (1478) is the earliest dated source for this family of bīja. "Raṅganātha followed Makaranda" may be true of the Kāśī almanac practice of his day, but Raṅganātha's commentary does not state it.
+- The AI summary's "Mars +4 (supplied)" matches neither source. VERIFY before using.
+- For the app, the options are:
+  - (a) Bentley/Burgess bīja, the "SS with bīja" of 19th-century almanacs;
+  - (b) Makaranda's exact vāṭikā motions with the 3-step true-planet procedure (E3).
+  Either is a defensible "updated SS". Decide which the `ss-ranganatha` option means.
+
 ## E5. How to implement `ss-ranganatha` (if MKS is the intended "updated SS")
 1. Take the plain SS pipeline as it is.
 2. Replace the mean-motion rates with the MKS rates in E2: civil days/MY 1,577,917,802 and revolutions per the table. Epoch values unchanged.
