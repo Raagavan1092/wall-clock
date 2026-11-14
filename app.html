@@ -79,10 +79,10 @@
     <p class="settings-note">Where the Sun and Moon positions (tithi, nakṣatra, yoga, karaṇa, saṅkrānti, month) come from. Sunrise, moonrise and lagna always use the modern ephemeris.</p>
     <label><input type="radio" name="calcMethod" value="drik"> Plain ephemeris (Drik, default)</label>
     <label><input type="radio" name="calcMethod" value="ss"> Plain Sūrya Siddhānta (classical, no corrections)</label>
-    <label class="pending"><input type="radio" name="calcMethod" value="ss-ranganatha" disabled> Raṅganātha Daivajña's updated rules (bīja) <span class="pending-tag">rules pending</span></label>
-    <label class="pending"><input type="radio" name="calcMethod" value="vakya" disabled> Vākyakaraṇa rules (Āryabhaṭīya-based) <span class="pending-tag">rules pending</span></label>
-    <label class="pending"><input type="radio" name="calcMethod" value="ketkar" disabled> Veṅkaṭeśa Ketkar's rules (Sūrya Siddhānta-based) <span class="pending-tag">rules pending</span></label>
-    <p class="settings-note">The Sūrya Siddhānta option computes the Sun and Moon by the classical formulas and does not use the Ayanāṃśa below. Expect it to differ from Drik by a few degrees (hours of tithi time). The three greyed options are waiting for their rules to be supplied and checked.</p>
+    <label><input type="radio" name="calcMethod" value="ss-ranganatha"> Raṅganātha Daivajña's updated rules (bīja; Makaranda sāriṇī for now)</label>
+    <label><input type="radio" name="calcMethod" value="vakya"> Vākyakaraṇa rules (Āryabhaṭīya-based)</label>
+    <label><input type="radio" name="calcMethod" value="ketkar"> Veṅkaṭeśa Ketkar's rules (Sūrya Siddhānta-based)</label>
+    <p class="settings-note">Every option except Drik computes the Sun and Moon by its own text's rules and does not use the Ayanāṃśa below. Expect the Sūrya Siddhānta and Vākya options to differ from Drik by up to a few degrees (hours of tithi time); Ketkar's stays within minutes of it.</p>
     </details>
   </section>
 

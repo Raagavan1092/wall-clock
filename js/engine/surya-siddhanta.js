@@ -191,6 +191,65 @@
     return (e && typeof e === "object" && e.revsPerMahayuga) ? +e.revsPerMahayuga : 0;
   }
 
+  // ---- Makaranda sāriṇī (Saurapakṣa tables; Makaranda, Kāśī, Śaka 1400 = 1478 CE) ----
+  // Selected with opts.school = "makaranda". Source: docs/graha-sphuta-sources.md, section E
+  // (Rupa, Venugopal & Balachandra Rao, IJHS 49.2 (2014), Table 5.1).
+  // The sāriṇī's bīja is carried by its mean daily motions (vāṭikā tables), given here as
+  // sexagesimal digits [deg, ', '', ''', iv, v, vi, vii]. Worked back, these digits are
+  // whole revolutions in the SS's own 1,577,917,828 civil days: Sun, Moon and Mars exactly
+  // as in SS, Moon's apogee -4, Mercury +16, Venus -12, Saturn +12 (and Rāhu +0.23).
+  // So Makaranda's Sun and Moon differ from plain SS only through the Moon's apogee.
+  // (The notes also quote "civil days -26, Moon -1" from the paper's decimal column; the
+  // digits themselves do not give that, and the digits are what the tables hold.)
+  // JUPITER: the digit string in the notes (0;4,59,8,48,56,31,30) works out to SS's own
+  // Jupiter, but the same paper, and every statement of this bīja, gives Jupiter -8
+  // revolutions. The string looks mis-transcribed, so Jupiter is set from -8 below.
+  // Everything else is plain SS: the Kali midnight epoch with every mean planet at 0 Aries
+  // (Moon's apogee 90, Rāhu 180), the planets' apsides, the epicycles and the equations.
+  // Makaranda's "three-step" true planet (half śīghra, his combined manda table, whole
+  // śīghra) is the same arithmetic as SS's four steps: his manda table is MPH2 =
+  // f(MK1 - MPH1/2), which is exactly SS steps 2 and 3 folded into one table lookup
+  // (section E3; checked there against his Mars table). So starPlanet() below serves both.
+  const MAKARANDA_DAILY = {
+    sun: [0, 59, 8, 10, 10, 24, 12, 30],
+    moon: [13, 10, 34, 52, 3, 49, 8, 0],
+    moonApogee: [0, 6, 40, 58, 30, 41, 28, 0],
+    moonNode: [0, 3, 10, 44, 43, 51, 0, 31],   // retrograde
+    mars: [0, 31, 26, 28, 11, 8, 56, 30],
+    mercurySighra: [4, 5, 32, 21, 29, 9, 48, 30],
+    jupiter: [0, 4, 59, 8, 48, 56, 31, 30],    // not used: see JUPITER above
+    venusSighra: [1, 36, 7, 43, 1, 47, 58, 48],
+    saturn: [0, 2, 0, 23, 28, 54, 40, 42],
+  };
+  const MAKARANDA_RATE = {};
+  Object.keys(MAKARANDA_DAILY).forEach(function (k) {
+    MAKARANDA_RATE[k] = MAKARANDA_DAILY[k].reduceRight(function (acc, digit) { return digit + acc / 60; }, 0);
+  });
+  MAKARANDA_RATE.moonNode = -MAKARANDA_RATE.moonNode;
+  MAKARANDA_RATE.jupiter = (REVS.jupiter - 8) * 360 / CIVIL_DAYS_PER_MAHAYUGA;
+  const MAKARANDA_EPOCH_DEG = { moonApogee: 90, moonNode: 180 };
+
+  // Longitude of a Makaranda mean element `days` after the Kali epoch. Whole and
+  // fractional days are multiplied separately to keep the precision.
+  function makarandaMean(key, days) {
+    const rate = MAKARANDA_RATE[key];
+    const whole = Math.floor(days);
+    return Util.normDeg((MAKARANDA_EPOCH_DEG[key] || 0) + ((rate * whole) % 360) + rate * (days - whole));
+  }
+
+  function makarandaElements(body, days) {
+    const out = { days: days, bija: 0 };
+    const sun = makarandaMean("sun", days);
+    if (body === "sun") out.mean = sun;
+    else if (body === "moon") { out.mean = makarandaMean("moon", days); out.apogee = makarandaMean("moonApogee", days); }
+    else if (body === "rahu") out.mean = makarandaMean("moonNode", days);
+    else if (body === "mercury" || body === "venus") { out.mean = sun; out.sighrocca = makarandaMean(body + "Sighra", days); }
+    else { out.mean = makarandaMean(body, days); out.sighrocca = sun; }
+    // The Sun's and the planets' apsides keep their SS motion (a few degrees in a kalpa).
+    if (body !== "moon" && ELEMENTS[body].apogee) out.apogee = revolve(ELEMENTS[body].apogee, days);
+    return out;
+  }
+
   // ---- Mean positions ------------------------------------------------------
   function julianDayUTC(date) { return date.getTime() / 86400000 + 2440587.5; }
 
@@ -236,6 +295,7 @@
   // opts.applyBija === false).
   function elements(body, date, opts) {
     checkBody(body);
+    if (opts && opts.school === "makaranda") return makarandaElements(body, ahargana(date));
     const useBija = !(opts && opts.applyBija === false);
     const table = tableFor(opts);
     const days = ahargana(date);
@@ -296,6 +356,7 @@
   // opts.exactSine: use Math.sin/asin instead of the SS sine table (default false).
   // opts.applyBija: include bīja at all (default true; the global table is empty today).
   // opts.bija: a named rule-set (none exist yet) or a table object, used instead of the global table.
+  // opts.school: "makaranda" = Makaranda sāriṇī mean motions (see above); the bīja table is then not used.
   function trueLongitude(body, date, opts) {
     opts = opts || {};
     const exact = !!opts.exactSine;
@@ -340,6 +401,7 @@
     meanLongitude: meanLongitude,
     trueLongitude: trueLongitude,
     positions: positions,
+    MAKARANDA_RATE: MAKARANDA_RATE,
     bija: { table: BIJA, set: setBija, clear: clearBija, degrees: bijaDegrees, presets: BIJA_PRESETS },
     _internals: { sinSS: sinSS, arcsinSS: arcsinSS, revolve: revolve, mandaEquation: mandaEquation, sighraEquation: sighraEquation },
   };

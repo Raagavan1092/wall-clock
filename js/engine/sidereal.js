@@ -34,21 +34,23 @@
   //   "drik"          modern ephemeris (astronomy-engine) minus the chosen ayanamsa. Default.
   //   "ss"            plain Surya Siddhanta (surya-siddhanta.js), no corrections. Sidereal
   //                   directly, so the ayanamsa setting does not enter.
-  //   "ss-ranganatha" Ranganatha Daivajna's updated rules (bija)      -- rules pending
-  //   "vakya"         Vakyakarana rules (Aryabhatiya-based)           -- rules pending
-  //   "ketkar"        Venkatesh Ketkar's rules (SS-based)             -- rules pending
-  // The pending three are declared so Settings can list them, but they are NOT selectable
-  // and NOT in METHODS: a method must not appear to work before its rules are actually
-  // implemented (silently falling back to plain SS would be a wrong answer that looks right).
-  // To add one: implement it, move its id from PENDING_METHODS to METHODS, and give
-  // longitude() and usesFormula() a branch for it.
+  //   "ss-ranganatha" Ranganatha Daivajna's updated rules (bija). For now this is the
+  //                   Makaranda sarini: SS with Makaranda's mean motions (surya-siddhanta.js,
+  //                   opts.school = "makaranda").
+  //   "vakya"         Vakyakarana rules (Aryabhatiya-based), vakya.js
+  //   "ketkar"        Venkatesh Ketkar's Ketaki Grahaganita, ketaki.js
+  // All but "drik" give sidereal longitudes directly, so the ayanamsa setting does not enter.
+  // A method that is listed in Settings but has no rules yet goes in PENDING_METHODS, not
+  // METHODS: it must not appear to work before its rules are actually implemented (silently
+  // falling back to another method would be a wrong answer that looks right).
+  // Sources for the three classical additions: docs/graha-sphuta-sources.md.
   // Sunrise/sunset, moonrise/moonset and the lagna always use the modern ephemeris.
-  const METHODS = ["drik", "ss"];
-  const PENDING_METHODS = ["ss-ranganatha", "vakya", "ketkar"];
+  const METHODS = ["drik", "ss", "ss-ranganatha", "vakya", "ketkar"];
+  const PENDING_METHODS = [];
 
   // True when Sun and Moon positions come from a formula engine rather than the library,
   // so tithi/karana/month must be found by crossing searches on our own longitudes.
-  function usesFormula(method) { return method === "ss"; }
+  function usesFormula(method) { return METHODS.indexOf(method) > 0; }
 
   // Sidereal longitude (degrees) of "sun" or "moon" under the given method.
   function longitude(body, date, ayanamsaName, method) {
@@ -56,6 +58,9 @@
       // applyBija:false = pure Surya Siddhanta whatever the (empty-by-default) bija table holds.
       return VedicEngine.SuryaSiddhanta.trueLongitude(body, date, { applyBija: false });
     }
+    if (method === "ss-ranganatha") return VedicEngine.SuryaSiddhanta.trueLongitude(body, date, { school: "makaranda" });
+    if (method === "vakya") return VedicEngine.Vakya.trueLongitude(body, date);
+    if (method === "ketkar") return VedicEngine.Ketaki.trueLongitude(body, date);
     const ay = VedicEngine.Ayanamsa.get(ayanamsaName, date);
     return body === "sun" ? siderealSunLongitude(date, ay) : siderealMoonLongitude(date, ay);
   }

@@ -1,6 +1,6 @@
 # Graha sphuṭa sources — extraction notes (for future implementation)
 
-For the three pending Settings > Calculation method options (`ss-ranganatha`, `vakya`, `ketkar`).
+For the three text-based Settings > Calculation method options (`ss-ranganatha`, `vakya`, `ketkar`).
 These are working notes written for Claude to read later. Units: r/s = rāśi (sign), ° ′ ″. KD = Kali days.
 "VERIFY" marks a reading I wasn't sure of.
 
@@ -9,6 +9,16 @@ These are working notes written for Claude to read later. Units: r/s = rāśi (s
 - **Ketakī Grahagaṇita**: complete for sphuṭa: mean motions, secular (karṣa) corrections, Jupiter–Saturn inequality, Sun, ayanāṁśa and cara. Moon: the four sunrise corrections, evection, variation, equation of centre, reduction to the ecliptic, and the daily-motion tables. Planets: heliocentric manda equation, radius vectors, latitudes, and conversion to geocentric. Reproduces the book's Śaka 1815 example: mean positions to the arc-second, geocentric positions within ~2′ (Mars ~6′).
 - **Sūrya Siddhānta + Raṅganātha**: plain constants confirmed. Raṅganātha's quoted bīja (Bījopanayana, commentary on ch.14 v.23) is transcribed and decoded. The mean-longitude bīja reads clearly. The epicycle bīja numbers and one divisor word are flagged VERIFY.
 - **Makaranda sāriṇī** (Makaranda, Kāśī, 1478; not Raṅganātha): section E, from three published studies. Bīja mean motions and the 3-step true-planet procedure are done; the combined manda rule is verified against his Mars table. No MKS kṣepaka table seen yet.
+
+## Implementation status (2026-11-14)
+All three options are now selectable. Tests: `test/run-web-tests.js`, section 6 (the worked examples below).
+- **`ss-ranganatha`** → `js/engine/surya-siddhanta.js`, `opts.school = "makaranda"` (section E). All grahas.
+- **`vakya`** → `js/engine/vakya.js`. Sun, Moon, Rāhu done; reproduces the KD 1844004 examples to 1″. KD N is the sunrise of the day N days after the epoch Friday (KD 1844004 = Saturday 11 Oct 1947; checked against the modern Moon). **Still to do: the planets** (ch. II; the mahāvākya tables in section C need turning into a data file).
+- **`ketkar`** → `js/engine/ketaki.js`. All grahas. Mean places use the book's procedure (cycles × dhruvaka + the short rule for the remaining days); that reproduces the Śaka 1815 example (Sun, Moon, apogee, Mars, Venus within 1″; Rāhu, Mercury, Jupiter ~10″). True Sun exact. Geocentric planets within ~2′ of the book, Mars 12′ (the book rounds the radius vector to a whole number; the engine does not). Against the modern ephemeris 1900–2100: Sun 0.02°, Moon 0.24°, planets under 1.5°. Not applied: Saturn's two small extra corrections, latitudes.
+- For all three: the reductions to local true sunrise (deśāntara, cara, bhujāntara/udayāntara as equation of time) are not applied, because the engines take an absolute instant. Ketkar's Moon bhujāntara is split: the annual-equation part (−657″ per 115.2′ of the Sun's equation) is applied, the equation-of-time part is not.
+- **Makaranda finding — read before trusting E2's last two columns.** The sexagesimal daily motions in E2 are whole revolutions in the SS's own 1,577,917,828 civil days, to 4 decimal places of a revolution: Sun 4,320,000; Moon 57,753,336 (**unchanged, not −1**); apogee 488,199 (−4); Mars 2,296,832; Mercury 17,937,076 (+16); Venus 7,022,364 (−12); Saturn 146,580 (+12); Rāhu 232,238.23. So "civil days −26" and "Moon −1" do not follow from the digits (the Sun's digits are exactly the SS rate; the decimal 0.98560267 printed beside them is not the value of those digits). The engine uses the digits. Effect: Makaranda's Sun = SS's Sun, and its Moon differs from SS only through the apogee (about 0.15° today).
+- **Jupiter digits VERIFY.** The E2 string for Jupiter (0;4,59,8,48,56,31,30) gives 364,220.12 revolutions, i.e. SS's own Jupiter, while the revolutions column and every statement of the bīja say −8 (364,212 → 0;4,59,8,24,54…). The string looks mis-transcribed. The engine uses −8 revolutions for Jupiter. Check against the paper's Table 5.1.
+- Makaranda's "three steps" (E3) are arithmetically the SS four steps: MPH2 = f(MK1 − ½MPH1) is SS steps 2 and 3 folded into one table. The engine reuses the SS routine.
 
 Reading tip: the PDFs are scanned images. Render pages with PyMuPDF (pip install in a scratch venv). For tables, crop out the word column and montage 4 pages per image.
 

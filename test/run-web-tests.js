@@ -148,11 +148,26 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const t0 = performance.now();
       const ss = E.Panchanga.compute(when, { location: loc, method: "ss" });
       const ms = performance.now() - t0;
+      // The three text-based methods added after plain SS: each gives a coherent snapshot.
+      const others = {};
+      ["ss-ranganatha", "vakya", "ketkar"].forEach(m => {
+        const t1 = performance.now();
+        const p = E.Panchanga.compute(when, { location: loc, method: m });
+        const sq = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
+        others[m] = {
+          ms: performance.now() - t1, method: p.settings.method,
+          tithiDiffH: Math.abs(p.tithi.endTime - drik.tithi.endTime) / 3600000, tithiDiff: Math.abs(p.tithi.number - drik.tithi.number),
+          nakDiff: Math.abs(p.nakshatra.index - drik.nakshatra.index),
+          covers: p.tithi.startTime <= when && when < p.tithi.endTime && p.nakshatra.startTime <= when && when < p.nakshatra.endTime,
+          seqs: sq(p.tithiSequence) && sq(p.nakshatraSequence) && sq(p.yogaSequence) && sq(p.karanaSequence),
+          masa: p.tithiSequence[0].amantaMasaRashiIndex === drik.tithiSequence[0].amantaMasaRashiIndex,
+          sunriseSame: p.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
+        };
+      });
+      const saved = ["ss-ranganatha", "vakya", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
       const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
       const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
       const bad = E.Panchanga.mergeSettings({ method: "nonsense" }).method;
-      const pendingFallback = E.Sidereal.PENDING_METHODS.map(m => E.Panchanga.mergeSettings({ method: m }).method);
-      const pendingLoaded = E.Sidereal.PENDING_METHODS.map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
       const radios = Array.from(document.getElementsByName("calcMethod")).map(r => r.value + (r.disabled ? ":off" : ":on"));
       const pureSS = E.Sidereal.longitude("moon", when, "lahiri", "ss") === E.SuryaSiddhanta.trueLongitude("moon", when, { applyBija: false });
       // Settings: persisted, and a bad saved value falls back to Drik.
@@ -173,7 +188,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         seqs: seqOk(ss.tithiSequence) && seqOk(ss.nakshatraSequence) && seqOk(ss.yogaSequence) && seqOk(ss.karanaSequence),
         masa: ss.tithiSequence[0].amantaMasaRashiIndex >= 0 && ss.tithiSequence[0].amantaMasaRashiIndex < 12,
         sunriseSame: ss.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
-        ms, bad, loadedSS, loadedBad, pendingFallback, pendingLoaded, radios, pureSS, methods: E.Sidereal.METHODS.join(","),
+        ms, bad, loadedSS, loadedBad, others, saved, radios, pureSS, methods: E.Sidereal.METHODS.join(","), pending: E.Sidereal.PENDING_METHODS.length,
       };
     });
     ok("method: Drik is the default and the setting default", r.defaultIsDrik);
@@ -186,11 +201,144 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: sunrise is unchanged by the method", r.sunriseSame);
     ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
     ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
-    ok("method: the five options are listed, the three pending ones disabled", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:off,vakya:off,ketkar:off", r.radios.join(","));
-    ok("method: pending methods cannot be selected or loaded (fall back to Drik)", r.pendingFallback.every(m => m === "drik") && r.pendingLoaded.every(m => m === "drik") && r.methods === "drik,ss");
+    ok("method: the five options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,ketkar" && r.pending === 0, r.radios.join(","));
+    ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,ketkar", r.saved.join(","));
+    Object.keys(r.others).forEach(m => {
+      const o = r.others[m], lim = m === "ketkar" ? 0.5 : 14;
+      ok("method " + m + ": tithi ends within " + lim + " h of Drik, same or adjacent tithi, nakshatra within one", o.method === m && o.tithiDiffH < lim && o.tithiDiff <= 1 && o.nakDiff <= 1, o.tithiDiffH.toFixed(2) + " h");
+      ok("method " + m + ": snapshot brackets 'now', sequences well-formed, same lunar month and sunrise as Drik", o.covers && o.seqs && o.masa && o.sunriseSame);
+      ok("method " + m + ": snapshot computes quickly", o.ms < 1500, o.ms.toFixed(0) + " ms");
+    });
     ok("method: 'ss' is pure Surya Siddhanta (no bija)", r.pureSS);
     ok("method: a saved choice is loaded back", r.loadedSS === "ss");
     ok("method: no page errors", errors.length === 0, errors.join("; "));
+    await page.close();
+  }
+
+  // 6. The text-based engines against the worked examples printed in their own books
+  //    (docs/graha-sphuta-sources.md), and loosely against the modern ephemeris.
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    const r = await page.evaluate(() => {
+      const V = window.VedicEngine, A = window.Astronomy, SS = V.SuryaSiddhanta, VK = V.Vakya, K = V.Ketaki;
+      const deg = (s, d, m, x) => s * 30 + d + m / 60 + (x || 0) / 3600;
+      const sw = d => ((d + 540) % 360) - 180;
+      const asec = (got, want) => Math.abs(sw(got - want)) * 3600;
+      const UJ = 75.76667 / 360;
+      // --- Vakyakarana: Kali day 1844004 (sunrise at Ujjain, Saturday 11 Oct 1947) ---
+      const vkDate = new Date((1844004 + 588465.75 - UJ - 2440587.5) * 86400000);
+      const vk = {
+        kaliDays: VK.kaliDays(vkDate), weekday: vkDate.getUTCDay(),
+        mesha: VK._internals.meshaSankramana(5048),
+        sun: asec(VK.trueLongitude("sun", vkDate), deg(5, 23, 28, 33)),
+        moon: asec(VK.trueLongitude("moon", vkDate), deg(4, 11, 17, 32)),
+        rahu: asec(VK.trueLongitude("rahu", vkDate), deg(1, 1, 6, 34)),
+        ketu: sw(VK.trueLongitude("ketu", vkDate) - VK.trueLongitude("rahu", vkDate) - 180),
+        vakya154: VK._internals.MOON_VAKYA[154] === (7 * 30 + 21) * 60 + 48 && VK._internals.MOON_VAKYA.length === 249,
+      };
+      // The Moon runs smoothly through a day and across the 248-day and 3031-day joins.
+      let moonStep = 0;
+      for (let h = 0; h < 24 * 300; h += 6) {
+        const a = new Date(Date.UTC(2026, 0, 1) + h * 3600000), b = new Date(a.getTime() + 6 * 3600000);
+        const s = sw(VK.trueLongitude("moon", b) - VK.trueLongitude("moon", a));
+        if (s < 2.8 || s > 3.9) moonStep++;
+      }
+      let planetThrows = false; try { VK.trueLongitude("mars", vkDate); } catch (e) { planetThrows = /not implemented/.test(e.message); }
+      // --- Ketaki: Saka 1815 Caitra purnima, Saturday 1 Apr 1893, Ujjain mean sunrise (ahargana 5477) ---
+      const kDate = new Date(Date.UTC(1878, 3, 3) + (0.25 - UJ + 5477) * 86400000);
+      const KI = K._internals;
+      const kt = {
+        ahargana: K.ahargana(kDate), weekday: kDate.getUTCDay(), epochWeekday: new Date(Date.UTC(1878, 3, 3)).getUTCDay(),
+        mean: {
+          sun: asec(KI.meanOf("sun", 5477), deg(11, 17, 15, 46)), moon: asec(KI.meanOf("moon", 5477), deg(5, 12, 11, 46)),
+          moonApogee: asec(KI.meanOf("moonApogee", 5477), deg(7, 7, 19, 36)), rahu: asec(KI.meanOf("rahu", 5477), deg(0, 7, 22, 19)),
+          mars: asec(KI.meanOf("mars", 5477), deg(1, 29, 19, 37)), mercury: asec(KI.meanOf("mercury", 5477), deg(4, 26, 14, 10)),
+          jupiter: asec(KI.meanOf("jupiter", 5477), deg(0, 10, 45, 26)), venus: asec(KI.meanOf("venus", 5477), deg(11, 0, 19, 50)),
+          saturn: asec(KI.meanOf("saturn", 5477), deg(5, 11, 36, 32)),
+        },
+        jsKarsa: KI.jupiterKarsa(5477) * 60,
+        sun: asec(K.trueLongitude("sun", kDate), deg(11, 19, 10, 37)),
+        moonBook: asec(KI.moonFromMean(deg(5, 11, 59, 42), deg(11, 17, 15, 46), deg(7, 7, 19, 36), deg(0, 7, 22, 19)), deg(5, 16, 7, 4)),
+        helio: {
+          mars: asec(KI.heliocentric("mars", 5477).lon, deg(2, 9, 5, 31)), mercury: asec(KI.heliocentric("mercury", 5477).lon, deg(5, 18, 47, 50)),
+          jupiter: asec(KI.heliocentric("jupiter", 5477).lon, deg(0, 13, 5, 50)), venus: asec(KI.heliocentric("venus", 5477).lon, deg(10, 29, 48, 14)),
+          saturn: asec(KI.heliocentric("saturn", 5477).lon, deg(5, 17, 19, 20)),
+        },
+        geo: {
+          mars: asec(K.trueLongitude("mars", kDate), deg(1, 9, 54, 51)), mercury: asec(K.trueLongitude("mercury", kDate), deg(11, 19, 25, 29)),
+          jupiter: asec(K.trueLongitude("jupiter", kDate), deg(0, 9, 18, 43)), venus: asec(K.trueLongitude("venus", kDate), deg(11, 11, 2, 24)),
+          saturn: asec(K.trueLongitude("saturn", kDate), deg(5, 17, 5, 58)),
+        },
+        ayanamsa: asec(K.ayanamsa(new Date(kDate.getTime() + 13 * 86400000)), deg(0, 22, 21, 6)),
+        keys: Object.keys(K.positions(kDate)).sort().join(","),
+      };
+      // Ketaki vs the modern ephemeris reduced by Ketkar's own ayanamsa, 1900-2100.
+      const modern = (b, d) => b === "sun" ? A.SunPosition(d).elon : b === "moon" ? A.EclipticGeoMoon(d).lon : A.Ecliptic(A.GeoVector(b[0].toUpperCase() + b.slice(1), d, true)).elon;
+      const kWorst = {}, vWorst = { sun: 0, moon: 0 };
+      for (let y = 1900; y <= 2100; y += 2) for (let m = 0; m < 12; m += 1) {
+        const d = new Date(Date.UTC(y, m, 11, 3));
+        ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"].forEach(b => { kWorst[b] = Math.max(kWorst[b] || 0, Math.abs(sw(K.trueLongitude(b, d) - (modern(b, d) - K.ayanamsa(d))))); });
+        ["sun", "moon"].forEach(b => { vWorst[b] = Math.max(vWorst[b], Math.abs(sw(VK.trueLongitude(b, d) - (modern(b, d) - V.Ayanamsa.lahiri(d))))); });
+      }
+      // Ketaki's mean places step by a few arcseconds where a 6940-day cycle ends (next: 2030); nothing larger.
+      let kJump = 0;
+      { const end = new Date(Date.UTC(1878, 3, 3) + (0.25 - UJ + 8 * 6940) * 86400000);
+        ["sun", "moon"].forEach(b => { kJump = Math.max(kJump, Math.abs(sw(K.trueLongitude(b, new Date(end.getTime() + 1000)) - K.trueLongitude(b, new Date(end.getTime() - 1000)))) * 3600); }); }
+      // --- Makaranda: digits reduce to whole revolutions in SS's civil days ---
+      const R = SS.MAKARANDA_RATE, D = 1577917828;
+      const revs = k => R[k] * D / 360;
+      const d0 = new Date(Date.UTC(2026, 5, 1));
+      const plain = b => SS.trueLongitude(b, d0, { applyBija: false }), mk = b => SS.trueLongitude(b, d0, { school: "makaranda" });
+      const el = (b, o) => SS.elements(b, d0, o);
+      const years = SS.ahargana(d0) / D * 4320000;    // solar years since the Kali epoch
+      const mkr = {
+        revs: { sun: revs("sun") - 4320000, moon: revs("moon") - 57753336, apogee: revs("moonApogee") - 488199, mars: revs("mars") - 2296832,
+          mercury: revs("mercurySighra") - 17937076, jupiter: revs("jupiter") - 364212, venus: revs("venusSighra") - 7022364, saturn: revs("saturn") - 146580, node: revs("moonNode") + 232238 },
+        sunSame: Math.abs(sw(mk("sun") - plain("sun"))) * 3600, moonMeanSame: Math.abs(sw(el("moon", { school: "makaranda" }).mean - el("moon", { applyBija: false }).mean)) * 3600,
+        apogeeShift: sw(el("moon", { school: "makaranda" }).apogee - el("moon", { applyBija: false }).apogee) - (-4 * years / 4320000 * 360),
+        moonMoved: Math.abs(sw(mk("moon") - plain("moon"))),
+        mercuryShift: sw(el("mercury", { school: "makaranda" }).sighrocca - el("mercury", { applyBija: false }).sighrocca) - (16 * years / 4320000 * 360),
+        saturnShift: sw(el("saturn", { school: "makaranda" }).mean - el("saturn", { applyBija: false }).mean) - (12 * years / 4320000 * 360),
+        jupiterShift: sw(el("jupiter", { school: "makaranda" }).mean - el("jupiter", { applyBija: false }).mean) - (-8 * years / 4320000 * 360),
+        wired: V.Sidereal.longitude("moon", d0, "lahiri", "ss-ranganatha") === mk("moon") && V.Sidereal.longitude("moon", d0, "lahiri", "vakya") === VK.trueLongitude("moon", d0)
+          && V.Sidereal.longitude("sun", d0, "lahiri", "ketkar") === K.trueLongitude("sun", d0),
+        ignoresBija: (() => { SS.bija.set("moon", { constantArcmin: 60 }); const x = mk("moon"); SS.bija.clear(); return x === mk("moon"); })(),
+      };
+      return { vk, moonStep, planetThrows, kt, kWorst, vWorst, kJump, mkr };
+    });
+    ok("Vakya: Kali day count and weekday of the worked example (1844004, Saturday)", Math.abs(r.vk.kaliDays - 1844004) < 1e-6 && r.vk.weekday === 6, r.vk.kaliDays + " / " + r.vk.weekday);
+    ok("Vakya: Mesha sankramana of Kali 5048 = 1843823 d 40 n 19 v", Math.abs(r.vk.mesha - (1843823 + 40 / 60 + 19 / 3600)) < 1 / 3600, String(r.vk.mesha));
+    ok("Vakya: true Sun = book's 5r23°28'33\" (within 2\")", r.vk.sun <= 2, r.vk.sun.toFixed(1) + '"');
+    ok("Vakya: true Moon = book's 4r11°17'32\" (within 2\")", r.vk.moon <= 2, r.vk.moon.toFixed(1) + '"');
+    ok("Vakya: Rahu = book's 1r1°6'34\" (within 2\")", r.vk.rahu <= 2, r.vk.rahu.toFixed(1) + '"');
+    ok("Vakya: ketu opposite rahu; 248 Moon vakyas loaded", Math.abs(r.vk.ketu) < 1e-9 && r.vk.vakya154);
+    ok("Vakya: Moon moves 11.2-15.6 deg/day everywhere through 300 days (no jumps at cycle joins)", r.moonStep === 0, r.moonStep + " bad steps");
+    ok("Vakya: planets say 'not implemented' instead of returning a number", r.planetThrows);
+    ok("Vakya: Sun within 1 deg and Moon within 5 deg of modern (Lahiri), 1900-2100", r.vWorst.sun < 1 && r.vWorst.moon < 5, r.vWorst.sun.toFixed(2) + " / " + r.vWorst.moon.toFixed(2));
+    ok("Ketaki: epoch is a Wednesday, the example day a Saturday with ahargana 5477", r.kt.epochWeekday === 3 && r.kt.weekday === 6 && Math.abs(r.kt.ahargana - 5477) < 1e-6);
+    Object.keys(r.kt.mean).forEach(k => ok("Ketaki mean '" + k + "' = book's example (within 12\")", r.kt.mean[k] <= 12, r.kt.mean[k].toFixed(1) + '"'));
+    ok("Ketaki: Jupiter-Saturn inequality = book's 15'51\"", Math.abs(r.kt.jsKarsa - 15.85) < 0.02, r.kt.jsKarsa.toFixed(3) + "'");
+    ok("Ketaki: true Sun = book's 11r19°10'37\" (within 2\")", r.kt.sun <= 2, r.kt.sun.toFixed(1) + '"');
+    ok("Ketaki: true Moon from the book's inputs = 5r16°7'4\" (within 30\")", r.kt.moonBook <= 30, r.kt.moonBook.toFixed(1) + '"');
+    Object.keys(r.kt.helio).forEach(k => ok("Ketaki heliocentric '" + k + "' = book (within 3')", r.kt.helio[k] <= 180, (r.kt.helio[k] / 60).toFixed(1) + "'"));
+    Object.keys(r.kt.geo).forEach(k => ok("Ketaki geocentric '" + k + "' = book (within " + (k === "mars" ? 15 : 3) + "')", r.kt.geo[k] <= (k === "mars" ? 900 : 180), (r.kt.geo[k] / 60).toFixed(1) + "'"));
+    ok("Ketaki: ayanamsa at Mesha sankranti of Saka 1815 = book's 22°21'6\" (within 3\")", r.kt.ayanamsa <= 3, r.kt.ayanamsa.toFixed(1) + '"');
+    ok("Ketaki: positions() covers every graha", r.kt.keys === "jupiter,ketu,mars,mercury,moon,rahu,saturn,sun,venus", r.kt.keys);
+    ok("Ketaki: Sun within 0.05 deg, Moon within 0.3 deg of modern, 1900-2100", r.kWorst.sun < 0.05 && r.kWorst.moon < 0.3, r.kWorst.sun.toFixed(3) + " / " + r.kWorst.moon.toFixed(2));
+    ok("Ketaki: planets within 2 deg of modern, 1900-2100", ["mars", "mercury", "jupiter", "venus", "saturn"].every(b => r.kWorst[b] < 2), ["mars", "mercury", "jupiter", "venus", "saturn"].map(b => r.kWorst[b].toFixed(2)).join(" "));
+    ok("Ketaki: Sun and Moon step under 30\" where a 6940-day cycle ends", r.kJump < 30, r.kJump.toFixed(1) + '"');
+    ok("Makaranda: daily motions = whole revolutions in SS civil days (Sun, Moon, Mars unchanged; apogee -4, Mercury +16, Jupiter -8, Venus -12, Saturn +12)",
+      ["sun", "moon", "apogee", "mars", "mercury", "jupiter", "venus", "saturn"].every(k => Math.abs(r.mkr.revs[k]) < 0.001) && Math.abs(r.mkr.revs.node) < 0.3, JSON.stringify(r.mkr.revs));
+    ok("Makaranda: Sun and mean Moon equal plain SS (within 1\")", r.mkr.sunSame < 1 && r.mkr.moonMeanSame < 1, r.mkr.sunSame.toFixed(2) + " / " + r.mkr.moonMeanSame.toFixed(2));
+    ok("Makaranda: apogee, Mercury, Jupiter and Saturn are shifted from SS by exactly their bija", [r.mkr.apogeeShift, r.mkr.mercuryShift, r.mkr.jupiterShift, r.mkr.saturnShift].every(x => Math.abs(x) < 0.001), [r.mkr.apogeeShift, r.mkr.mercuryShift, r.mkr.jupiterShift, r.mkr.saturnShift].map(x => x.toFixed(5)).join(" "));
+    ok("Makaranda: true Moon differs from plain SS, by under 0.3 deg", r.mkr.moonMoved > 0.001 && r.mkr.moonMoved < 0.3, r.mkr.moonMoved.toFixed(3));
+    ok("Makaranda: the user bija table is not applied on top", r.mkr.ignoresBija);
+    ok("methods are wired to their engines", r.mkr.wired);
+    ok("text engines: no page errors", errors.length === 0, errors.join("; "));
     await page.close();
   }
 

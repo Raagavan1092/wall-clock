@@ -12,6 +12,8 @@
     "js/engine/sunrise.js",
     "js/engine/sidereal.js",
     "js/engine/surya-siddhanta.js",
+    "js/engine/vakya.js",
+    "js/engine/ketaki.js",
     "js/engine/elongation.js",
     "js/engine/tithi.js",
     "js/engine/nakshatra.js",
