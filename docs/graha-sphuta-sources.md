@@ -8,6 +8,7 @@ These are working notes written for Claude to read later. Units: r/s = rāśi (s
 - **Vākyakaraṇa**: complete. Rules and all tables are done, and the constants were checked numerically.
 - **Ketakī Grahagaṇita**: complete for sphuṭa: mean motions, secular (karṣa) corrections, Jupiter–Saturn inequality, Sun, ayanāṁśa and cara. Moon: the four sunrise corrections, evection, variation, equation of centre, reduction to the ecliptic, and the daily-motion tables. Planets: heliocentric manda equation, radius vectors, latitudes, and conversion to geocentric. Reproduces the book's Śaka 1815 example: mean positions to the arc-second, geocentric positions within ~2′ (Mars ~6′).
 - **Sūrya Siddhānta + Raṅganātha**: plain constants confirmed. Raṅganātha's quoted bīja (Bījopanayana, commentary on ch.14 v.23) is transcribed and decoded. The mean-longitude bīja reads clearly. The epicycle bīja numbers and one divisor word are flagged VERIFY.
+- **Makaranda sāriṇī** (Makaranda, Kāśī, 1478; not Raṅganātha): section E, from three published studies. Bīja mean motions and the 3-step true-planet procedure are done; the combined manda rule is verified against his Mars table. No MKS kṣepaka table seen yet.
 
 Reading tip: the PDFs are scanned images. Render pages with PyMuPDF (pip install in a scratch venv). For tables, crop out the word column and montage 4 pages per image.
 
@@ -2593,3 +2594,92 @@ C29
 378 8 1 42 -7
 # end Saturn (29 cycles); closing 'kamesah' (551). Colophon variant: Mercury 528, Jupiter 231, Venus 165, Saturn 551 vakyas; cycles Ma15 Me22 Ju11 Ve5 Sa29.
 ```
+
+---
+# E. MAKARANDA SĀRIṆĪ (Saurapakṣa tables) — candidate for the `ss-ranganatha` option
+
+**Who wrote it.** The Makaranda sāriṇī (MKS) is by **Makaranda, son of Ānanda, at Kāśī, 1478 CE (Śaka 1400)**. It is not by Raṅganātha. Raṅganātha wrote the Gūḍhārthaprakāśikā commentary on the Sūrya Siddhānta in 1603, ~125 years later. The two belong to the same Saurapakṣa almanac tradition of Kāśī. The MKS is the standard "updated Sūrya Siddhānta" used by Saurapakṣa pañcāṅga makers (Bihar, Bengal, Varanasi, north India). Its main commentary, with worked examples, is Viśvanātha Daivajña's *Udāharaṇa* (Śaka 1540 = 1618 CE). Others: Divākara's *Makaranda-vivaraṇa*, Gokulanātha's *Upapatti* (1766 CE) and Nārāyaṇa Śarmā's *Makarandaprakāśa* (1909 CE). Printed edition: *Sodāharaṇa Makaranda sāriṇī*, Śrī Veṅkaṭeśvara Press, Bombay, 1913.
+
+The Raṅganātha SS edition in this folder (section D) does not quote or explain the MKS. Its only bīja is the Bījopanayana passage in section D. I did not full-text search the book: it is a scan with no text layer, and I read only the relevant chapters.
+
+**The MKS bīja and the section-D Bījopanayana bīja are different corrections.** MKS: fixed revolution changes (E2). Bījopanayana: a time-varying B with other multipliers.
+
+Sources (all three papers read in full):
+- K. Rupa, P. Venugopal, S. Balachandra Rao, "Makaranda Sāriṇī and allied Saurapakṣa tables – a study", *IJHS* 49.2 (2014) 186–208 — https://ancientindianastronomy.wordpress.com/wp-content/uploads/2016/02/ijhs-vol49_2_9_krupa.pdf
+- S. Balachandra Rao, K. Rupa, P. Venugopal, "An analysis of the mandaphala tables of Makaranda and revision of parameters", *Gaṇita Bhāratī* 35 (2013) 221–240 — https://ancientindianastronomy.files.wordpress.com/2016/02/gb-chap-10-may-14vol-15-no-11.pdf
+- S.K. Uma, S. Balachandra Rao, "Ahargaṇa in Makarandasāriṇī and other Indian astronomical texts", *IJHS* 53.1 (2018) — https://insa.nic.in/writereaddata/UpLoadedFiles/IJHS/Vol53_1_2018__Art02.pdf
+
+## E1. Day count (ahargaṇa)
+- The MKS ahargaṇa is the **Kali ahargaṇa**: civil days from the Kali epoch (Friday, mean **midnight** between 17/18 Feb 3102 BCE, Laṅkā/Ujjain meridian). At that instant all mean bodies are at 0° Meṣa, as in plain SS.
+- The tables give it as an *ahargaṇa-vallī*: the day count written in base-60 digits, labelled rāśi|aṁśa|kalā|vikalā, so r|a|k|v = r·60³ + a·60² + k·60 + v days. It is tabulated every 57 years, from Śaka 1628 in the printed (Viśvanātha) edition. The step per 57 years is vallī 0|5|46|59 and weekday +1.
+- Implementation: use the app's existing SS Kali-day count (midnight epoch). Nothing new is needed.
+
+## E2. Mean motions (vāṭikā tables) = the MKS bīja
+The MKS vāṭikā tables tabulate 10×(motion for n days). Dividing out gives these mean daily motions (sexagesimal, degrees; IJHS 2014 Table 5.1). Revolutions per Mahāyuga (MY) of 4,320,000 solar years:
+
+| Body | Mean daily motion (° ′ ″ ‴ iv v vi vii) | MKS revs/MY | SS revs/MY | Bīja |
+|---|---|---|---|---|
+| Sun | 0 59 08 10 10 24 12 30 (= 0.9856026705264996°/day) | 4,320,000 | 4,320,000 | civil days 1,577,917,802 vs SS 1,577,917,828 → **−26 days** |
+| Moon | 13 10 34 52 03 49 08 0 | 57,753,335.0879 | 57,753,336 | −1 |
+| Moon's apogee | 0 06 40 58 30 41 28 0 | 488,198.9998 | 488,203 | −4 |
+| Rāhu (retrograde) | −0 03 10 44 43 51 0 31 | 232,238.5688 | 232,238 | +0.57 |
+| Mars | 0 31 26 28 11 08 56 30 | 2,296,831.8929 | 2,296,832 | 0 |
+| Mercury śīghra | 4 05 32 21 29 09 48 30 | 17,937,075.7218 | 17,937,060 | **+16** |
+| Jupiter | 0 04 59 08 48 56 31 30 | 364,212.0116 | 364,220 | **−8** |
+| Venus śīghra | 1 36 07 43 01 47 58 48 | 7,022,363.9911 | 7,022,376 | **−12** |
+| Saturn | 0 02 00 23 28 54 40 42 | 146,580.0052 | 146,568 | **+12** |
+
+- The bīja is the integer revolution change per MY with civil days 1,577,917,802: Moon −1, apogee −4, Rāhu ≈ +0.57, Mars 0, Mercury +16, Jupiter −8, Venus −12, Saturn +12. This matches the well-known "Sūrya Siddhānta bīja" of the Saurapakṣa almanacs.
+- Implied sidereal year: 360/SDM = 365.258750575 days (SS: 365.258756481), i.e. 0.51 s shorter.
+- **Mean longitude** = (MKS daily motion) × Kali-days at midnight, plus the SS epoch value. That value is 0 for all bodies except Moon's apogee (+90°) and Rāhu (180°, retrograde), as in SS ch.1. Planetary mandocca and pāta stay as in plain SS (the app's `ss` method).
+- VERIFY: the MKS vāṭikā tables are increments. That they start from the same Kali-zero positions follows from the bīja being stated as revolutions per MY, but no MKS kṣepaka table was available to confirm it. Test against Viśvanātha's examples when the 1913 edition is available.
+
+## E3. True planets: three steps instead of SS's four
+Plain SS (Spaṣṭādhikāra) uses four steps:
+1. Apply ½ śīghraphala to the mean planet.
+2. Apply ½ mandaphala.
+3. Recompute the mandaphala from that position and apply it in full to the *mean* planet.
+4. Apply the full śīghraphala to the result.
+
+**MKS uses three steps** (Gaṇita Bhāratī 2013, §3):
+1. P1 = MP + ½·SE1, where SK1 = śīghrocca − MP (same as SS step 1).
+2. P2 = MP + MPH2, applied once to the mean planet. MPH2 is Makaranda's combined manda table:
+   - Define f(MK) = asin((p/360)·sin MK) with p = pe − (pe − po)·|sin MK|. This is the SS mandaphala, sin MPH = (p/360)·sin MK.
+   - With MK1 = mandocca − P1 (taken 0–180°; mirror for 180–360°), MPH1 = f(MK1).
+   - Then **MPH2 = f(MK1 − ½·MPH1)**. That is, the anomaly is pulled back by half the first equation, and the equation is recomputed with the paridhi re-evaluated at the new anomaly.
+   - Sign as usual: the planet is decreased for MK 0–180°, increased for 180–360° (MK measured from the planet to the mandocca).
+   - I checked this numerically against the Mars table (Gaṇita Bhāratī eqs 5.1–5.3 state it loosely as "adding half the mandaphala"): MK 15° → 165.3′, 90° → 689.0′, 105° → 683.1′. These match the MKS 165, 689 and 683.
+   - Their recomputed MPH2 reproduces the MKS tables to the integer arc-minute (Mars: MK 15° → 165′, 30° → 320′, 45° → 458′, 60° → 570′, 75° → 649′, 90° → 689′, 105° → 683′, 120° → 629′, 135° → 527′, 150° → 381′, 165° → 202′).
+   - The maximum falls beyond 90°. Critical MK and maximum MPH (paper Table 5.3): Mars 95.74°, 692.2′; Mercury 92.23°, 697.65′ (VERIFY: the paper's own per-degree table peaks ~267.6′ for Mercury, so 697.65 looks like a misprint); Jupiter 92.55°, 305.98′; Venus 90.88°, 105.06′; Saturn 93.82°, 459.74′.
+3. P3 = P2 + SE2, where SK2 = śīghrocca − P2; full śīghraphala with the SS formula and variable śīghra paridhi.
+
+**Sun and Moon:** a single mandaphala f(MK), as in SS. The MKS Sun table agrees with the SS formula within ~5″: MK 10° → 23′07″, 20° → 45′22″, 30° → 66′02″, 40° → 84′42″, 50° → 100′36″, 60° → 113′25″, 70° → 122′51″, 80° → 128′35″, 90° → 130′32″.
+
+**Epicycles (SS values, used unchanged by MKS)**, in degrees:
+
+| Body | Manda: MK 0/180 / MK 90/270 | Śīghra: SK 0/180 / SK 90/270 |
+|---|---|---|
+| Sun | 14 / 13°40′ | – |
+| Moon | 32 / 31°40′ | – |
+| Mars | 75 / 72 | 235 / 232 |
+| Mercury | 30 / 28 | 133 / 132 |
+| Jupiter | 33 / 32 | 70 / 72 |
+| Venus | 12 / 11 | 262 / 260 |
+| Saturn | 49 / 48 | 39 / 40 |
+
+- Each paridhi varies as p = pe − (pe − po)·|sin K|.
+- Śīghraphala (SS ch.2): sin SP = (p/360)·R·sin SK / SKR, with SKR = √[(R + (p/360)·R·cos SK)² + ((p/360)·R·sin SK)²] and R = 3438′. SP is positive when SK < 180°.
+- Worked check from the 2014 paper: Saturn, SK = 62.0406°, p = 39.88328° gives SP = +5°18′53″.
+- The MKS śīghra tables (per degree, in degrees and arc-minutes) follow this SS formula closely. Venus samples are compared with Grahalāghava in IJHS 2014 Table 9.6.
+
+## E4. Other MKS details (from the papers)
+- Sun's declination: tables at 6° steps of the sāyana bhuja, in ghaṭī units (×6 = degrees), with ε = 24°.
+- Moon's latitude: a śara table on the bhuja of (Moon − Rāhu).
+- Tithi, nakṣatra and yoga "kanda/vallī" tables per 16 or 24 years (calendar only, not needed for sphuṭa).
+- Ayanāṁśa in Viśvanātha's MKS example: 16°39′54″ for Śaka 1534 (1612 CE). That is SS-style trepidation: Kali 3600 = 0, 54″/yr, ±27°. Check: (4713 − 3600)·54″ = 16°41′, close.
+
+## E5. How to implement `ss-ranganatha` (if MKS is the intended "updated SS")
+1. Take the plain SS pipeline as it is.
+2. Replace the mean-motion rates with the MKS rates in E2: civil days/MY 1,577,917,802 and revolutions per the table. Epoch values unchanged.
+3. Replace SS steps 2–3 (½ manda, then full manda recomputed) with Makaranda's single combined MPH2 (E3).
+4. Keep the śīghra steps, epicycles, ayanāṁśa and sunrise rules as in plain SS.
