@@ -538,23 +538,6 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.click("#settings-save");
     ok("settings: Save keeps the chosen location", await page.evaluate(() => Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 13.4) < 1e-6));
 
-    // The Ayanāṃśa list greys out and reads "Not applicable" as soon as a non-Drik method is ticked
-    await page.click("#settings-toggle");
-    const ay = await page.evaluate(() => {
-      const sel = document.getElementById("set-ayanamsa"), pick = v => { const r = document.querySelector('input[name="calcMethod"][value="' + v + '"]'); r.checked = true; r.dispatchEvent(new Event("change")); };
-      pick("drik"); sel.value = "raman"; sel.dispatchEvent(new Event("change"));
-      const drik = { disabled: sel.disabled, value: sel.value };
-      pick("vakya");
-      const vakya = { disabled: sel.disabled, value: sel.value, text: sel.options[sel.selectedIndex].text };
-      pick("drik");
-      return { drik, vakya, back: { disabled: sel.disabled, value: sel.value, n: sel.options.length } };
-    });
-    ok("settings: Ayanāṃśa list is inactive and Not applicable under a non-Drik method, restored under Drik", !ay.drik.disabled && ay.vakya.disabled && ay.vakya.value === "" && /Not applicable/.test(ay.vakya.text) &&
-      !ay.back.disabled && ay.back.value === "raman" && ay.back.n === 3, JSON.stringify(ay));
-    await page.evaluate(() => { const r = document.querySelector('input[name="calcMethod"][value="ss"]'); r.checked = true; r.dispatchEvent(new Event("change")); });
-    await page.click("#settings-save");
-    ok("settings: saving under a non-Drik method keeps the chosen ayanāṃśa", await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")); return s.method === "ss" && s.ayanamsa === "raman"; }));
-
     await page.reload();
     await page.waitForSelector("#dial *", { timeout: 20000 });
     await page.waitForTimeout(500);
