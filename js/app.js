@@ -689,10 +689,11 @@
     // Reset to defaults); nothing is committed until Save. The location is not
     // part of this form: it is changed from the place name at the top of the clock screen.
     function populateForm(from) {
-      ayanamsaSelect.value = from.ayanamsa;
+      workingAyanamsa = from.ayanamsa;
       Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
         radio.checked = radio.value === from.method;
       });
+      syncAyanamsaSelect();
       Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
         radio.checked = radio.value === from.sunriseEdge;
       });
@@ -705,6 +706,35 @@
       renderRingOrderList();
       renderCheckboxList(markerList, E.RingAdapter.MARKER_TITLES, workingHiddenMarkers);
     }
+
+    // Only Drik takes its Sun and Moon from the ephemeris through an ayanāṃśa;
+    // under any other method the list is greyed out and reads "Not applicable"
+    // as soon as that method is ticked (before Save). The chosen ayanāṃśa is
+    // kept in `workingAyanamsa` and comes back when Drik is ticked again.
+    let workingAyanamsa = settings.ayanamsa;
+    const naOption = document.createElement("option");
+    naOption.value = "";
+    naOption.textContent = "Not applicable (method doesn't use an ayanāṃśa)";
+    function checkedMethod() {
+      return (document.querySelector('input[name="calcMethod"]:checked') || {}).value || "drik";
+    }
+    function syncAyanamsaSelect() {
+      const usesAyanamsa = checkedMethod() === "drik";
+      ayanamsaSelect.disabled = !usesAyanamsa;
+      if (usesAyanamsa) {
+        if (naOption.parentNode) naOption.remove();
+        ayanamsaSelect.value = workingAyanamsa;
+      } else {
+        if (!naOption.parentNode) ayanamsaSelect.insertBefore(naOption, ayanamsaSelect.firstChild);
+        ayanamsaSelect.value = "";
+      }
+    }
+    ayanamsaSelect.addEventListener("change", function () {
+      if (ayanamsaSelect.value) workingAyanamsa = ayanamsaSelect.value;
+    });
+    Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
+      radio.addEventListener("change", syncAyanamsaSelect);
+    });
 
     function open() {
       populateForm(settings);
@@ -725,11 +755,11 @@
     // Saves the form and closes. The location is kept as it is.
     function saveAndClose() {
       const sunriseEdge = (document.querySelector('input[name="sunriseEdge"]:checked') || {}).value || "upper-limb";
-      const method = (document.querySelector('input[name="calcMethod"]:checked') || {}).value || "drik";
+      const method = checkedMethod();
 
       settings = {
         location: settings.location,
-        ayanamsa: ayanamsaSelect.value,
+        ayanamsa: workingAyanamsa,
         method: method,
         sunriseEdge: sunriseEdge,
         ringOrder: workingRingOrder.slice(),
