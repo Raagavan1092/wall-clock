@@ -2732,3 +2732,54 @@ Conclusions:
 2. Replace the mean-motion rates with the MKS rates in E2: civil days/MY 1,577,917,802 and revolutions per the table. Epoch values unchanged.
 3. Replace SS steps 2–3 (½ manda, then full manda recomputed) with Makaranda's single combined MPH2 (E3).
 4. Keep the śīghra steps, epicycles, ayanāṁśa and sunrise rules as in plain SS.
+
+---
+# F. THE FIVE CALCULATION METHODS IN SIMPLE WORDS
+
+What every method does: find where the Sun and the Moon are (as sidereal longitudes) at a given moment. Tithi, nakṣatra, yoga, karaṇa, saṅkrānti and the lunar month all follow from those two numbers. Sunrise, moonrise and lagna always come from the modern ephemeris, whatever the method.
+
+- **Plain ephemeris (Drik)** — the default.
+  - Uses modern astronomy (the Astronomy Engine library), which matches the real sky to a fraction of an arc-minute.
+  - That gives tropical longitudes; the chosen ayanāṁśa (Lahiri by default) is subtracted to make them sidereal.
+  - It is the only method that uses the Ayanāṁśa setting.
+
+- **Plain Sūrya Siddhānta**
+  - Count the days since the start of Kali yuga (midnight at Ujjain, 18 Feb 3102 BCE).
+  - Each body makes a fixed number of revolutions in a mahāyuga of 1,577,917,828 days. Days × that rate = the *mean* place.
+  - One correction turns mean into true for Sun and Moon: the manda equation (the body runs slow near its apogee, fast opposite it).
+  - The five planets get a second correction, the śīghra equation (the effect of our viewing them from the Earth and not from the Sun), applied in four steps: half śīghra, half manda, whole manda, whole śīghra.
+  - No bīja. The rates are about 1,500 years old, so today the Sun and Moon are a few degrees from the real sky (hours of tithi time).
+
+- **Raṅganātha Daivajña's updated rules — Makaranda sāriṇī for now**
+  - Same Sūrya Siddhānta machinery, with a bīja: a small change to some revolution counts to bring the places back in line with the sky.
+  - Makaranda's bīja: Moon's apogee −4 revolutions, Mercury +16, Jupiter −8, Venus −12, Saturn +12 per mahāyuga. Sun, Moon and Mars are left alone.
+  - So the Sun is identical to plain Sūrya Siddhānta, and the Moon moves only a little (about 0.15° today), through its apogee.
+  - Makaranda's "three steps" for a planet are the same arithmetic as the four steps: his manda table has two of them folded into one lookup.
+
+- **Vākyakaraṇa (Vākya pañcāṅga)**
+  - No formulas at run time: the answers were worked out once (from Āryabhaṭa's system as revised by Haridatta) and stored as memorised sentences, *vākyas*, each encoding a number.
+  - Day count: days since Kali yuga began, from sunrise at Ujjain.
+  - Sun: the days elapsed since the last Meṣa saṅkramaṇa are read as degrees, then a small tabulated amount is taken off.
+  - Moon: the Moon nearly repeats itself every 248 days (and better every 3031 and 12372 days). Take off those long cycles, each adding a fixed amount (*dhruva*); the day left over, 1–248, picks one of the 248 Moon vākyas. Add them up, plus one small correction.
+  - Planets: the same idea. Each planet has a starting day (*śodhya*), long periods (*maṇḍalas*) and a table of vākyas covering its cycles from one conjunction with the Sun to the next.
+  - Accuracy today: Sun within about 0.6°, Moon within about 4° (the vākyas carry only the Moon's main inequality). The planets have drifted a long way, Mercury most of all.
+
+- **Veṅkaṭeśa Ketkar's rules (Ketakī Grahagaṇita)**
+  - A traditional-style karaṇa built on modern (19th-century European) astronomical constants. Epoch: Śaka 1800, 3 April 1878, sunrise at Ujjain.
+  - Mean places from the days since that epoch, counted in 6940-day (19-year) cycles plus the remaining days.
+  - Sun: one manda equation, from a table.
+  - Moon: five corrections, where the older texts have one — the annual equation, cyuti (evection), the tithi correction (variation), the manda equation, and the reduction to the ecliptic. This is why its Moon is so much better.
+  - Planets: computed as seen from the Sun first (true heliocentric place and distance), then turned into the place seen from the Earth by the Sun–Earth–planet triangle. Jupiter and Saturn also get their long mutual inequality.
+  - Accuracy today: Sun 0.02°, Moon 0.25°, planets within 1.5°. Tithi times fall within minutes of Drik.
+
+## What "reduction to local sunrise" is, and why the app leaves it out
+
+- The old texts do not give a planet's place "at this instant". They give it once a day, at a standard moment: **mean sunrise at Ujjain** (6 a.m. Ujjain mean time; midnight for Sūrya Siddhānta).
+- A pañcāṅga maker needs the place at **sunrise in his own town**, which is a different moment. So the texts add small corrections that move the answer from the one moment to the other:
+  - **Deśāntara (rekhāntara)** — for longitude. East of Ujjain the Sun rises earlier, west later.
+  - **Cara** — for latitude and season. Days are longer or shorter than 12 hours, so true sunrise is before or after 6 a.m.
+  - **Bhujāntara and udayāntara** — for the equation of time. The true Sun runs up to about 16 minutes ahead of or behind the mean Sun, so true sunrise is not exactly mean sunrise.
+- Each correction is simply "the body's daily motion × the time difference". None of them changes where the body is; they only change **which moment** is being asked about.
+- The app asks about a moment directly: it gives each engine an exact instant (UTC) and gets the place at that instant. Sunrise at the user's location is found separately by the modern ephemeris. Applying the reductions on top would count the same time shift twice.
+- One exception, already handled: Ketkar folds the Moon's **annual equation** (a real inequality of the Moon) into his "bhujāntara". That part is applied; only the clock-time part is left out.
+- What this means in practice: tithi and nakṣatra end times shown by the app are true clock times. A printed Vākya or Sūrya Siddhānta pañcāṅga that uses the text's own sunrise and day-length rules can differ by a few minutes, because those rules are rougher than the modern sunrise the app uses.
