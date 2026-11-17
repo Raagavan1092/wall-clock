@@ -145,6 +145,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const loc = { latitude: 13.42, longitude: 75.25, elevation: 672, utcOffsetMinutes: 330 };
       const plain = E.Panchanga.compute(when, { location: loc });
       const drik = E.Panchanga.compute(when, { location: loc, method: "drik" });
+      const drikDisc = E.Panchanga.compute(when, { location: loc, method: "drik", sunriseEdge: "disc-centre" });
       const t0 = performance.now();
       const ss = E.Panchanga.compute(when, { location: loc, method: "ss" });
       const ms = performance.now() - t0;
@@ -161,9 +162,24 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
           covers: p.tithi.startTime <= when && when < p.tithi.endTime && p.nakshatra.startTime <= when && when < p.nakshatra.endTime,
           seqs: sq(p.tithiSequence) && sq(p.nakshatraSequence) && sq(p.yogaSequence) && sq(p.karanaSequence),
           masa: p.tithiSequence[0].amantaMasaRashiIndex === drik.tithiSequence[0].amantaMasaRashiIndex,
-          sunriseSame: p.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
+          sunriseSame: p.anchors.governingSunrise.getTime() === (m === "vakya-tamil" ? drikDisc : drik).anchors.governingSunrise.getTime(),
         };
       });
+      // Tamil vakya fixes the sunrise to the disc centre; the user's own choice is kept (and saved) for the others.
+      const sk = E.Settings.STORAGE_KEY, sOld = localStorage.getItem(sk);
+      localStorage.setItem(sk, JSON.stringify({ method: "vakya-tamil", sunriseEdge: "upper-limb" }));
+      const tl = E.Settings.load();
+      E.Settings.save(tl);
+      const stored = JSON.parse(localStorage.getItem(sk));
+      localStorage.setItem(sk, JSON.stringify({ method: "vakya", sunriseEdge: "upper-limb" }));
+      const vl = E.Settings.load();
+      if (sOld === null) localStorage.removeItem(sk); else localStorage.setItem(sk, sOld);
+      const pick = v => { const rb = Array.from(document.getElementsByName("calcMethod")).find(x => x.value === v); rb.checked = true; rb.dispatchEvent(new Event("change")); };
+      const edgeRadios = () => Array.from(document.getElementsByName("sunriseEdge")).map(x => x.value + (x.checked ? "*" : "") + (x.disabled ? "-" : "")).join(",") + (document.getElementById("sunrise-edge-fixed").style.display === "none" ? "" : " note");
+      pick("vakya-tamil"); const formTamil = edgeRadios();
+      pick("drik"); const formDrik = edgeRadios();
+      const fixedEdge = { tamilLoaded: tl.sunriseEdge + "/" + tl.sunriseEdgeChoice, stored: stored.sunriseEdge + "/" + ("sunriseEdgeChoice" in stored), vakyaLoaded: vl.sunriseEdge, formTamil, formDrik,
+        merged: E.Panchanga.mergeSettings({ method: "vakya-tamil", sunriseEdge: "upper-limb" }).sunriseEdge };
       const saved = ["ss-ranganatha", "vakya", "vakya-tamil", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
       const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
       const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
@@ -188,7 +204,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         seqs: seqOk(ss.tithiSequence) && seqOk(ss.nakshatraSequence) && seqOk(ss.yogaSequence) && seqOk(ss.karanaSequence),
         masa: ss.tithiSequence[0].amantaMasaRashiIndex >= 0 && ss.tithiSequence[0].amantaMasaRashiIndex < 12,
         sunriseSame: ss.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
-        ms, bad, loadedSS, loadedBad, others, saved, radios, pureSS, methods: E.Sidereal.METHODS.join(","), pending: E.Sidereal.PENDING_METHODS.length,
+        ms, bad, loadedSS, loadedBad, others, saved, radios, fixedEdge, pureSS, methods: E.Sidereal.METHODS.join(","), pending: E.Sidereal.PENDING_METHODS.length,
       };
     });
     ok("method: Drik is the default and the setting default", r.defaultIsDrik);
@@ -202,11 +218,14 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
     ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
     ok("method: the six options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,vakya-tamil:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,vakya-tamil,ketkar" && r.pending === 0, r.radios.join(","));
+    ok("method: Tamil vakya uses the disc-centre sunrise; the user's own choice is kept and saved, and applies to the other methods",
+      r.fixedEdge.tamilLoaded === "disc-centre/upper-limb" && r.fixedEdge.stored === "upper-limb/false" && r.fixedEdge.vakyaLoaded === "upper-limb" && r.fixedEdge.merged === "disc-centre"
+      && r.fixedEdge.formTamil === "upper-limb-,disc-centre*- note" && r.fixedEdge.formDrik === "upper-limb*,disc-centre", JSON.stringify(r.fixedEdge));
     ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,vakya-tamil,ketkar", r.saved.join(","));
     Object.keys(r.others).forEach(m => {
       const o = r.others[m], lim = m === "ketkar" ? 0.5 : 14;
       ok("method " + m + ": tithi ends within " + lim + " h of Drik, same or adjacent tithi, nakshatra within one", o.method === m && o.tithiDiffH < lim && o.tithiDiff <= 1 && o.nakDiff <= 1, o.tithiDiffH.toFixed(2) + " h");
-      ok("method " + m + ": snapshot brackets 'now', sequences well-formed, same lunar month and sunrise as Drik", o.covers && o.seqs && o.masa && o.sunriseSame);
+      ok("method " + m + ": snapshot brackets 'now', sequences well-formed, same lunar month and sunrise as Drik (disc-centre Drik for Tamil vakya)", o.covers && o.seqs && o.masa && o.sunriseSame);
       ok("method " + m + ": snapshot computes quickly", o.ms < 1500, o.ms.toFixed(0) + " ms");
     });
     ok("method: 'ss' is pure Surya Siddhanta (no bija)", r.pureSS);
