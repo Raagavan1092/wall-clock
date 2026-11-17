@@ -1,0 +1,500 @@
+{
+ "_readme": "A Tamil (asal) vakya panchangam for Thanjavur, Parabhava year (Kali 5127, Saka 1948), Karthigai (Vrscika) month, 17 Nov - 12 Dec 2026, supplied by the user as a scan on 2026-11-17 and transcribed by hand. 'ends' = nazhigai-vinazhigai from the day's sunrise when the tithi / nakshatra / yoga with that index (tithi 1-30 from sukla pratipada, nakshatra 1-27 from Asvini, yoga 1-27 from Viskambha) ends. The almanac's printed clock times are 06:00 IST + the nazhigai (not sunrise + nazhigai), so they are not used. Left out as misprints (the almanac's own clock time or the neighbouring entries disagree): 30 Nov saptami '55-20 (05-49 akalai)' - 05:49 is 59-32 by its own rule; 27 Nov subha yoga '52-11' (likely 58-11).",
+ "location": {
+  "name": "Thanjavur",
+  "latitude": 10.787,
+  "longitude": 79.138,
+  "elevation": 60
+ },
+ "sunrise": {
+  "_readme": "The almanac's Thanjavur sunrise table, IST, Karthigai 1, 6, 11, 16, 21, 26 and Margazhi 1. It is the centre of the disc without refraction (the app's 'disc-centre'); upper-limb is ~3 min earlier.",
+  "times": [
+   [
+    "2026-11-17",
+    "06:12"
+   ],
+   [
+    "2026-11-22",
+    "06:14"
+   ],
+   [
+    "2026-11-27",
+    "06:16"
+   ],
+   [
+    "2026-12-02",
+    "06:19"
+   ],
+   [
+    "2026-12-07",
+    "06:21"
+   ],
+   [
+    "2026-12-12",
+    "06:24"
+   ],
+   [
+    "2026-12-16",
+    "06:27"
+   ]
+  ]
+ },
+ "ends": [
+  {
+   "date": "2026-11-17",
+   "kind": "tithi",
+   "index": 8,
+   "ends": "50-37"
+  },
+  {
+   "date": "2026-11-17",
+   "kind": "nakshatra",
+   "index": 23,
+   "ends": "49-16"
+  },
+  {
+   "date": "2026-11-17",
+   "kind": "yoga",
+   "index": 12,
+   "ends": "59-22"
+  },
+  {
+   "date": "2026-11-18",
+   "kind": "tithi",
+   "index": 9,
+   "ends": "52-20"
+  },
+  {
+   "date": "2026-11-18",
+   "kind": "nakshatra",
+   "index": 24,
+   "ends": "52-24"
+  },
+  {
+   "date": "2026-11-18",
+   "kind": "yoga",
+   "index": 13,
+   "ends": "58-18"
+  },
+  {
+   "date": "2026-11-19",
+   "kind": "tithi",
+   "index": 10,
+   "ends": "52-44"
+  },
+  {
+   "date": "2026-11-19",
+   "kind": "nakshatra",
+   "index": 25,
+   "ends": "54-16"
+  },
+  {
+   "date": "2026-11-19",
+   "kind": "yoga",
+   "index": 14,
+   "ends": "55-35"
+  },
+  {
+   "date": "2026-11-20",
+   "kind": "tithi",
+   "index": 11,
+   "ends": "51-49"
+  },
+  {
+   "date": "2026-11-20",
+   "kind": "nakshatra",
+   "index": 26,
+   "ends": "54-51"
+  },
+  {
+   "date": "2026-11-20",
+   "kind": "yoga",
+   "index": 15,
+   "ends": "51-50"
+  },
+  {
+   "date": "2026-11-21",
+   "kind": "tithi",
+   "index": 12,
+   "ends": "49-44"
+  },
+  {
+   "date": "2026-11-21",
+   "kind": "nakshatra",
+   "index": 27,
+   "ends": "54-18"
+  },
+  {
+   "date": "2026-11-21",
+   "kind": "yoga",
+   "index": 16,
+   "ends": "47-10"
+  },
+  {
+   "date": "2026-11-22",
+   "kind": "tithi",
+   "index": 13,
+   "ends": "46-33"
+  },
+  {
+   "date": "2026-11-22",
+   "kind": "nakshatra",
+   "index": 1,
+   "ends": "52-40"
+  },
+  {
+   "date": "2026-11-22",
+   "kind": "yoga",
+   "index": 17,
+   "ends": "41-38"
+  },
+  {
+   "date": "2026-11-23",
+   "kind": "tithi",
+   "index": 14,
+   "ends": "42-31"
+  },
+  {
+   "date": "2026-11-23",
+   "kind": "nakshatra",
+   "index": 2,
+   "ends": "50-14"
+  },
+  {
+   "date": "2026-11-23",
+   "kind": "yoga",
+   "index": 18,
+   "ends": "35-25"
+  },
+  {
+   "date": "2026-11-24",
+   "kind": "tithi",
+   "index": 15,
+   "ends": "37-45"
+  },
+  {
+   "date": "2026-11-24",
+   "kind": "nakshatra",
+   "index": 3,
+   "ends": "47-04"
+  },
+  {
+   "date": "2026-11-24",
+   "kind": "yoga",
+   "index": 19,
+   "ends": "28-38"
+  },
+  {
+   "date": "2026-11-25",
+   "kind": "tithi",
+   "index": 16,
+   "ends": "32-26"
+  },
+  {
+   "date": "2026-11-25",
+   "kind": "nakshatra",
+   "index": 4,
+   "ends": "43-23"
+  },
+  {
+   "date": "2026-11-25",
+   "kind": "yoga",
+   "index": 20,
+   "ends": "21-22"
+  },
+  {
+   "date": "2026-11-26",
+   "kind": "tithi",
+   "index": 17,
+   "ends": "26-44"
+  },
+  {
+   "date": "2026-11-26",
+   "kind": "nakshatra",
+   "index": 5,
+   "ends": "39-22"
+  },
+  {
+   "date": "2026-11-26",
+   "kind": "yoga",
+   "index": 21,
+   "ends": "13-46"
+  },
+  {
+   "date": "2026-11-27",
+   "kind": "tithi",
+   "index": 18,
+   "ends": "20-53"
+  },
+  {
+   "date": "2026-11-27",
+   "kind": "nakshatra",
+   "index": 6,
+   "ends": "35-15"
+  },
+  {
+   "date": "2026-11-27",
+   "kind": "yoga",
+   "index": 22,
+   "ends": "5-58"
+  },
+  {
+   "date": "2026-11-28",
+   "kind": "tithi",
+   "index": 19,
+   "ends": "15-02"
+  },
+  {
+   "date": "2026-11-28",
+   "kind": "nakshatra",
+   "index": 7,
+   "ends": "31-12"
+  },
+  {
+   "date": "2026-11-28",
+   "kind": "yoga",
+   "index": 24,
+   "ends": "50-27"
+  },
+  {
+   "date": "2026-11-29",
+   "kind": "tithi",
+   "index": 20,
+   "ends": "9-25"
+  },
+  {
+   "date": "2026-11-29",
+   "kind": "nakshatra",
+   "index": 8,
+   "ends": "27-28"
+  },
+  {
+   "date": "2026-11-29",
+   "kind": "yoga",
+   "index": 25,
+   "ends": "43-07"
+  },
+  {
+   "date": "2026-11-30",
+   "kind": "tithi",
+   "index": 21,
+   "ends": "4-13"
+  },
+  {
+   "date": "2026-11-30",
+   "kind": "nakshatra",
+   "index": 9,
+   "ends": "24-12"
+  },
+  {
+   "date": "2026-12-01",
+   "kind": "tithi",
+   "index": 23,
+   "ends": "55-44"
+  },
+  {
+   "date": "2026-12-01",
+   "kind": "nakshatra",
+   "index": 10,
+   "ends": "21-33"
+  },
+  {
+   "date": "2026-12-01",
+   "kind": "yoga",
+   "index": 27,
+   "ends": "29-43"
+  },
+  {
+   "date": "2026-12-02",
+   "kind": "tithi",
+   "index": 24,
+   "ends": "52-55"
+  },
+  {
+   "date": "2026-12-02",
+   "kind": "nakshatra",
+   "index": 11,
+   "ends": "19-44"
+  },
+  {
+   "date": "2026-12-02",
+   "kind": "yoga",
+   "index": 1,
+   "ends": "23-58"
+  },
+  {
+   "date": "2026-12-03",
+   "kind": "tithi",
+   "index": 25,
+   "ends": "51-11"
+  },
+  {
+   "date": "2026-12-03",
+   "kind": "nakshatra",
+   "index": 12,
+   "ends": "18-55"
+  },
+  {
+   "date": "2026-12-03",
+   "kind": "yoga",
+   "index": 2,
+   "ends": "19-02"
+  },
+  {
+   "date": "2026-12-04",
+   "kind": "tithi",
+   "index": 26,
+   "ends": "50-42"
+  },
+  {
+   "date": "2026-12-04",
+   "kind": "nakshatra",
+   "index": 13,
+   "ends": "19-16"
+  },
+  {
+   "date": "2026-12-04",
+   "kind": "yoga",
+   "index": 3,
+   "ends": "15-01"
+  },
+  {
+   "date": "2026-12-05",
+   "kind": "tithi",
+   "index": 27,
+   "ends": "51-29"
+  },
+  {
+   "date": "2026-12-05",
+   "kind": "nakshatra",
+   "index": 14,
+   "ends": "20-49"
+  },
+  {
+   "date": "2026-12-05",
+   "kind": "yoga",
+   "index": 4,
+   "ends": "11-59"
+  },
+  {
+   "date": "2026-12-06",
+   "kind": "tithi",
+   "index": 28,
+   "ends": "53-35"
+  },
+  {
+   "date": "2026-12-06",
+   "kind": "nakshatra",
+   "index": 15,
+   "ends": "23-38"
+  },
+  {
+   "date": "2026-12-06",
+   "kind": "yoga",
+   "index": 5,
+   "ends": "9-56"
+  },
+  {
+   "date": "2026-12-07",
+   "kind": "tithi",
+   "index": 29,
+   "ends": "56-49"
+  },
+  {
+   "date": "2026-12-07",
+   "kind": "nakshatra",
+   "index": 16,
+   "ends": "27-39"
+  },
+  {
+   "date": "2026-12-07",
+   "kind": "yoga",
+   "index": 6,
+   "ends": "8-52"
+  },
+  {
+   "date": "2026-12-08",
+   "kind": "nakshatra",
+   "index": 17,
+   "ends": "32-39"
+  },
+  {
+   "date": "2026-12-08",
+   "kind": "yoga",
+   "index": 7,
+   "ends": "8-38"
+  },
+  {
+   "date": "2026-12-09",
+   "kind": "tithi",
+   "index": 30,
+   "ends": "1-07"
+  },
+  {
+   "date": "2026-12-09",
+   "kind": "nakshatra",
+   "index": 18,
+   "ends": "38-31"
+  },
+  {
+   "date": "2026-12-09",
+   "kind": "yoga",
+   "index": 8,
+   "ends": "9-08"
+  },
+  {
+   "date": "2026-12-10",
+   "kind": "tithi",
+   "index": 1,
+   "ends": "6-07"
+  },
+  {
+   "date": "2026-12-10",
+   "kind": "nakshatra",
+   "index": 19,
+   "ends": "44-49"
+  },
+  {
+   "date": "2026-12-10",
+   "kind": "yoga",
+   "index": 9,
+   "ends": "10-09"
+  },
+  {
+   "date": "2026-12-11",
+   "kind": "tithi",
+   "index": 2,
+   "ends": "11-22"
+  },
+  {
+   "date": "2026-12-11",
+   "kind": "nakshatra",
+   "index": 20,
+   "ends": "51-11"
+  },
+  {
+   "date": "2026-12-11",
+   "kind": "yoga",
+   "index": 10,
+   "ends": "11-20"
+  },
+  {
+   "date": "2026-12-12",
+   "kind": "tithi",
+   "index": 3,
+   "ends": "16-32"
+  },
+  {
+   "date": "2026-12-12",
+   "kind": "nakshatra",
+   "index": 21,
+   "ends": "57-19"
+  },
+  {
+   "date": "2026-12-12",
+   "kind": "yoga",
+   "index": 11,
+   "ends": "12-28"
+  }
+ ]
+}

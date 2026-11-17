@@ -150,7 +150,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const ms = performance.now() - t0;
       // The three text-based methods added after plain SS: each gives a coherent snapshot.
       const others = {};
-      ["ss-ranganatha", "vakya", "ketkar"].forEach(m => {
+      ["ss-ranganatha", "vakya", "vakya-tamil", "ketkar"].forEach(m => {
         const t1 = performance.now();
         const p = E.Panchanga.compute(when, { location: loc, method: m });
         const sq = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
@@ -164,7 +164,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
           sunriseSame: p.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
         };
       });
-      const saved = ["ss-ranganatha", "vakya", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
+      const saved = ["ss-ranganatha", "vakya", "vakya-tamil", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
       const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
       const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
       const bad = E.Panchanga.mergeSettings({ method: "nonsense" }).method;
@@ -201,8 +201,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: sunrise is unchanged by the method", r.sunriseSame);
     ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
     ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
-    ok("method: the five options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,ketkar" && r.pending === 0, r.radios.join(","));
-    ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,ketkar", r.saved.join(","));
+    ok("method: the six options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,vakya-tamil:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,vakya-tamil,ketkar" && r.pending === 0, r.radios.join(","));
+    ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,vakya-tamil,ketkar", r.saved.join(","));
     Object.keys(r.others).forEach(m => {
       const o = r.others[m], lim = m === "ketkar" ? 0.5 : 14;
       ok("method " + m + ": tithi ends within " + lim + " h of Drik, same or adjacent tithi, nakshatra within one", o.method === m && o.tithiDiffH < lim && o.tithiDiff <= 1 && o.nakDiff <= 1, o.tithiDiffH.toFixed(2) + " h");
@@ -323,12 +323,45 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const vkSteps = {};
       { const lim = { mars: 1.0, mercury: 2.6, jupiter: 0.35, venus: 1.5, saturn: 0.2 };
         P5.forEach(b => { let bad = 0, prev = VI.planet(b, 1840000); for (let t = 1840001; t < 1862000; t++) { const x = VI.planet(b, t); if (Math.abs(sw(x - prev)) > lim[b]) bad++; prev = x; } vkSteps[b] = bad; }); }
-      return { vk, vkp, vkSteps, moonStep, unknownThrows, kt, kWorst, vWorst, kJump, mkr };
+      // --- Tamil vakya (manyadi): the text's reductions + the 26' bija give the almanacs'
+      //     printed manyadi (15,10,7,8,11,17,23,28,30,29,26,21' at the starts of Rsabha..Mesa)
+      //     for Thanjavur (10.79 N, 79.14 E) with an 18 deg precession, to its 1' rounding.
+      const MANYADI = [15, 10, 7, 8, 11, 17, 23, 28, 30, 29, 26, 21];
+      const sankDay = deg => { for (let N = 1735000; ; N++) if (sw(VI.sun(N) - deg) < 0 && sw(VI.sun(N + 1) - deg) >= 0) return N + 1; };
+      const manyadiErr = Math.max.apply(null, MANYADI.map((m, k) => Math.abs(VI.manyadi(10.787, 79.138, sankDay((30 * (k + 1)) % 360), 18) - m)));
+      // At a place's real sunrise the Tamil Moon is the Vakyakarana Moon at the text's sunrise
+      // (Ujjain mean sunrise + reduction) + 26'.
+      const Sid = V.Sidereal, chennai = { latitude: 13.08, longitude: 80.27, elevation: 6 };
+      Sid.setPlace(chennai, "upper-limb");
+      const N0 = Math.floor(VK.kaliDays(new Date(Date.UTC(2026, 5, 1)))) + 1;
+      const rise = V.Sunrise.sunriseAfter(chennai, new Date(VI.kaliDayToMs(N0) - 6 * 3600000), "upper-limb");
+      const red = VI.sunriseReduction(13.08, 80.27, VI.sun(N0), VI.precession(VI.kaliYear(N0)));
+      const atRise = asec(Sid.longitude("moon", rise, "lahiri", "vakya-tamil"), VI.moon(N0 + red / 3600) + 26 / 60);
+      // Continuous (no steps at sunrise), and it depends on the place.
+      let tamilStep = 0;
+      for (let h = 0; h < 24 * 120; h += 1) {
+        const a = new Date(Date.UTC(2026, 0, 1) + h * 3600000), b = new Date(a.getTime() + 3600000);
+        const s = sw(Sid.longitude("moon", b, "lahiri", "vakya-tamil") - Sid.longitude("moon", a, "lahiri", "vakya-tamil"));
+        if (s < 0.45 || s > 0.67) tamilStep++;
+      }
+      const tChennai = Sid.longitude("moon", d0, "lahiri", "vakya-tamil");
+      Sid.setPlace({ latitude: 9.93, longitude: 78.12, elevation: 130 }, "upper-limb");
+      const placeDiff = Math.abs(sw(Sid.longitude("moon", d0, "lahiri", "vakya-tamil") - tChennai)) * 60;
+      const bijaDiff = sw(tChennai - VK.trueLongitude("moon", d0)) * 60;
+      const sunDiff = Math.abs(sw(Sid.longitude("sun", d0, "lahiri", "vakya-tamil") - VK.trueLongitude("sun", d0))) * 60;
+      Sid.setPlace(V.Panchanga.DEFAULT_SETTINGS.location, "upper-limb");
+      const tamil = { manyadiErr, atRise, tamilStep, placeDiff, bijaDiff, sunDiff, precession2026: VI.precession(VI.kaliYear(N0)) };
+      return { vk, vkp, vkSteps, moonStep, unknownThrows, kt, kWorst, vWorst, kJump, mkr, tamil };
     });
     ok("Vakya: Kali day count and weekday of the worked example (1844004, Saturday)", Math.abs(r.vk.kaliDays - 1844004) < 1e-6 && r.vk.weekday === 6, r.vk.kaliDays + " / " + r.vk.weekday);
     ok("Vakya: Mesha sankramana of Kali 5048 = 1843823 d 40 n 19 v", Math.abs(r.vk.mesha - (1843823 + 40 / 60 + 19 / 3600)) < 1 / 3600, String(r.vk.mesha));
     ok("Vakya: true Sun = book's 5r23°28'33\" (within 2\")", r.vk.sun <= 2, r.vk.sun.toFixed(1) + '"');
     ok("Vakya: true Moon = book's 4r11°17'32\" (within 2\")", r.vk.moon <= 2, r.vk.moon.toFixed(1) + '"');
+    ok("Tamil vakya: the text's sunrise reductions for Thanjavur + 26' bija reproduce the printed manyadi table (within 1.2')", r.tamil.manyadiErr < 1.2, r.tamil.manyadiErr.toFixed(2) + "'");
+    ok("Tamil vakya: at real sunrise (Chennai) the Moon = Vakyakarana Moon at Ujjain mean sunrise + reduction, + 26' (within 1\")", r.tamil.atRise < 1, r.tamil.atRise.toFixed(2) + '"');
+    ok("Tamil vakya: Moon runs smoothly hour by hour for 120 days (no steps at sunrise)", r.tamil.tamilStep === 0, r.tamil.tamilStep + " bad steps");
+    ok("Tamil vakya: Moon about 26' ahead of plain Vakyakarana, Sun within 1', and the place matters", Math.abs(r.tamil.bijaDiff - 26) < 12 && r.tamil.sunDiff < 1 && r.tamil.placeDiff > 0.05, r.tamil.bijaDiff.toFixed(1) + "' / " + r.tamil.sunDiff.toFixed(2) + "' / " + r.tamil.placeDiff.toFixed(2) + "'");
+    ok("Tamil vakya: the text's precession (III.1) is 22.76 deg in Kali 5127 (2026)", Math.abs(r.tamil.precession2026 - 22.76) < 0.01, r.tamil.precession2026.toFixed(3));
     ok("Vakya: Rahu = book's 1r1°6'34\" (within 2\")", r.vk.rahu <= 2, r.vk.rahu.toFixed(1) + '"');
     ok("Vakya: ketu opposite rahu; 248 Moon vakyas loaded", Math.abs(r.vk.ketu) < 1e-9 && r.vk.vakya154);
     ok("Vakya: Moon moves 11.2-15.6 deg/day everywhere through 300 days (no jumps at cycle joins)", r.moonStep === 0, r.moonStep + " bad steps");
@@ -361,6 +394,56 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("Makaranda: the user bija table is not applied on top", r.mkr.ignoresBija);
     ok("methods are wired to their engines", r.mkr.wired);
     ok("text engines: no page errors", errors.length === 0, errors.join("; "));
+    await page.close();
+  }
+
+  // 6b. Tamil vakya against a printed Tamil vakya panchangam (Thanjavur, Karthigai 2026):
+  //     its sunrise table and its tithi / nakshatra / yoga ends in nazhigai from sunrise.
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    const fx = JSON.parse(fs.readFileSync(path.join(root, "test/fixtures/vakya-tamil-thanjavur-2026.json"), "utf8"));
+    const r = await page.evaluate(fx => {
+      const V = window.VedicEngine, S = V.Sidereal, Su = V.Sunrise, loc = fx.location, IST = 5.5 * 3600000;
+      const dayStart = iso => Date.parse(iso + "T00:00:00Z") - IST;
+      const sunriseErr = fx.sunrise.times.map(([d, hm]) => {
+        const want = dayStart(d) + (+hm.slice(0, 2) * 60 + +hm.slice(3)) * 60000;
+        return (Su.sunriseAfter(loc, new Date(dayStart(d)), "disc-centre").getTime() - want) / 60000;
+      });
+      const index = (kind, ms, method) => {
+        const d = new Date(ms), s = S.longitude("sun", d, "lahiri", method), m = S.longitude("moon", d, "lahiri", method);
+        if (kind === "tithi") return Math.floor(((m - s + 360) % 360) / 12) + 1;
+        if (kind === "nakshatra") return Math.floor(m / (360 / 27)) + 1;
+        return Math.floor(((m + s) % 360) / (360 / 27)) + 1;
+      };
+      const diffs = method => {
+        S.setPlace(loc, "disc-centre");
+        const out = { tithi: [], nakshatra: [], yoga: [] };
+        fx.ends.forEach(e => {
+          const rise = Su.sunriseAfter(loc, new Date(dayStart(e.date)), "disc-centre").getTime();
+          const [n, v] = e.ends.split("-").map(Number), printed = rise + (n * 24 + v * 0.4) * 60000;
+          let t = printed - 4 * 3600000, guard = 0;
+          while (index(e.kind, t, method) !== e.index && guard++ < 100) t += 600000;
+          while (index(e.kind, t, method) === e.index && guard++ < 300) t += 600000;
+          let a = t - 600000, b = t;
+          for (let i = 0; i < 25; i++) { const m = (a + b) / 2; if (index(e.kind, m, method) === e.index) a = m; else b = m; }
+          out[e.kind].push((b - printed) / 60000);
+        });
+        return out;
+      };
+      const tamil = diffs("vakya-tamil"), plain = diffs("vakya");
+      S.setPlace(V.Panchanga.DEFAULT_SETTINGS.location, "upper-limb");
+      return { sunriseErr, tamil, plain, n: fx.ends.length };
+    }, fx);
+    const all = o => o.tithi.concat(o.nakshatra, o.yoga), mean = a => a.reduce((x, y) => x + y, 0) / a.length, worst = a => Math.max.apply(null, a.map(Math.abs));
+    ok("Thanjavur almanac: its sunrise table is the disc centre without refraction (within 2 min; it drops the seconds)", worst(r.sunriseErr) <= 2, r.sunriseErr.map(x => x.toFixed(1)).join(" "));
+    ok("Thanjavur almanac: Tamil vakya reproduces the " + (r.tamil.tithi.length + r.tamil.nakshatra.length) + " printed tithi/nakshatra ends within 6 min (nazhigai from sunrise)", worst(r.tamil.tithi.concat(r.tamil.nakshatra)) <= 6, "worst " + worst(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1) + " min, mean " + mean(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1));
+    ok("Thanjavur almanac: Tamil vakya yoga ends within 12 min, mean within 3 min overall", worst(r.tamil.yoga) <= 12 && Math.abs(mean(all(r.tamil))) <= 3, "worst " + worst(r.tamil.yoga).toFixed(1) + " min, mean " + mean(all(r.tamil)).toFixed(1));
+    ok("Thanjavur almanac: plain Vakyakarana is ~50 min late (the manyadi bija matters)", mean(all(r.plain)) > 40, "mean " + mean(all(r.plain)).toFixed(1) + " min");
+    ok("Thanjavur almanac: no page errors", errors.length === 0, errors.join("; "));
     await page.close();
   }
 
@@ -703,6 +786,57 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       return p.left >= d.right && document.querySelectorAll("#dial .ghati-numeral-minor").length === 0;
     }));
     await wide.close();
+  }
+
+  // Today Details: lead block, verse chips, and tārā / candra bala from the janma nakṣatra
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 1100 } });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.addInitScript(() => {
+      if (!localStorage.getItem("vedicWallClock.settings.v1")) localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify({ location: { latitude: 13.08, longitude: 80.27, elevation: 0, name: "Chennai" } }));
+    });
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForTimeout(800);
+    const pure = await page.evaluate(() => {
+      const Y = VedicEngine.MCYogas;
+      return { same: Y.taraOf(3, 3), tenth: Y.taraOf(3, 12), wrap: Y.taraOf(25, 1), rashiKrittika1: Y.janmaRashi({ nakshatra: 2, pada: 1 }), rashiKrittika2: Y.janmaRashi({ nakshatra: 2, pada: 2 }), rashiRevati4: Y.janmaRashi({ nakshatra: 26, pada: 4 }),
+        cb: [Y.chandraBala(1, false), Y.chandraBala(8, true), Y.chandraBala(5, true), Y.chandraBala(5, false)] };
+    });
+    ok("tara: janma is 1st, the 10th is janma again, the count wraps past Revati", pure.same === 0 && pure.tenth === 0 && pure.wrap === 3, JSON.stringify(pure));
+    ok("janma rashi from nakshatra and pada", pure.rashiKrittika1 === 0 && pure.rashiKrittika2 === 1 && pure.rashiRevati4 === 11, JSON.stringify(pure));
+    ok("candra-bala by house and paksha", pure.cb.join() === "good,bad,good,mid", pure.cb.join());
+    const pk = await page.evaluate(() => {
+      const Y = VedicEngine.MCYogas;
+      return { names: [Y.panchakaOf(1, 0, 0, 0), Y.panchakaOf(2, 0, 0, 0), Y.panchakaOf(3, 0, 0, 0), Y.panchakaOf(30, 6, 26, 11), Y.panchakaOf(5, 0, 0, 0)] };
+    });
+    // 1+1+1+1 = 4 raja; 5 free; 6 cora; 30+7+27+12 = 76, remainder 4 raja; 8 roga
+    ok("panchaka-rahita: remainders 1, 2, 4, 6, 8 of the sum over 9", pk.names.join() === "Rāja,,Cora,Rāja,Roga", pk.names.join());
+    ok("find muhurta: Pañcaka (2.48) is asked only of the works it bars", await page.evaluate(() => {
+      const ev = {}; VedicEngine.MCEvents.groups.forEach(g => g.events.forEach(e => { ev[e.id] = !!e.noPanchaka; }));
+      return ev["travel-south"] && !ev["travel-north"] && ev["shraddha"] && Object.keys(ev).filter(k => ev[k]).length === 4;
+    }));
+    await page.click("#btn-todays-specialities");
+    await page.waitForSelector("#ts-body .ts-lead");
+    let st = await page.evaluate(() => ({ lead: document.querySelectorAll("#ts-body .ts-lead").length, first: document.querySelector("#ts-body").children[1].className, open: document.querySelectorAll("#ts-body details[open]").length, secs: document.querySelectorAll("#ts-body details").length, chips: document.querySelectorAll("#ts-body .ts-ref").length, personal: /Tārā-bala,/.test(document.querySelector(".ts-lead").textContent) }));
+    ok("today details: one lead block first, reference sections collapsed, verses as chips", st.lead === 1 && /ts-lead/.test(st.first) && st.open === 0 && st.secs >= 6 && st.chips > 10 && !st.personal, JSON.stringify(st));
+    await page.click("#ts-close");
+    await page.click("#settings-toggle");
+    await page.evaluate(() => { document.querySelectorAll("#settings-panel details").forEach(d => { d.open = true; }); });
+    ok("settings: the janma nakshatra list has 27 stars", await page.evaluate(() => document.getElementById("set-janma-nak").options.length === 28));
+    await page.selectOption("#set-janma-nak", "3");
+    await page.selectOption("#set-janma-pada", "2");
+    await page.click("#settings-save");
+    ok("settings: janma nakshatra is saved", await page.evaluate(() => { const j = JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).janma; return j.nakshatra === 3 && j.pada === 2; }));
+    await page.click("#btn-todays-specialities");
+    await page.waitForSelector("#ts-body .ts-lead");
+    st = await page.evaluate(() => { const t = document.querySelector(".ts-lead").textContent; return { tara: /Tārā-bala,/.test(t), chandra: /Candra-bala,/.test(t), marked: document.querySelectorAll(".ts-lead li.ts-good, .ts-lead li.ts-bad, .ts-lead li.ts-mid").length }; });
+    ok("today details: tara-bala and candra-bala lead the block once the star is set", st.tara && st.chandra && st.marked >= 2, JSON.stringify(st));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
+    ok("today details: no page errors", errors.length === 0, errors.join("; "));
+    await ctx.close();
   }
 
   await browser.close();

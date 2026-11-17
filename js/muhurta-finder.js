@@ -90,6 +90,7 @@
   // ---------------------------------------------------------------------------
   // Range-wide caches
   function buildCaches(fromMs, toMs, s) {
+    E.Sidereal.setPlace(s.location, s.sunriseEdge);   // for a place-dependent method ("vakya-tamil")
     const As = A(), cache = { eclipses: [], sankrantis: [], adhika: {} };
     try {
       const obs = new As.Observer(s.location.latitude, s.location.longitude, s.location.elevation || 0);
@@ -220,7 +221,8 @@
     const cuts = [];
     if (auspicious && E.MCYogas) {
       // A bad yoga's relaxed (crossed-out) parts are not cut, only the rest.
-      const cutBad = function (w) { if (w.goodBad === "bad") E.MCYogas.unrelieved(w).forEach(function (p) { cuts.push({ s: ms(p.startTime), e: ms(p.endTime) }); }); };
+      // Pañcaka (2.48) bars only five works: the events it bars carry noPanchaka.
+      const cutBad = function (w) { if (w.goodBad === "bad" && w.text !== "Pañcaka") E.MCYogas.unrelieved(w).forEach(function (p) { cuts.push({ s: ms(p.startTime), e: ms(p.endTime) }); }); };
       E.MCYogas.mainWindows(snapshot, data, opts).forEach(cutBad);
       E.MCYogas.secondary(snapshot, data, opts).windows.forEach(cutBad);
       cache.sankrantis.forEach(function (x) { if (x.t > P.rise - 8 * GH * 2 && x.t < P.next + 16 * GH) cuts.push({ s: x.t - 16 * GH, e: x.t + 16 * GH }); });

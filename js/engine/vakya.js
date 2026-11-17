@@ -13,7 +13,8 @@
 //  - Rāhu (I.17-19): mean node.
 //  - The reductions to LOCAL TRUE sunrise (I.14b-16: cara, deśāntara, bhujāntara) are
 //    conversions of clock time, not changes to the positions. This engine takes an absolute
-//    instant, so they are not applied.
+//    instant, so trueLongitude does not apply them. tamilLongitude (the Tamil almanacs'
+//    mānyādi, below) does, for the selected place, together with their 26' Moon bīja.
 //  - Mars..Saturn (ch. II): śodhya and maṇḍalas give the total dhruva and the day within a
 //    synodic cycle; the mahāvākya for that day (js/data/vakya-planets.js, generated from the
 //    notes), corrected by its corrector x the dhruva, plus the dhruva, is the true planet.
@@ -170,15 +171,123 @@
 
   const BODIES = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn", "rahu", "ketu"];
 
-  // Sidereal longitude in degrees [0,360) at `date`.
-  function trueLongitude(body, date) {
-    const t = kaliDays(date);
+  // Sidereal longitude in degrees [0,360) at Kali day `t` (fractional, Ujjain mean sunrise frame).
+  function longitudeAt(body, t) {
     if (body === "sun") return sun(t);
     if (body === "moon") return moon(t);
     if (body === "rahu") return rahu(t);
     if (body === "ketu") return Util.normDeg(rahu(t) + 180);
     if (PLANETS[body]) return planet(body, t);
     throw new Error("Unknown body '" + body + "'. Available: " + BODIES.join(", "));
+  }
+
+  // Sidereal longitude in degrees [0,360) at `date`.
+  function trueLongitude(body, date) {
+    return longitudeAt(body, kaliDays(date));
+  }
+
+  // ---- Tamil vākya pañcāṅga practice: the mānyādi -------------------------------
+  // Tamil almanac makers do not print the Vākyakaraṇa Moon as it stands. Since the 17th
+  // century they add the "mānyādi": a correction, tabulated by the Sun's place, that takes
+  // the Moon from Ujjain mean sunrise to true sunrise at the almanac's town AND adds a
+  // fixed bīja of about 26' to it (docs/graha-sphuta-sources.md, section A2).
+  // The tabulated mānyādi (15, 10, 7, 8, 11, 17, 23, 28, 30, 29, 26, 21' at the starts of
+  // Ṛṣabha..Meṣa) is reproduced to its 1' rounding by the text's own reductions (I.14b-16:
+  // half the cara + deśāntara + bhujāntara; III.7: cara) for a Kāveri-delta town, plus
+  // 26' (Thanjavur 26.2', Kumbakonam 26.7', Srirangam 25.2'). Like the text, the
+  // reduction to the equator (the obliquity part of the equation of time) is left out.
+  // "vakya-tamil" applies the same rules for the SELECTED place: the bīja, and the text's
+  // reduction to that place's sunrise, so the ghaṭīs from sunrise match the almanac's.
+  const MANYADI_BIJA_ARCMIN = 26;
+  // I.16: bhujāntara in vināḍīs at nirayana Sun 0, 30, .., 360 (ends of Mīna, Meṣa, .., Mīna).
+  const BHUJANTARA = [21, 16, 7, -5, -15, -21, -21, -14, -6, 4, 14, 20, 21];
+
+  // Kali years elapsed at Kali day t (the year begins at the Meṣa saṅkramaṇa, I.2-3).
+  function kaliYear(t) {
+    let Y = Math.floor(t / 365.2586806);
+    while (meshaSankramana(Y) > t) Y--;
+    while (meshaSankramana(Y + 1) <= t) Y++;
+    return Y;
+  }
+
+  // III.1: precession (ayanāṃśa) in degrees, oscillating between +-24 with zero at Kali 3600.
+  function precession(Y) {
+    let p = (Y - 3600) * (120 / 121) / 60;
+    p = ((p + 48) % 96 + 96) % 96 - 48;          // one full swing is 96 deg of "motion"
+    if (p > 24) p = 48 - p;
+    if (p < -24) p = -48 - p;
+    return p;
+  }
+
+  // III.7: cara for the whole day, in vināḍīs, from the sāyana Sun: 20, 16, 6 2/3 vināḍīs per
+  // aṅgula of palabhā for the three signs of its bhuja. Positive when the day is shorter than
+  // 30 nāḍīs (sāyana Sun in 6r-12r, northern latitudes); a southern latitude flips the sign.
+  function cara(latitudeDeg, sayanaSun) {
+    const palabha = 12 * Math.tan(latitudeDeg * Math.PI / 180);
+    let b = Util.normDeg(sayanaSun) % 180;
+    if (b > 90) b = 180 - b;
+    const r = b / 30;
+    const clamp = function (x) { return Math.max(0, Math.min(1, x)); };
+    const c = palabha * (20 * clamp(r) + 16 * clamp(r - 1) + 20 / 3 * clamp(r - 2));
+    return Util.normDeg(sayanaSun) >= 180 ? c : -c;
+  }
+
+  function bhujantara(siderealSun) {
+    const l = Util.normDeg(siderealSun), i = Math.min(Math.floor(l / 30), 11), f = (l - 30 * i) / 30;
+    return BHUJANTARA[i] + (BHUJANTARA[i + 1] - BHUJANTARA[i]) * f;
+  }
+
+  // I.14b-16: vināḍīs from Ujjain mean sunrise to sunrise at (latitude, longitude): half the
+  // cara + deśāntara (10 vināḍīs per degree west of Ujjain) + bhujāntara.
+  function sunriseReduction(latitudeDeg, longitudeDeg, siderealSun, precessionDeg) {
+    const deshantara = ((((UJJAIN_LONGITUDE_DEG - longitudeDeg) % 360) + 540) % 360 - 180) * 10;
+    return cara(latitudeDeg, siderealSun + precessionDeg) / 2 + deshantara + bhujantara(siderealSun);
+  }
+
+  // The almanac's mānyādi TABLE (arcminutes) for a place, at Kali day t: a table keyed by the
+  // Sun's place can only use the Moon's MEAN daily motion (360 deg / 27.321679 days) x the
+  // reduction, plus the bīja. With Thanjavur and an 18 deg precession this is the printed
+  // table. (tamilLongitude below follows I.14b-16 itself, which multiplies by the day's own
+  // motion; the two differ by under 2'.)
+  const MOON_MEAN_DAILY = 360 / 27.321679;
+  function manyadi(latitudeDeg, longitudeDeg, t, precessionDeg) {
+    const N = Math.floor(t);
+    const p = precessionDeg == null ? precession(kaliYear(N)) : precessionDeg;
+    return MOON_MEAN_DAILY * sunriseReduction(latitudeDeg, longitudeDeg, sun(N), p) / 60 + MANYADI_BIJA_ARCMIN;
+  }
+
+  const DAY_MS = 86400000;
+  function kaliDayToMs(N) { return (N - 2440587.5 - UJJAIN_LONGITUDE_DEG / 360 + KALI_SUNRISE_EPOCH_JD) * DAY_MS; }
+
+  // δ_N (days): the almanac's sunrise for Kali day N (Ujjain mean sunrise + the text's
+  // reduction, in the text's time frame) minus the real sunrise at the place (Sunrise module,
+  // the user's sunrise definition). The almanac's Moon at real sunrise is the Vākyakaraṇa Moon
+  // at Kali time N + reduction, i.e. at (real time + δ). Cached per place and day.
+  const shiftCache = new Map();
+  function sunriseShift(N, place) {
+    const key = N + "|" + place.latitude + "|" + place.longitude + "|" + (place.sunriseEdge || "");
+    if (shiftCache.has(key)) return shiftCache.get(key);
+    let shift = 0;
+    const Sunrise = VedicEngine.Sunrise;
+    if (Sunrise && Math.abs(place.latitude) < 60) {
+      const red = sunriseReduction(place.latitude, place.longitude, sun(N), precession(kaliYear(N)));
+      const almanacRise = kaliDayToMs(N) + red * DAY_MS / 3600;
+      const rise = Sunrise.sunriseAfter(place, new Date(almanacRise - DAY_MS / 2), place.sunriseEdge);
+      if (rise && Math.abs(almanacRise - rise.getTime()) < DAY_MS / 4) shift = (almanacRise - rise.getTime()) / DAY_MS;
+    }
+    if (shiftCache.size > 5000) shiftCache.clear();
+    shiftCache.set(key, shift);
+    return shift;
+  }
+
+  // Tamil vākya pañcāṅga longitude (degrees) at `date` for `place` = { latitude, longitude,
+  // elevation, sunriseEdge }: every body at real time + δ (interpolated between days so it
+  // stays continuous), and the Moon also gets the mānyādi bīja.
+  function tamilLongitude(body, date, place) {
+    const u = kaliDays(date), N = Math.floor(u);
+    const shift = sunriseShift(N, place) + (sunriseShift(N + 1, place) - sunriseShift(N, place)) * (u - N);
+    const lon = longitudeAt(body, u + shift);
+    return body === "moon" ? Util.normDeg(lon + MANYADI_BIJA_ARCMIN / 60) : lon;
   }
 
   function positions(date) {
@@ -191,7 +300,10 @@
     BODIES: BODIES,
     kaliDays: kaliDays,
     trueLongitude: trueLongitude,
+    tamilLongitude: tamilLongitude,
     positions: positions,
-    _internals: { meshaSankramana: meshaSankramana, sun: sun, moon: moon, moonAtDay: moonAtDay, rahu: rahu, MOON_VAKYA: MOON_VAKYA, planet: planet, planetReduce: planetReduce, PLANETS: PLANETS },
+    MANYADI_BIJA_ARCMIN: MANYADI_BIJA_ARCMIN,
+    _internals: { meshaSankramana: meshaSankramana, sun: sun, moon: moon, moonAtDay: moonAtDay, rahu: rahu, MOON_VAKYA: MOON_VAKYA, planet: planet, planetReduce: planetReduce, PLANETS: PLANETS,
+      kaliYear: kaliYear, precession: precession, cara: cara, bhujantara: bhujantara, sunriseReduction: sunriseReduction, manyadi: manyadi, sunriseShift: sunriseShift, kaliDayToMs: kaliDayToMs },
   };
 })(typeof window !== "undefined" ? window : globalThis);

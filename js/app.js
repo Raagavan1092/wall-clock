@@ -124,7 +124,7 @@
   let lastLayoutKey = null;
 
   function yogaOpts() {
-    return { yogaSets: settings.yogaSets, regionalLimits: settings.regionalLimits !== false, descriptive: !!settings.descriptiveTips };
+    return { janma: settings.janma, yogaSets: settings.yogaSets, regionalLimits: settings.regionalLimits !== false, descriptive: !!settings.descriptiveTips };
   }
 
   let data = null;
@@ -780,6 +780,11 @@
       workingHiddenRings = from.hiddenRings.slice();
       workingHiddenMarkers = from.hiddenMarkers.slice();
       document.getElementById("set-yoga-asal-vakya").checked = !!(from.yogaSets && from.yogaSets.asalVakya);
+      document.getElementById("set-yoga-panchaka").checked = !!(from.yogaSets && from.yogaSets.panchaka);
+      const janmaSel = document.getElementById("set-janma-nak");
+      if (janmaSel.options.length === 1 && data) data.nakshatra.names.forEach(function (name, i) { janmaSel.add(new Option(name, String(i))); });
+      janmaSel.value = from.janma && from.janma.nakshatra != null ? String(from.janma.nakshatra) : "";
+      document.getElementById("set-janma-pada").value = String((from.janma && from.janma.pada) || 1);
       document.getElementById("set-yoga-regional").checked = from.regionalLimits !== false;
       document.getElementById("set-yoga-descriptive").checked = !!from.descriptiveTips;
       renderRingOrderList();
@@ -815,7 +820,11 @@
         ringOrder: workingRingOrder.slice(),
         hiddenRings: workingHiddenRings.slice(),
         hiddenMarkers: workingHiddenMarkers.slice(),
-        yogaSets: { asalVakya: document.getElementById("set-yoga-asal-vakya").checked },
+        yogaSets: { asalVakya: document.getElementById("set-yoga-asal-vakya").checked, panchaka: document.getElementById("set-yoga-panchaka").checked },
+        janma: {
+          nakshatra: document.getElementById("set-janma-nak").value === "" ? null : +document.getElementById("set-janma-nak").value,
+          pada: +document.getElementById("set-janma-pada").value || 1,
+        },
         regionalLimits: document.getElementById("set-yoga-regional").checked,
         descriptiveTips: document.getElementById("set-yoga-descriptive").checked,
         script: document.getElementById("set-script").value,
