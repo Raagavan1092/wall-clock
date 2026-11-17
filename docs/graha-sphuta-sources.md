@@ -122,6 +122,13 @@ The table (VK edition, intro pp. xi–xii; section A, "Intro tables") at the sta
 - Tests (section 6): the table is reproduced within 1.2′; at real sunrise the Moon = VK Moon at the text's sunrise + 26′; the Moon has no steps; the place matters.
 - Not done: a printed almanac's own clock times also depend on how it computes sunrise (cara by the text gives ±a few minutes). The app uses the modern sunrise for the day boundary under every method.
 
+**Checked against a printed almanac (2026-11-17).** The user supplied a scan of a Tamil (asal) vākya pañcāṅgam for **Thanjavur**: its sunrise table for the Parābhava year, and the daily entries for Kārttikai 1–26 (17 Nov – 12 Dec 2026). The values are transcribed in `test/fixtures/vakya-tamil-thanjavur-2026.json` and tested in section 6b.
+- **Sunrise.** The almanac's sunrise is the centre of the disc without refraction (the app's "disc-centre"; it is 0.7–1.9 min later than the table, which drops the seconds). "Upper-limb" is about 3 min earlier.
+- **Nāḻigai.** Counted from that sunrise, `vakya-tamil` reproduces all 51 tithi and nakṣatra ends within 5.3 min (mean −2.5 min, sd ~1.4). The yoga ends match within 4 min, except 17 Nov dhruva (printed 59-22, app 59-50; perhaps a misprint of 59-52). Plain `vakya` is 52 min late on average.
+- **Variants tried.** The printed mānyādi table instead of the text's reduction; an 18° precession for the cara instead of III.1's 22.76°; true instead of mean motion. Each moves the mean by under 1 min (the table is marginally the best: sd 0.95 vs 1.33 min for nakṣatras). Not enough to choose, so the general rule (any place) stays.
+- **Misprints found.** 30 Nov saptamī "55-20 (05-49 அகா)": 05:49 is 59-32 by the almanac's own clock rule; the app gives 59-30. 27 Nov śubha yoga "52-11": the app gives 58-05, so probably 58-11.
+- **The almanac's clock times are 06:00 IST + nāḻigai**, not sunrise + nāḻigai. For example, 18 Nov navamī 52-20 is printed "02-56 இ". So its printed clock times are early by (sunrise − 6:00), 8–27 min this month. The app shows true clock times. Its ghaṭī-pala from sunrise (with the "disc-centre" sunrise) are what match the almanac's nāḻigai.
+
 ---
 # B. KETAKĪ GRAHAGAṆITA
 
