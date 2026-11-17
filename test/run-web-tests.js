@@ -150,7 +150,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const ms = performance.now() - t0;
       // The three text-based methods added after plain SS: each gives a coherent snapshot.
       const others = {};
-      ["ss-ranganatha", "vakya", "ketkar"].forEach(m => {
+      ["ss-ranganatha", "vakya", "vakya-tamil", "ketkar"].forEach(m => {
         const t1 = performance.now();
         const p = E.Panchanga.compute(when, { location: loc, method: m });
         const sq = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
@@ -164,7 +164,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
           sunriseSame: p.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
         };
       });
-      const saved = ["ss-ranganatha", "vakya", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
+      const saved = ["ss-ranganatha", "vakya", "vakya-tamil", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
       const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
       const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
       const bad = E.Panchanga.mergeSettings({ method: "nonsense" }).method;
@@ -201,8 +201,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: sunrise is unchanged by the method", r.sunriseSame);
     ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
     ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
-    ok("method: the five options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,ketkar" && r.pending === 0, r.radios.join(","));
-    ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,ketkar", r.saved.join(","));
+    ok("method: the six options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,vakya-tamil:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,vakya-tamil,ketkar" && r.pending === 0, r.radios.join(","));
+    ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,vakya-tamil,ketkar", r.saved.join(","));
     Object.keys(r.others).forEach(m => {
       const o = r.others[m], lim = m === "ketkar" ? 0.5 : 14;
       ok("method " + m + ": tithi ends within " + lim + " h of Drik, same or adjacent tithi, nakshatra within one", o.method === m && o.tithiDiffH < lim && o.tithiDiff <= 1 && o.nakDiff <= 1, o.tithiDiffH.toFixed(2) + " h");
@@ -323,12 +323,45 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const vkSteps = {};
       { const lim = { mars: 1.0, mercury: 2.6, jupiter: 0.35, venus: 1.5, saturn: 0.2 };
         P5.forEach(b => { let bad = 0, prev = VI.planet(b, 1840000); for (let t = 1840001; t < 1862000; t++) { const x = VI.planet(b, t); if (Math.abs(sw(x - prev)) > lim[b]) bad++; prev = x; } vkSteps[b] = bad; }); }
-      return { vk, vkp, vkSteps, moonStep, unknownThrows, kt, kWorst, vWorst, kJump, mkr };
+      // --- Tamil vakya (manyadi): the text's reductions + the 26' bija give the almanacs'
+      //     printed manyadi (15,10,7,8,11,17,23,28,30,29,26,21' at the starts of Rsabha..Mesa)
+      //     for Thanjavur (10.79 N, 79.14 E) with an 18 deg precession, to its 1' rounding.
+      const MANYADI = [15, 10, 7, 8, 11, 17, 23, 28, 30, 29, 26, 21];
+      const sankDay = deg => { for (let N = 1735000; ; N++) if (sw(VI.sun(N) - deg) < 0 && sw(VI.sun(N + 1) - deg) >= 0) return N + 1; };
+      const manyadiErr = Math.max.apply(null, MANYADI.map((m, k) => Math.abs(VI.manyadi(10.787, 79.138, sankDay((30 * (k + 1)) % 360), 18) - m)));
+      // At a place's real sunrise the Tamil Moon is the Vakyakarana Moon at the text's sunrise
+      // (Ujjain mean sunrise + reduction) + 26'.
+      const Sid = V.Sidereal, chennai = { latitude: 13.08, longitude: 80.27, elevation: 6 };
+      Sid.setPlace(chennai, "upper-limb");
+      const N0 = Math.floor(VK.kaliDays(new Date(Date.UTC(2026, 5, 1)))) + 1;
+      const rise = V.Sunrise.sunriseAfter(chennai, new Date(VI.kaliDayToMs(N0) - 6 * 3600000), "upper-limb");
+      const red = VI.sunriseReduction(13.08, 80.27, VI.sun(N0), VI.precession(VI.kaliYear(N0)));
+      const atRise = asec(Sid.longitude("moon", rise, "lahiri", "vakya-tamil"), VI.moon(N0 + red / 3600) + 26 / 60);
+      // Continuous (no steps at sunrise), and it depends on the place.
+      let tamilStep = 0;
+      for (let h = 0; h < 24 * 120; h += 1) {
+        const a = new Date(Date.UTC(2026, 0, 1) + h * 3600000), b = new Date(a.getTime() + 3600000);
+        const s = sw(Sid.longitude("moon", b, "lahiri", "vakya-tamil") - Sid.longitude("moon", a, "lahiri", "vakya-tamil"));
+        if (s < 0.45 || s > 0.67) tamilStep++;
+      }
+      const tChennai = Sid.longitude("moon", d0, "lahiri", "vakya-tamil");
+      Sid.setPlace({ latitude: 9.93, longitude: 78.12, elevation: 130 }, "upper-limb");
+      const placeDiff = Math.abs(sw(Sid.longitude("moon", d0, "lahiri", "vakya-tamil") - tChennai)) * 60;
+      const bijaDiff = sw(tChennai - VK.trueLongitude("moon", d0)) * 60;
+      const sunDiff = Math.abs(sw(Sid.longitude("sun", d0, "lahiri", "vakya-tamil") - VK.trueLongitude("sun", d0))) * 60;
+      Sid.setPlace(V.Panchanga.DEFAULT_SETTINGS.location, "upper-limb");
+      const tamil = { manyadiErr, atRise, tamilStep, placeDiff, bijaDiff, sunDiff, precession2026: VI.precession(VI.kaliYear(N0)) };
+      return { vk, vkp, vkSteps, moonStep, unknownThrows, kt, kWorst, vWorst, kJump, mkr, tamil };
     });
     ok("Vakya: Kali day count and weekday of the worked example (1844004, Saturday)", Math.abs(r.vk.kaliDays - 1844004) < 1e-6 && r.vk.weekday === 6, r.vk.kaliDays + " / " + r.vk.weekday);
     ok("Vakya: Mesha sankramana of Kali 5048 = 1843823 d 40 n 19 v", Math.abs(r.vk.mesha - (1843823 + 40 / 60 + 19 / 3600)) < 1 / 3600, String(r.vk.mesha));
     ok("Vakya: true Sun = book's 5r23°28'33\" (within 2\")", r.vk.sun <= 2, r.vk.sun.toFixed(1) + '"');
     ok("Vakya: true Moon = book's 4r11°17'32\" (within 2\")", r.vk.moon <= 2, r.vk.moon.toFixed(1) + '"');
+    ok("Tamil vakya: the text's sunrise reductions for Thanjavur + 26' bija reproduce the printed manyadi table (within 1.2')", r.tamil.manyadiErr < 1.2, r.tamil.manyadiErr.toFixed(2) + "'");
+    ok("Tamil vakya: at real sunrise (Chennai) the Moon = Vakyakarana Moon at Ujjain mean sunrise + reduction, + 26' (within 1\")", r.tamil.atRise < 1, r.tamil.atRise.toFixed(2) + '"');
+    ok("Tamil vakya: Moon runs smoothly hour by hour for 120 days (no steps at sunrise)", r.tamil.tamilStep === 0, r.tamil.tamilStep + " bad steps");
+    ok("Tamil vakya: Moon about 26' ahead of plain Vakyakarana, Sun within 1', and the place matters", Math.abs(r.tamil.bijaDiff - 26) < 12 && r.tamil.sunDiff < 1 && r.tamil.placeDiff > 0.05, r.tamil.bijaDiff.toFixed(1) + "' / " + r.tamil.sunDiff.toFixed(2) + "' / " + r.tamil.placeDiff.toFixed(2) + "'");
+    ok("Tamil vakya: the text's precession (III.1) is 22.76 deg in Kali 5127 (2026)", Math.abs(r.tamil.precession2026 - 22.76) < 0.01, r.tamil.precession2026.toFixed(3));
     ok("Vakya: Rahu = book's 1r1°6'34\" (within 2\")", r.vk.rahu <= 2, r.vk.rahu.toFixed(1) + '"');
     ok("Vakya: ketu opposite rahu; 248 Moon vakyas loaded", Math.abs(r.vk.ketu) < 1e-9 && r.vk.vakya154);
     ok("Vakya: Moon moves 11.2-15.6 deg/day everywhere through 300 days (no jumps at cycle joins)", r.moonStep === 0, r.moonStep + " bad steps");

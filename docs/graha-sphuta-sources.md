@@ -18,6 +18,7 @@ All three options are now selectable. Tests: `test/run-web-tests.js`, section 6 
   - Checks made: at every śodhya the text's mean Sun equals apogee + dhruva to 0.01°, and the real sky had the conjunction there (Mercury 2 Nov 1259 within 1.2°, Venus 3 Jul 1175 within 0.5°). So the epochs are read correctly.
   - Against the modern ephemeris today the planets are far off near conjunction/opposition: Mercury up to 26°, Venus 11°, Mars 11°, Saturn 11° (5.5° mean), Jupiter 3°. This is the text's own drift, not a slip: its synodic periods differ from the true ones (Table V), which since the śodhyas adds up to about 5 days of phase for Mercury and 2.4 for Venus.
   - **Table readings corrected (2026-11-14)** after scanning every vākya against its neighbours; each is marked CORRECTED in section C with the original reading: Mars C8 day 550 (0 3 57 → 0 0 57), Mars C15 day 330 (9 9 0 → 9 8 0), Mercury C8 day 24 (10 26 15 → 10 29 15), Jupiter C10 day 289 (4 14 13 → 4 15 13), Jupiter C10 day 399 (4 3 42 → 5 3 42), Venus C2 day 320 (7 11 19 → 7 13 19). These are inferred from smoothness, not re-read from the scan: check them against the book. Venus C4 day 276 is left as read but marked VERIFY. Slips smaller than about 0.4° cannot be found this way.
+- **`vakya-tamil`** → `js/engine/vakya.js` `tamilLongitude`: the Vākyakaraṇa plus the Tamil almanac makers' mānyādi (+26′ bīja on the Moon, and the text's reduction to sunrise at the selected place). See section A2.
 - **`ketkar`** → `js/engine/ketaki.js`. All grahas. Mean places use the book's procedure (cycles × dhruvaka + the short rule for the remaining days); that reproduces the Śaka 1815 example (Sun, Moon, apogee, Mars, Venus within 1″; Rāhu, Mercury, Jupiter ~10″). True Sun exact. Geocentric planets within ~2′ of the book, Mars 12′ (the book rounds the radius vector to a whole number; the engine does not). Against the modern ephemeris 1900–2100: Sun 0.02°, Moon 0.24°, planets under 1.5°. Not applied: Saturn's two small extra corrections, latitudes.
 - For all three: the reductions to local true sunrise (deśāntara, cara, bhujāntara/udayāntara as equation of time) are not applied, because the engines take an absolute instant. Ketkar's Moon bhujāntara is split: the annual-equation part (−657″ per 115.2′ of the Sun's equation) is applied, the equation-of-time part is not.
 - **Makaranda finding — read before trusting E2's last two columns.** The sexagesimal daily motions in E2 are whole revolutions in the SS's own 1,577,917,828 civil days, to 4 decimal places of a revolution: Sun 4,320,000; Moon 57,753,336 (**unchanged, not −1**); apogee 488,199 (−4); Mars 2,296,832; Mercury 17,937,076 (+16); Venus 7,022,364 (−12); Saturn 146,580 (+12); Rāhu 232,238.23. So "civil days −26" and "Moon −1" do not follow from the digits (the Sun's digits are exactly the SS rate; the decimal 0.98560267 printed beside them is not the value of those digits). The engine uses the digits. Effect: Makaranda's Sun = SS's Sun, and its Moon differs from SS only through the apogee (about 0.15° today).
@@ -95,6 +96,31 @@ Jupiter: sodhya 1570425-17 (-261); 974875-27 (+0) [print 4,74,875], 125648-50 (-
 Venus: sodhya 1561937-44 (+17); 437945-9 (-0) [print 4,87,945], 174594-8 (+29), 88756-53 (-58) [print -58 nadi], 44962-23 (+2103), 2919-38 (-144); cycle 584
 Saturn: sodhya 1589474-28 (-326); 570534-8 (+5), 182994-23 (-13), 21551-0 (+43), 10964-32 (+401); cycle 378
 Derived (self-consistent) mean at Kali epoch: Ma 347.117 (11r17°7'), Ju 12.85 (0r12°51'), Sa 354.583 (11r24°35'), Sun 0; inner sighra: Me 249.41°, Ve 41.06° (Table V print shows 3r7°8', 4r5°22' — inconsistent with sodhyas).
+
+---
+# A2. TAMIL VĀKYA PAÑCĀṄGAM PRACTICE: THE MĀNYĀDI (`vakya-tamil`, added 2026-11-17)
+
+Why: the plain `vakya` option did not match a Tamil (asal) vākya pañcāṅgam. The engine is not at fault: against the modern Moon (2020–26) its error splits into exactly the terms the vākya theory leaves out (evection −1.28°, equation of centre too small −1.29°, variation −0.66°, annual equation +0.18°; theory −1.27, −1.27, −0.66, +0.19), with 0.12° rms left over (the tables' rounding). The difference is a correction the almanac makers add.
+
+Sources:
+- *Kumārasvāmīyam* (Vīravanallūr Kumārasvāmi Dēsikar; Tamil, verse with commentary; archive.org / Tamil Digital Library, book 8544) is an astrology and muhurta compendium. Its parts are Mūla (14 paṭalams: names, nakṣatra, vāra, rāśi, tithi, yoga-karaṇa ... nāḻigai), Jātaka (23), Muhūrta (6) and Cintana (11). It lists "Vākyam" among its sources but has **no graha-gaṇita**: positions come from the vākya texts, and Kumārasvāmīyam plays the part Muhūrta Cintāmaṇi plays in this app.
+- "A brief history of Tamil astronomy" (wilbourhall.org, papers_on_jyothisa/p_jyot_1): a 1627 Tamil work (Vimeśvara Uttamudaiyan) gives minutes, additive or subtractive, "to bring the moon to true sunrise caused by the sun's equation of the centre, the change in daylight and the difference in longitude called deśāntara (the reduction to the equator being omitted, as in the original Vakyakarana itself)". It goes on: "This is the dawn of the manyadi correction to the moon which includes a correction to the mean moon of about 26′, used by the informants of Gentil and Warren, c. 1800 A.D., and later, up to this day." Jotiṣagaṇitaśāstram (c. 1880, Munampannai Kṛṣṇa Jyosyar, Nanguneri), "extensively used by Vakya almanac makers", "follows the Vakyakarana, but uses the manyadi to bring the moon to true sunrise, with a bija". The same paper says Murugaśekharam (1932 reprint) uses "the corrected Parahita method" for the planets, so Tamil almanac planets need not match the Vākyakaraṇa mahāvākyas.
+- An independent implementation (teispace/teistro-sdk PR 441) applying "the almanac makers' manyadi on the Moon" matched 127 printed ends of the Manonmani Vilasam śuddha vākya pañcāṅgam (1956, 1998, 2015) within 9.7 vināḍīs (rms 2.9).
+
+The table (VK edition, intro pp. xi–xii; section A, "Intro tables") at the starts of Ṛṣabha .. Mīna, Meṣa: 15, 10, 7, 8, 11, 17, 23, 28, 30, 29, 26, 21′.
+
+**Decoded (checked numerically).** mānyādi = Moon's mean daily motion × (½ cara + deśāntara + bhujāntara, in vināḍīs, by VK I.14b–16 and III.7) + bīja.
+- With Thanjavur (10.79 N, 79.14 E) and an 18° precession for the cara, the table comes back within ±1.1′ (its rounding) with **bīja = 26.2′** (Kumbakonam 26.7′, Srirangam 25.2′; Madurai, Chennai, Tirunelveli fit worse; Ujjain not at all). So the table was made for a Kāveri-delta town, and the bīja is the "about 26′" of the paper. The engine uses **26′**.
+- The obliquity part of the equation of time (udayāntara, ±9.9 min) is not in it, as the paper says. Against modern sunrise this shows as a ±5′ half-yearly leftover.
+
+**Implementation** (`js/engine/vakya.js`, `tamilLongitude`; Sidereal method `vakya-tamil`; the place comes from `Sidereal.setPlace`, set by `Panchanga.compute` and the muhurta finder):
+- For Kali day N and the selected place: the text's sunrise = Ujjain mean sunrise + R vināḍīs, with R = ½ cara (III.7: 20, 16, 6⅔ vināḍīs per aṅgula of palabhā = 12 tan φ, by the bhuja of the sāyana Sun; precession by III.1, 22.76° in 2026) + deśāntara (10 vināḍīs per degree west of Ujjain) + bhujāntara (I.16 table, by the nirayana Sun). The almanac's Moon at its sunrise is the Vākyakaraṇa Moon at that moment + 26′.
+- The app's day starts at the real sunrise S (Sunrise module, the user's sunrise definition). So the engine evaluates every body at real time + δ, δ = (text's sunrise − S), interpolated between days. Ghaṭīs counted from sunrise then equal the almanac's nāḻigai. δ is −7 .. +14 min in India.
+- The text's reduction multiplies by the day's own motion (I.14b–16). The printed table, keyed by the Sun's place only, uses the mean motion. The two differ by under 2′.
+- Beyond 60° latitude the cara rule breaks down, so δ = 0 there.
+- Effect: tithi, nakṣatra and yoga end about 42–54 min **earlier** than plain `vakya` (Chennai 2026: mean 47 min). Example: Vināyaka Caturthī 2023 at Chennai. Plain `vakya` has caturthī 12:18 IST 18 Sep – 12:34 19 Sep; `vakya-tamil` has 11:25 – 11:42, which puts more of the madhyāhna on 18 Sep (the almanac date) than plain `vakya` does. Drik gives 19 Sep.
+- Tests (section 6): the table is reproduced within 1.2′; at real sunrise the Moon = VK Moon at the text's sunrise + 26′; the Moon has no steps; the place matters.
+- Not done: a printed almanac's own clock times also depend on how it computes sunrise (cara by the text gives ±a few minutes). The app uses the modern sunrise for the day boundary under every method.
 
 ---
 # B. KETAKĪ GRAHAGAṆITA
@@ -2734,7 +2760,7 @@ Conclusions:
 4. Keep the śīghra steps, epicycles, ayanāṁśa and sunrise rules as in plain SS.
 
 ---
-# F. THE FIVE CALCULATION METHODS IN SIMPLE WORDS
+# F. THE CALCULATION METHODS IN SIMPLE WORDS
 
 What every method does: find where the Sun and the Moon are (as sidereal longitudes) at a given moment. Tithi, nakṣatra, yoga, karaṇa, saṅkrānti and the lunar month all follow from those two numbers. Sunrise, moonrise and lagna always come from the modern ephemeris, whatever the method.
 
@@ -2763,6 +2789,13 @@ What every method does: find where the Sun and the Moon are (as sidereal longitu
   - Moon: the Moon nearly repeats itself every 248 days (and better every 3031 and 12372 days). Take off those long cycles, each adding a fixed amount (*dhruva*); the day left over, 1–248, picks one of the 248 Moon vākyas. Add them up, plus one small correction.
   - Planets: the same idea. Each planet has a starting day (*śodhya*), long periods (*maṇḍalas*) and a table of vākyas covering its cycles from one conjunction with the Sun to the next.
   - Accuracy today: Sun within about 0.6°, Moon within about 4° (the vākyas carry only the Moon's main inequality). The planets have drifted a long way, Mercury most of all.
+
+- **Tamil vākya pañcāṅgam (Vākyakaraṇa + mānyādi)**
+  - What Tamil vākya almanacs actually print. They take the Vākyakaraṇa Moon and add the *mānyādi*, a small correction looked up by the month.
+  - The mānyādi has two parts. The first moves the Moon from Ujjain's 6 a.m. to sunrise in the almanac's town, by the text's own rules: longitude (deśāntara), day length (cara) and the Sun's uneven speed (bhujāntara). The second is a fixed +26′ added to the Moon, a bīja the almanac makers have used since about 1800.
+  - The app works the first part out for **your selected location** with the same rules, and adds the 26′. So ghaṭīs from sunrise agree with the almanac's nāḻigai.
+  - Effect: tithi, nakṣatra and yoga end about 40–55 minutes earlier than under plain Vākyakaraṇa.
+  - The Sun and planets are the plain Vākyakaraṇa ones. Some Tamil almanacs compute planets by a corrected Parahita method instead, so their planets may still differ.
 
 - **Veṅkaṭeśa Ketkar's rules (Ketakī Grahagaṇita)**
   - A traditional-style karaṇa built on modern (19th-century European) astronomical constants. Epoch: Śaka 1800, 3 April 1878, sunrise at Ujjain.

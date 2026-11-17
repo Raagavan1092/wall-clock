@@ -30,7 +30,7 @@
   }
 
   // ---- Calculation methods ---------------------------------------------------
-  // The five options the Jyotisha department asked for, in Settings order:
+  // The options, in Settings order:
   //   "drik"          modern ephemeris (astronomy-engine) minus the chosen ayanamsa. Default.
   //   "ss"            plain Surya Siddhanta (surya-siddhanta.js), no corrections. Sidereal
   //                   directly, so the ayanamsa setting does not enter.
@@ -38,6 +38,9 @@
   //                   Makaranda sarini: SS with Makaranda's mean motions (surya-siddhanta.js,
   //                   opts.school = "makaranda").
   //   "vakya"         Vakyakarana rules (Aryabhatiya-based), vakya.js
+  //   "vakya-tamil"   Tamil vakya panchangam practice: Vakyakarana + the almanac makers'
+  //                   manyadi (the text's reduction to sunrise AT THE SELECTED PLACE, and a
+  //                   +26' bija on the Moon), vakya.js tamilLongitude. Needs the place: see setPlace.
   //   "ketkar"        Venkatesh Ketkar's Ketaki Grahaganita, ketaki.js
   // All but "drik" give sidereal longitudes directly, so the ayanamsa setting does not enter.
   // A method that is listed in Settings but has no rules yet goes in PENDING_METHODS, not
@@ -45,12 +48,25 @@
   // falling back to another method would be a wrong answer that looks right).
   // Sources for the three classical additions: docs/graha-sphuta-sources.md.
   // Sunrise/sunset, moonrise/moonset and the lagna always use the modern ephemeris.
-  const METHODS = ["drik", "ss", "ss-ranganatha", "vakya", "ketkar"];
+  const METHODS = ["drik", "ss", "ss-ranganatha", "vakya", "vakya-tamil", "ketkar"];
   const PENDING_METHODS = [];
 
   // True when Sun and Moon positions come from a formula engine rather than the library,
   // so tithi/karana/month must be found by crossing searches on our own longitudes.
   function usesFormula(method) { return METHODS.indexOf(method) > 0; }
+
+  // The place a place-dependent method ("vakya-tamil") computes for: { latitude, longitude,
+  // elevation, sunriseEdge }. Panchanga.compute and the muhurta finder set it from the
+  // settings before computing; until then the built-in default location is used.
+  let place = null;
+  function setPlace(location, sunriseEdge) {
+    if (!location || !isFinite(location.latitude) || !isFinite(location.longitude)) return;
+    place = { latitude: +location.latitude, longitude: +location.longitude, elevation: +location.elevation || 0, sunriseEdge: sunriseEdge || "upper-limb" };
+  }
+  function currentPlace() {
+    if (!place) setPlace(VedicEngine.Panchanga ? VedicEngine.Panchanga.DEFAULT_SETTINGS.location : { latitude: 13.42, longitude: 75.25, elevation: 672 }, "upper-limb");
+    return place;
+  }
 
   // Sidereal longitude (degrees) of "sun" or "moon" under the given method.
   function longitude(body, date, ayanamsaName, method) {
@@ -60,6 +76,7 @@
     }
     if (method === "ss-ranganatha") return VedicEngine.SuryaSiddhanta.trueLongitude(body, date, { school: "makaranda" });
     if (method === "vakya") return VedicEngine.Vakya.trueLongitude(body, date);
+    if (method === "vakya-tamil") return VedicEngine.Vakya.tamilLongitude(body, date, currentPlace());
     if (method === "ketkar") return VedicEngine.Ketaki.trueLongitude(body, date);
     const ay = VedicEngine.Ayanamsa.get(ayanamsaName, date);
     return body === "sun" ? siderealSunLongitude(date, ay) : siderealMoonLongitude(date, ay);
@@ -71,7 +88,7 @@
   }
 
   VedicEngine.Sidereal = {
-    METHODS, PENDING_METHODS, usesFormula, longitude, elongation,
+    METHODS, PENDING_METHODS, usesFormula, longitude, elongation, setPlace, currentPlace,
     tropicalSunLongitude,
     tropicalMoonLongitude,
     siderealSunLongitude,
