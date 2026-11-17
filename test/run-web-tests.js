@@ -145,6 +145,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const loc = { latitude: 13.42, longitude: 75.25, elevation: 672, utcOffsetMinutes: 330 };
       const plain = E.Panchanga.compute(when, { location: loc });
       const drik = E.Panchanga.compute(when, { location: loc, method: "drik" });
+      const drikDisc = E.Panchanga.compute(when, { location: loc, method: "drik", sunriseEdge: "disc-centre" });
       const t0 = performance.now();
       const ss = E.Panchanga.compute(when, { location: loc, method: "ss" });
       const ms = performance.now() - t0;
@@ -161,9 +162,24 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
           covers: p.tithi.startTime <= when && when < p.tithi.endTime && p.nakshatra.startTime <= when && when < p.nakshatra.endTime,
           seqs: sq(p.tithiSequence) && sq(p.nakshatraSequence) && sq(p.yogaSequence) && sq(p.karanaSequence),
           masa: p.tithiSequence[0].amantaMasaRashiIndex === drik.tithiSequence[0].amantaMasaRashiIndex,
-          sunriseSame: p.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
+          sunriseSame: p.anchors.governingSunrise.getTime() === (m === "vakya-tamil" ? drikDisc : drik).anchors.governingSunrise.getTime(),
         };
       });
+      // Tamil vakya fixes the sunrise to the disc centre; the user's own choice is kept (and saved) for the others.
+      const sk = E.Settings.STORAGE_KEY, sOld = localStorage.getItem(sk);
+      localStorage.setItem(sk, JSON.stringify({ method: "vakya-tamil", sunriseEdge: "upper-limb" }));
+      const tl = E.Settings.load();
+      E.Settings.save(tl);
+      const stored = JSON.parse(localStorage.getItem(sk));
+      localStorage.setItem(sk, JSON.stringify({ method: "vakya", sunriseEdge: "upper-limb" }));
+      const vl = E.Settings.load();
+      if (sOld === null) localStorage.removeItem(sk); else localStorage.setItem(sk, sOld);
+      const pick = v => { const rb = Array.from(document.getElementsByName("calcMethod")).find(x => x.value === v); rb.checked = true; rb.dispatchEvent(new Event("change")); };
+      const edgeRadios = () => Array.from(document.getElementsByName("sunriseEdge")).map(x => x.value + (x.checked ? "*" : "") + (x.disabled ? "-" : "")).join(",") + (document.getElementById("sunrise-edge-fixed").style.display === "none" ? "" : " note");
+      pick("vakya-tamil"); const formTamil = edgeRadios();
+      pick("drik"); const formDrik = edgeRadios();
+      const fixedEdge = { tamilLoaded: tl.sunriseEdge + "/" + tl.sunriseEdgeChoice, stored: stored.sunriseEdge + "/" + ("sunriseEdgeChoice" in stored), vakyaLoaded: vl.sunriseEdge, formTamil, formDrik,
+        merged: E.Panchanga.mergeSettings({ method: "vakya-tamil", sunriseEdge: "upper-limb" }).sunriseEdge };
       const saved = ["ss-ranganatha", "vakya", "vakya-tamil", "ketkar"].map(m => { const k = E.Settings.STORAGE_KEY, o = localStorage.getItem(k); localStorage.setItem(k, JSON.stringify({ method: m })); const v = E.Settings.load().method; if (o === null) localStorage.removeItem(k); else localStorage.setItem(k, o); return v; });
       const hrs = (a, b) => Math.abs(a.getTime() - b.getTime()) / 3600000;
       const seqOk = seq => seq.length >= 1 && seq.every(x => x.segStart < x.segEnd) && seq.filter(x => x.isCurrent).length === 1;
@@ -188,7 +204,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         seqs: seqOk(ss.tithiSequence) && seqOk(ss.nakshatraSequence) && seqOk(ss.yogaSequence) && seqOk(ss.karanaSequence),
         masa: ss.tithiSequence[0].amantaMasaRashiIndex >= 0 && ss.tithiSequence[0].amantaMasaRashiIndex < 12,
         sunriseSame: ss.anchors.governingSunrise.getTime() === drik.anchors.governingSunrise.getTime(),
-        ms, bad, loadedSS, loadedBad, others, saved, radios, pureSS, methods: E.Sidereal.METHODS.join(","), pending: E.Sidereal.PENDING_METHODS.length,
+        ms, bad, loadedSS, loadedBad, others, saved, radios, fixedEdge, pureSS, methods: E.Sidereal.METHODS.join(","), pending: E.Sidereal.PENDING_METHODS.length,
       };
     });
     ok("method: Drik is the default and the setting default", r.defaultIsDrik);
@@ -202,11 +218,14 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: SS snapshot computes quickly", r.ms < 1500, r.ms.toFixed(0) + " ms");
     ok("method: unknown value falls back to Drik", r.bad === "drik" && r.loadedBad === "drik");
     ok("method: the six options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,vakya-tamil:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,vakya-tamil,ketkar" && r.pending === 0, r.radios.join(","));
+    ok("method: Tamil vakya uses the disc-centre sunrise; the user's own choice is kept and saved, and applies to the other methods",
+      r.fixedEdge.tamilLoaded === "disc-centre/upper-limb" && r.fixedEdge.stored === "upper-limb/false" && r.fixedEdge.vakyaLoaded === "upper-limb" && r.fixedEdge.merged === "disc-centre"
+      && r.fixedEdge.formTamil === "upper-limb-,disc-centre*- note" && r.fixedEdge.formDrik === "upper-limb*,disc-centre", JSON.stringify(r.fixedEdge));
     ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,vakya-tamil,ketkar", r.saved.join(","));
     Object.keys(r.others).forEach(m => {
       const o = r.others[m], lim = m === "ketkar" ? 0.5 : 14;
       ok("method " + m + ": tithi ends within " + lim + " h of Drik, same or adjacent tithi, nakshatra within one", o.method === m && o.tithiDiffH < lim && o.tithiDiff <= 1 && o.nakDiff <= 1, o.tithiDiffH.toFixed(2) + " h");
-      ok("method " + m + ": snapshot brackets 'now', sequences well-formed, same lunar month and sunrise as Drik", o.covers && o.seqs && o.masa && o.sunriseSame);
+      ok("method " + m + ": snapshot brackets 'now', sequences well-formed, same lunar month and sunrise as Drik (disc-centre Drik for Tamil vakya)", o.covers && o.seqs && o.masa && o.sunriseSame);
       ok("method " + m + ": snapshot computes quickly", o.ms < 1500, o.ms.toFixed(0) + " ms");
     });
     ok("method: 'ss' is pure Surya Siddhanta (no bija)", r.pureSS);
@@ -628,6 +647,164 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && document.getElementById("loc-menu").hidden && !document.body.classList.contains("edit-mode")));
     ok("first visit flow: no page errors", errors.length === 0, errors.join("; "));
     await ctx.close();
+  }
+
+  // 7. The clock screen: a readable dial on a phone, the Today panel, the layer switches,
+  //    the tap sheet, the help dialog, the event chips and the script for names
+  {
+    const seed = extra => { // a returning visitor in Chennai, on a fixed evening
+      const loc = { name: "Chennai", latitude: 13.08, longitude: 80.27, elevation: 6 };
+      if (localStorage.getItem("vedicWallClock.settings.v1")) return;
+      localStorage.setItem("vedicWallClock.defaultLocation.v1", JSON.stringify(loc));
+      localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify(Object.assign({ location: loc }, extra || {})));
+    };
+    const at = "/index.html?t=2026-11-13T19:25:00%2B05:30";
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+    await page.addInitScript(seed);
+    await page.goto(base + at);
+    await page.waitForSelector("#dial text", { timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    // Every piece of text on the dial is at least about 9px tall on screen (the small
+    // "Vipala" tail and a long marker name may go a little under).
+    const sizes = await page.evaluate(() => {
+      const svg = document.getElementById("dial");
+      const k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+      return Array.from(svg.querySelectorAll("text")).filter(t => t.textContent.trim()).map(t => ({ px: parseFloat(getComputedStyle(t).fontSize) * k, text: t.textContent.slice(0, 24) }));
+    });
+    const small = sizes.filter(x => x.px < 8.6);
+    ok("phone: no dial text under 9px", sizes.length > 10 && small.length === 0, JSON.stringify(small.slice(0, 4)));
+    ok("phone: only every fifth ghaṭī is numbered", await page.evaluate(() => document.querySelectorAll("#dial .ghati-numeral-minor").length === 0 && document.querySelectorAll("#dial .ghati-numeral").length === 12));
+    ok("centre: the time, the window running now and the switch; the date is not in it", await page.evaluate(() => {
+      const t = document.querySelector("#dial .centre-text").textContent;
+      return /Ghaṭī 33 · Pala \d+/.test(t) && /Bhadrā · till 20:43/.test(t) && !/Nov 2026|Current Ring/.test(t) && /Switch to hours/.test(document.getElementById("btn-switch-time").textContent);
+    }));
+
+    ok("centre: nothing is written over the hands' hub", await page.evaluate(() => {
+      const hub = document.querySelector("#dial .hand-hub").getBoundingClientRect(), mid = hub.top + hub.height / 2;
+      return Array.from(document.querySelectorAll("#dial .centre-text text")).every(t => { const r = t.getBoundingClientRect(); return r.bottom <= mid - hub.height / 2 + 1 || r.top >= mid + hub.height / 2 - 1; });
+    }));
+    ok("windows ring: lanes in use reach the ring's walls where a neighbouring lane is free", await page.evaluate(async () => {
+      // 14 Nov 2026 morning has bad windows in clusters of two lanes with a lane free beside some of them.
+      const E = window.VedicEngine, data = await fetch("js/data/panchanga-data.json").then(r => r.json());
+      const snap = E.Panchanga.compute(new Date("2026-11-14T09:10:00+05:30"), E.Settings.load());
+      const gb = E.RingAdapter.buildGoodBadTimes(snap, data, {});
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      E.Dial.renderGoodBadRing(g, gb.good, gb.bad);
+      const R = E.Dial.R, radii = Array.from(g.querySelectorAll(".event-segment.bad")).map(p => { const m = p.getAttribute("d").match(/A ([\d.]+) [\d.]+ .* A ([\d.]+) /); return [+m[2], +m[1]]; });
+      const rahu = gb.bad.segments.findIndex(s => s.text === "Rāhu Kālam");
+      const depth = radii.reduce((a, r) => Math.max(a, r[1]), 0) - R.goodBadRingInner;
+      return gb.bad.laneCount > 1 && rahu !== -1 && Math.abs(radii[rahu][0] - R.goodBadRingInner) < 0.01 && radii[rahu][1] - radii[rahu][0] > depth * 0.9;
+    }));
+    const panel = () => page.evaluate(() => document.getElementById("today-panel").innerText);
+    let text = await panel();
+    ok("Today panel: date, vāra, sunrise and sunset", /13 Nov 2026/.test(text) && /Śukravāra/.test(text) && /Sunrise 06:\d\d · Sunset 17:\d\d/.test(text), text.slice(0, 80));
+    ok("Today panel: tithi, nakṣatra, yoga, karaṇa with their end times, and the māsa", /Caturthī \(śukla\)\s+till 20:43/.test(text) && /Pūrva Āṣāḍhā\s+till \d\d:\d\d/.test(text) && /Yoga\s+\S+\s+till/.test(text) && /Viṣṭi\s+till 20:43/.test(text) && /Māsa\s+Kārttika/.test(text));
+    ok("Today panel: the windows running now and the next one", /Bhadrā\s+till 20:43/.test(text) && /Pradoṣa\s+till \d\d:\d\d/.test(text) && /Next bad: \S+\s+at \d\d:\d\d/.test(text));
+    ok("Today panel: the outer ring's division and the next", /Tithi · Caturthī \(śukla\)\s+next Pañcamī \(śukla\) at 20:43/.test(text));
+    ok("Today panel: sits under the clock in portrait", await page.evaluate(() => document.getElementById("today-panel").getBoundingClientRect().top >= document.getElementById("dial").getBoundingClientRect().bottom - 1));
+
+    // the two layer switches say their state and work
+    ok("switches: both on, as switches", await page.evaluate(() => ["btn-toggle-rings", "btn-toggle-windows"].every(id => { const b = document.getElementById(id); return b.getAttribute("role") === "switch" && b.getAttribute("aria-checked") === "true"; })));
+    await page.evaluate(() => document.getElementById("btn-toggle-rings").click());
+    await page.waitForTimeout(300);
+    ok("switches: Outer ring off hides the ring and its line in the panel", await page.evaluate(() =>
+      document.getElementById("btn-toggle-rings").getAttribute("aria-checked") === "false" && !document.querySelector("#dial .outer-ring *") && document.getElementById("tp-ring").hidden));
+    await page.evaluate(() => document.getElementById("btn-toggle-rings").click());
+    await page.waitForTimeout(300);
+
+    // a tap on the dial: a sheet at the bottom of the screen, and the segment is outlined
+    await page.evaluate(() => document.getElementById("stage").scrollTo(0, 0));
+    const box = await page.locator("#dial").boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2 + 4, box.y + box.height * 0.035);
+    await page.waitForTimeout(300);
+    ok("tap: the name and times come up as a sheet at the bottom", await page.evaluate(() => {
+      const tip = document.querySelector(".dial-tooltip");
+      const r = tip.getBoundingClientRect();
+      return tip.classList.contains("sheet") && getComputedStyle(tip).display !== "none" && r.bottom > innerHeight - 40 && /Caturthī/.test(tip.querySelector(".tip-title").textContent) && /Hr:Min/.test(tip.textContent) && !!document.querySelector("#dial .is-picked");
+    }));
+    await page.touchscreen.tap(20, 20);
+    await page.waitForTimeout(200);
+    ok("tap elsewhere: the sheet goes away", await page.evaluate(() => getComputedStyle(document.querySelector(".dial-tooltip")).display === "none" && !document.querySelector("#dial .is-picked")));
+
+    // help
+    ok("help: a pointer in the panel until it is opened", await page.evaluate(() => !document.getElementById("tp-hint").hidden && document.getElementById("help-dialog").classList.contains("hidden")));
+    await page.click("#btn-help");
+    ok("help: the ? button opens How to read the clock", await page.evaluate(() => !document.getElementById("help-dialog").classList.contains("hidden") && document.querySelectorAll("#help-dialog .help-list li").length >= 8));
+    await page.keyboard.press("Escape");
+    ok("help: Esc closes it, and the pointer is gone for good", await page.evaluate(() => document.getElementById("help-dialog").classList.contains("hidden") && document.getElementById("tp-hint").hidden && localStorage.getItem("vedicWallClock.helpSeen") === "1"));
+
+    // Find muhurta: common events as chips
+    await page.click("#btn-next-muhurta");
+    ok("Find muhurta: opens with common events as chips", await page.evaluate(() => document.querySelectorAll("#mf-suggest .mf-chip[data-id]").length >= 8 && document.getElementById("mf-list").hidden));
+    await page.click('#mf-suggest .mf-chip[data-id="vivaha"]');
+    ok("Find muhurta: a chip chooses its event", await page.evaluate(() => /Vivāha/.test(document.getElementById("mf-search").value) && /6\.13/.test(document.getElementById("mf-ref").textContent) &&
+      document.querySelector('#mf-suggest .mf-chip[data-id="vivaha"]').getAttribute("aria-pressed") === "true"));
+    await page.click("#mf-suggest .mf-chip-more");
+    ok("Find muhurta: 'All events' opens the full list", await page.evaluate(() => !document.getElementById("mf-list").hidden && document.querySelectorAll("#mf-list .mf-item").length > 50));
+    await page.click("#mf-close");
+
+    // full screen view: only the clock, so the date and pañcāṅga go back into its centre
+    await page.evaluate(() => document.body.classList.add("fullview"));
+    await page.waitForTimeout(400);
+    ok("full screen: the centre carries the date, tithi and nakṣatra again", await page.evaluate(() => {
+      const t = document.querySelector("#dial .centre-text").textContent;
+      return /13 Nov 2026 · Śukravāra/.test(t) && /Caturthī \(śukla\) · Pūrva Āṣāḍhā/.test(t) && getComputedStyle(document.getElementById("today-panel")).display === "none";
+    }));
+    await page.evaluate(() => document.body.classList.remove("fullview"));
+
+    // script for names: chosen in Settings, applied on the dial and in the panel, the data untouched
+    await page.click("#settings-toggle");
+    await page.evaluate(() => { document.querySelector("#set-script").closest("details").open = true; });
+    await page.selectOption("#set-script", "deva");
+    await page.click("#settings-save");
+    await page.waitForTimeout(500);
+    text = await panel();
+    ok("script: Devanāgarī in the Today panel", /शुक्रवार/.test(text) && /तिथि\s+चतुर्थी \(शुक्ल\)/.test(text) && /नक्षत्र\s+पूर्व आषाढा/.test(text) && /भद्रा\s+till 20:43/.test(text), text.slice(0, 120));
+    ok("script: Devanāgarī on the dial, the ring buttons and in the centre", await page.evaluate(() =>
+      /चतुर्थी \(शुक्ल\)/.test(document.querySelector("#dial .outer-ring").textContent) && /भद्रा · till 20:43/.test(document.querySelector("#dial .centre-text").textContent) &&
+      document.querySelector("#btn-next-display .rc-name").textContent === "नक्षत्र" && JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).script === "deva"));
+    ok("script: ghaṭī and pala in the centre are in the script too", await page.evaluate(() => /घटी 33 · पल \d+/.test(document.querySelector("#dial .centre-text").textContent)));
+    ok("script: the transliteration itself", await page.evaluate(() => {
+      const S = window.VedicEngine.Script, was = S.get(), out = {};
+      const want = {
+        deva: { "Caturthī (śukla)": "चतुर्थी (शुक्ल)", "Pūrva Āṣāḍhā": "पूर्व आषाढा", "Abhijit": "अभिजित्", "Kiṃstughna": "किंस्तुघ्न", "Pañcamī": "पञ्चमी", "Kṛttikā": "कृत्तिका", "First Yāma (night)": "प्रथम याम (रात्रि)", "Bhadrā +1": "भद्रा +1", "Sarvārtha-siddhi": "सर्वार्थ-सिद्धि" },
+        kn: { "Caturthī (śukla)": "ಚತುರ್ಥೀ (ಶುಕ್ಲ)", "Pañcamī": "ಪಂಚಮೀ", "Candrodaya": "ಚಂದ್ರೋದಯ", "Śukravāra": "ಶುಕ್ರವಾರ" },
+        ta: { "Caturthī (śukla)": "சதுர்த்தி (சுக்ல)", "Pūrva Phalgunī": "பூரம்", "Śukravāra": "வெள்ளி", "Rāhu Kālam": "ராகு காலம்", "Vyatīpāta": "வியதீபாதம்", "Dhvāṅkṣa": "த்வாங்க்ஷ" },
+        iast: { "Caturthī (śukla)": "Caturthī (śukla)" },
+      };
+      const bad = [];
+      Object.keys(want).forEach(k => { S.set(k); Object.keys(want[k]).forEach(n => { if (S.name(n) !== want[k][n]) bad.push(k + ": " + n + " -> " + S.name(n)); }); });
+      S.set(was);
+      return bad;
+    }).then(bad => { if (bad.length) console.log("  " + bad.join("\n  ")); return bad.length === 0; }));
+    ok("clock screen: no page errors", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    // landscape / desktop: the panel sits beside the clock, and every ghaṭī is numbered
+    const wide = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const wp = await wide.newPage();
+    await wp.addInitScript(seed);
+    await wp.goto(base + at);
+    await wp.waitForSelector("#dial text", { timeout: 20000 });
+    await wp.waitForTimeout(600);
+    ok("desktop: the Today panel is beside the clock, under the buttons, and they do not overlap", await wp.evaluate(() => {
+      const p = document.getElementById("today-panel").getBoundingClientRect(), d = document.getElementById("dial").getBoundingClientRect(), c = document.getElementById("top-controls").getBoundingClientRect();
+      return p.left >= d.right && p.top >= c.bottom && p.bottom <= innerHeight;
+    }));
+    ok("desktop: all 60 ghaṭīs are numbered and the marker lines are named", await wp.evaluate(() =>
+      document.querySelectorAll("#dial .ghati-numeral-minor").length === 48 && document.querySelectorAll("#dial .day-marker-label").length >= 2));
+    await wp.setViewportSize({ width: 844, height: 390 });
+    await wp.waitForTimeout(500);
+    ok("landscape phone: the panel stays clear of the clock and the dial is redrawn for its size", await wp.evaluate(() => {
+      const p = document.getElementById("today-panel").getBoundingClientRect(), d = document.getElementById("dial").getBoundingClientRect();
+      return p.left >= d.right && document.querySelectorAll("#dial .ghati-numeral-minor").length === 0;
+    }));
+    await wide.close();
   }
 
   // Today Details: lead block, verse chips, and tārā / candra bala from the janma nakṣatra

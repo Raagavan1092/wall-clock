@@ -51,6 +51,13 @@
   const METHODS = ["drik", "ss", "ss-ranganatha", "vakya", "vakya-tamil", "ketkar"];
   const PENDING_METHODS = [];
 
+  // Methods whose almanacs define sunrise one way. The Tamil vakya almanacs' sunrise is the
+  // centre of the disc without refraction (checked against a Thanjavur almanac's sunrise
+  // table, docs/graha-sphuta-sources.md A2), and their nazhigai count from it.
+  const FIXED_SUNRISE_EDGE = { "vakya-tamil": "disc-centre" };
+  // The sunrise definition in force: the method's own, else the user's choice.
+  function sunriseEdgeFor(method, chosen) { return FIXED_SUNRISE_EDGE[method] || chosen || "upper-limb"; }
+
   // True when Sun and Moon positions come from a formula engine rather than the library,
   // so tithi/karana/month must be found by crossing searches on our own longitudes.
   function usesFormula(method) { return METHODS.indexOf(method) > 0; }
@@ -88,7 +95,7 @@
   }
 
   VedicEngine.Sidereal = {
-    METHODS, PENDING_METHODS, usesFormula, longitude, elongation, setPlace, currentPlace,
+    METHODS, PENDING_METHODS, usesFormula, longitude, elongation, setPlace, currentPlace, FIXED_SUNRISE_EDGE, sunriseEdgeFor,
     tropicalSunLongitude,
     tropicalMoonLongitude,
     siderealSunLongitude,

@@ -59,6 +59,7 @@
       ayanamsa: base.ayanamsa,
       method: base.method,
       sunriseEdge: base.sunriseEdge,
+      sunriseEdgeChoice: base.sunriseEdge,
       ringOrder: VedicEngine.RingAdapter.RING_ORDER.slice(),
       // Keys of rings (switchable ones from RING_ORDER, or the always-on
       // ones in RingAdapter.FIXED_RING_TITLES) and marker lines
@@ -78,6 +79,8 @@
       // commentators' views, verse and the reasons it is relaxed. Off (the
       // default): just its name and, for a relaxed bad yoga, when.
       descriptiveTips: false,
+      // The script names are shown in (js/script.js): "iast", "deva", "kn" or "ta".
+      script: "iast",
       // Physical order of the ring layers, outside in (Dial.LAYER_KEYS).
       layerOrder: VedicEngine.Dial.LAYER_KEYS.slice(),
     };
@@ -121,11 +124,16 @@
       console.warn("Settings: failed to read localStorage, using defaults.", e);
     }
     if (!saved) return d;
+    const method = VedicEngine.Sidereal.METHODS.indexOf(saved.method) !== -1 ? saved.method : d.method;
+    const edgeChoice = saved.sunriseEdge === "disc-centre" ? "disc-centre" : "upper-limb";
     return {
       location: Object.assign({}, d.location, saved.location),
       ayanamsa: VedicEngine.Ayanamsa.registry[saved.ayanamsa] ? saved.ayanamsa : d.ayanamsa,
-      method: VedicEngine.Sidereal.METHODS.indexOf(saved.method) !== -1 ? saved.method : d.method,
-      sunriseEdge: saved.sunriseEdge === "disc-centre" ? "disc-centre" : "upper-limb",
+      method: method,
+      // sunriseEdge is the definition in force (a method can fix it: Tamil vakya uses the disc
+      // centre); sunriseEdgeChoice is the user's own choice, the one that is saved.
+      sunriseEdge: VedicEngine.Sidereal.sunriseEdgeFor(method, edgeChoice),
+      sunriseEdgeChoice: edgeChoice,
       ringOrder: sanitizeRingOrder(saved.ringOrder),
       // Only the switchable rings can be hidden; the always-on Good / Bad
       // Times and Day / Night rings and the layer order are not settings any
@@ -136,13 +144,16 @@
       janma: sanitizeJanma(saved.janma),
       regionalLimits: saved.regionalLimits !== false,
       descriptiveTips: saved.descriptiveTips === true,
+      script: VedicEngine.Script && VedicEngine.Script.SCRIPTS[saved.script] ? saved.script : d.script,
       layerOrder: d.layerOrder,
     };
   }
 
   function save(settings) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      const out = Object.assign({}, settings, { sunriseEdge: settings.sunriseEdgeChoice || settings.sunriseEdge });
+      delete out.sunriseEdgeChoice;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
     } catch (e) {
       console.warn("Settings: failed to write localStorage.", e);
     }

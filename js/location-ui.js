@@ -361,9 +361,12 @@
     function openDialog() {
       lastFocus = document.activeElement;
       const loc = api.getSettings().location;
+      // First visit: the dialog is a welcome ("Choose your place", Start); later it is Change location / Apply.
+      $("loc-title").textContent = locked ? "Choose your place" : "Change location";
+      applyBtn.textContent = locked ? "Start" : "Apply";
       if (locked) {
         latIn.value = lonIn.value = elevIn.value = "";
-        setNote("Choose where you are. Your first location becomes the default.");
+        setNote("Sunrise, and with it every time on this clock, depends on where you are. Search for your town or district, or use this device's location. You can change it later from the place name at the top.");
       } else {
         latIn.value = loc.latitude;
         lonIn.value = loc.longitude;
