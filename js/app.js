@@ -764,6 +764,25 @@
       }, function (key) { return showCheckbox(key, workingHiddenRings); });
     }
 
+    // Sunrise definition: the user's own choice, unless the chosen method fixes it (Tamil
+    // vakya: disc centre), in which case that is shown ticked and greyed out, with a note.
+    let sunriseChoice = "upper-limb";
+    function syncSunriseRadios() {
+      const method = (document.querySelector('input[name="calcMethod"]:checked') || {}).value || "drik";
+      const fixed = E.Sidereal.FIXED_SUNRISE_EDGE[method];
+      Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
+        radio.disabled = !!fixed;
+        radio.checked = radio.value === (fixed || sunriseChoice);
+      });
+      document.getElementById("sunrise-edge-fixed").style.display = fixed ? "" : "none";
+    }
+    Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
+      radio.addEventListener("change", function () { if (radio.checked && !radio.disabled) sunriseChoice = radio.value; });
+    });
+    Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
+      radio.addEventListener("change", syncSunriseRadios);
+    });
+
     // Fills the form from `from` (the saved settings, or the defaults for
     // Reset to defaults); nothing is committed until Save. The location is not
     // part of this form: it is changed from the place name at the top of the clock screen.
@@ -773,9 +792,8 @@
       Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
         radio.checked = radio.value === from.method;
       });
-      Array.from(document.getElementsByName("sunriseEdge")).forEach(function (radio) {
-        radio.checked = radio.value === from.sunriseEdge;
-      });
+      sunriseChoice = from.sunriseEdgeChoice || from.sunriseEdge;
+      syncSunriseRadios();
       workingRingOrder = from.ringOrder.slice();
       workingHiddenRings = from.hiddenRings.slice();
       workingHiddenMarkers = from.hiddenMarkers.slice();
@@ -809,14 +827,14 @@
 
     // Saves the form and closes. The location is kept as it is.
     function saveAndClose() {
-      const sunriseEdge = (document.querySelector('input[name="sunriseEdge"]:checked') || {}).value || "upper-limb";
       const method = (document.querySelector('input[name="calcMethod"]:checked') || {}).value || "drik";
 
       settings = {
         location: settings.location,
         ayanamsa: ayanamsaSelect.value,
         method: method,
-        sunriseEdge: sunriseEdge,
+        sunriseEdge: E.Sidereal.sunriseEdgeFor(method, sunriseChoice),
+        sunriseEdgeChoice: sunriseChoice,
         ringOrder: workingRingOrder.slice(),
         hiddenRings: workingHiddenRings.slice(),
         hiddenMarkers: workingHiddenMarkers.slice(),

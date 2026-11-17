@@ -32,12 +32,15 @@
 
   function mergeSettings(overrides) {
     overrides = overrides || {};
-    return {
+    const merged = {
       location: Object.assign({}, DEFAULT_SETTINGS.location, overrides.location),
       ayanamsa: overrides.ayanamsa || DEFAULT_SETTINGS.ayanamsa,
       sunriseEdge: overrides.sunriseEdge || DEFAULT_SETTINGS.sunriseEdge,
       method: VedicEngine.Sidereal.METHODS.indexOf(overrides.method) !== -1 ? overrides.method : DEFAULT_SETTINGS.method,
     };
+    // A method can fix the sunrise definition (Tamil vakya: disc centre).
+    merged.sunriseEdge = VedicEngine.Sidereal.sunriseEdgeFor(merged.method, merged.sunriseEdge);
+    return merged;
   }
 
   // The full snapshot for `date` (a JS Date, typically "now" or the debug-scrubbed time).
