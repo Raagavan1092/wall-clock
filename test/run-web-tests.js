@@ -534,7 +534,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.evaluate(r => { window.__rang = [{ alarmId: r.alarmId, fireAtMs: r.fireAtMs, rangAtMs: r.fireAtMs + 1500 }]; }, onceRing);
     await page.evaluate(() => VedicEngine.AndroidBridge.sync(true));
     const after = await page.evaluate(id => ({ a: VedicEngine.Alarms.get(id), ack: window.__calls.ack.slice(), last: window.__calls.sync[window.__calls.sync.length - 1] }), onceRing.alarmId);
-    ok("bridge: a ring the app made is recorded (once-alarm switches off)", after.a.enabled === false && after.a.lastRang === onceRing.fireAtMs + 1500 && after.ack.includes(onceRing.fireAtMs + 1500));
+    ok("bridge: a ring the app made is recorded (once-alarm is deleted)", !after.a && after.ack.includes(onceRing.fireAtMs + 1500));
     ok("bridge: ...and its rings are gone from the next sync", after.last.rings.every(r => r.alarmId !== onceRing.alarmId) && after.last.alarmCount === 1);
 
     // user track copy

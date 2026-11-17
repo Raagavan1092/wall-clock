@@ -11,7 +11,7 @@
 //     engine's 75-day search limit) are pushed with AndroidAlarms.sync(json);
 //   - alarms the app rang while this page was closed are read back with
 //     AndroidAlarms.getRang() and recorded in the engine (Alarms.markRang), so
-//     "just once" alarms switch off and nothing is rung twice.
+//     "just once" alarms are deleted and nothing is rung twice.
 //
 // The page itself never rings while the bridge is present (see AlarmUI.init).
 (function (global) {

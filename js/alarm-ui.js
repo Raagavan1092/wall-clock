@@ -353,7 +353,7 @@
     if (!items.length) return;
     items.forEach(function (a) {
       let nextText;
-      if (!a.enabled) nextText = a.lastRang && a.repeat === "once" ? "Rang " + fmtWhen(a.lastRang, now) : "Off";
+      if (!a.enabled) nextText = "Off";
       else if (a.next === undefined) nextText = "Working out the next time…";
       else if (a.next === null) nextText = "Not due in the next 2 months";
       else nextText = "Next: " + fmtWhen(a.next.fireAt, now) + " · in " + span(a.next.fireAt - now);
