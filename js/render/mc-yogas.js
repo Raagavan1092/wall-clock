@@ -503,6 +503,26 @@
       if (M.nityaWhole.indexOf(y.index) === -1) return;
       bad.push({ w: win(iv(ms(y.segStart), ms(y.segEnd)), data.yoga.names[y.index], "bad", data.yoga.names[y.index] + " yoga: avoid in all work (1.35)."), afterNoon: true });
     });
+    // Pañcaka-rahita (Settings > Yogas), a local practice: tithi (1-30 from
+    // śukla pratipadā) + weekday (Sunday 1) + nakṣatra (Aśvinī 1) + lagna
+    // (Meṣa 1), divided by 9. Remainder 1 mṛtyu, 2 agni, 4 rāja, 6 cora,
+    // 8 roga; 3, 5, 7 and 0 are free of pañcaka.
+    if (ctx.opts.yogaSets && ctx.opts.yogaSets.panchaka) {
+      const lagnas = snapshot.lagnaSequence.map(function (l) { return Object.assign(iv(ms(l.segStart), ms(l.segEnd)), { l: l }); });
+      T.forEach(function (ts) {
+        N.forEach(function (ns) {
+          const tn = overlap(ts, ns);
+          if (!tn) return;
+          lagnas.forEach(function (ls) {
+            const o = overlap(tn, ls);
+            if (!o) return;
+            const name = panchakaOf(ts.t.number, v, ns.n.index, ls.l.index);
+            if (!name) return;
+            bad.push({ w: win(o, name + " pañcaka", "bad", name + " pañcaka: tithi " + ts.t.number + " + " + varaName + " " + (v + 1) + " + " + nakName(data, ns.n.index) + " " + (ns.n.index + 1) + " + " + data.rashi.names[ls.l.index] + " lagna " + (ls.l.index + 1) + " = " + (ts.t.number + v + 1 + ns.n.index + 1 + ls.l.index + 1) + ", remainder " + ((ts.t.number + v + ns.n.index + ls.l.index + 3) % 9) + " of 9. A local practice, not from Muhūrta Cintāmaṇi (its bāṇa, 6.73–74, is counted from the Sun's degrees).") });
+          });
+        });
+      });
+    }
     // Asal Vākya Amṛta / Maraṇa Yogam (Settings > Yogas), a local practice.
     if (ctx.opts.yogaSets && ctx.opts.yogaSets.asalVakya && data.nityaYoga) {
       N.forEach(function (ns) {
@@ -551,6 +571,10 @@
     goodOut.forEach(function (g) { out.push(g); });
     brief(out, opts);
     return { windows: out, suppressed: uniq(ctx.suppressed), region: ctx.region };
+  }
+  // tithi 1..30, vara 0..6, nakṣatra 0..26, lagna 0..11 -> the pañcaka's name, or null.
+  function panchakaOf(tithi, vara, nak, lagna) {
+    return { 1: "Mṛtyu", 2: "Agni", 4: "Rāja", 6: "Cora", 8: "Roga" }[(tithi + vara + 1 + nak + 1 + lagna + 1) % 9] || null;
   }
   function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
 
@@ -899,5 +923,5 @@
     return items;
   }
 
-  VedicEngine.MCYogas = { regionsFor: regionsFor, mainWindows: mainWindows, unrelieved: unrelieved, secondary: secondary, todaySpecial: todaySpecial, taraOf: taraOf, chandraBala: chandraBala, janmaRashi: janmaRashi };
+  VedicEngine.MCYogas = { regionsFor: regionsFor, mainWindows: mainWindows, unrelieved: unrelieved, secondary: secondary, todaySpecial: todaySpecial, panchakaOf: panchakaOf, taraOf: taraOf, chandraBala: chandraBala, janmaRashi: janmaRashi };
 })(typeof window !== "undefined" ? window : globalThis);

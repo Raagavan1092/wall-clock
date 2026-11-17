@@ -669,6 +669,16 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("tara: janma is 1st, the 10th is janma again, the count wraps past Revati", pure.same === 0 && pure.tenth === 0 && pure.wrap === 3, JSON.stringify(pure));
     ok("janma rashi from nakshatra and pada", pure.rashiKrittika1 === 0 && pure.rashiKrittika2 === 1 && pure.rashiRevati4 === 11, JSON.stringify(pure));
     ok("candra-bala by house and paksha", pure.cb.join() === "good,bad,good,mid", pure.cb.join());
+    const pk = await page.evaluate(() => {
+      const Y = VedicEngine.MCYogas;
+      return { names: [Y.panchakaOf(1, 0, 0, 0), Y.panchakaOf(2, 0, 0, 0), Y.panchakaOf(3, 0, 0, 0), Y.panchakaOf(30, 6, 26, 11), Y.panchakaOf(5, 0, 0, 0)] };
+    });
+    // 1+1+1+1 = 4 raja; 5 free; 6 cora; 30+7+27+12 = 76, remainder 4 raja; 8 roga
+    ok("panchaka-rahita: remainders 1, 2, 4, 6, 8 of the sum over 9", pk.names.join() === "Rāja,,Cora,Rāja,Roga", pk.names.join());
+    ok("find muhurta: Pañcaka (2.48) is asked only of the works it bars", await page.evaluate(() => {
+      const ev = {}; VedicEngine.MCEvents.groups.forEach(g => g.events.forEach(e => { ev[e.id] = !!e.noPanchaka; }));
+      return ev["travel-south"] && !ev["travel-north"] && ev["shraddha"] && Object.keys(ev).filter(k => ev[k]).length === 4;
+    }));
     await page.click("#btn-todays-specialities");
     await page.waitForSelector("#ts-body .ts-lead");
     let st = await page.evaluate(() => ({ lead: document.querySelectorAll("#ts-body .ts-lead").length, first: document.querySelector("#ts-body").children[1].className, open: document.querySelectorAll("#ts-body details[open]").length, secs: document.querySelectorAll("#ts-body details").length, chips: document.querySelectorAll("#ts-body .ts-ref").length, personal: /Tārā-bala,/.test(document.querySelector(".ts-lead").textContent) }));
