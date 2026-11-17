@@ -656,6 +656,19 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     });
     // 1+1+1+1 = 4 raja; 5 free; 6 cora; 30+7+27+12 = 76, remainder 4 raja; 8 roga
     ok("panchaka-rahita: remainders 1, 2, 4, 6, 8 of the sum over 9", pk.names.join() === "Rāja,,Cora,Rāja,Roga", pk.names.join());
+    const relax = await page.evaluate(async () => {
+      const E = VedicEngine, data = await fetch("js/data/panchanga-data.json").then(r => r.json());
+      const snap = E.Panchanga.compute(new Date("2026-11-17T06:00:00Z"), { location: { latitude: 13.08, longitude: 80.27, elevation: 0 } }), a = snap.anchors, set = a.sunsetToday.getTime();
+      const w = E.MCYogas.secondary(snap, data, { yogaSets: { panchaka: true }, regionalLimits: true }).windows.filter(x => / pañcaka$/.test(x.text));
+      const bad = [];
+      w.forEach(x => E.MCYogas.unrelieved(x).forEach(p => {
+        const day = p.startTime.getTime() < set, night = p.endTime.getTime() > set, n = x.text.split(" ")[0];
+        if ((n === "Agni" || n === "Rāja") && night) bad.push(n + " at night");
+        if ((n === "Cora" || n === "Roga") && day) bad.push(n + " by day");
+      }));
+      return { n: w.length, kinds: Array.from(new Set(w.map(x => x.text))).length, bad: bad };
+    });
+    ok("panchaka-rahita: agni and raja hold only by day, cora and roga only at night", relax.n > 5 && relax.kinds >= 3 && !relax.bad.length, JSON.stringify(relax));
     ok("find muhurta: Pañcaka (2.48) is asked only of the works it bars", await page.evaluate(() => {
       const ev = {}; VedicEngine.MCEvents.groups.forEach(g => g.events.forEach(e => { ev[e.id] = !!e.noPanchaka; }));
       return ev["travel-south"] && !ev["travel-north"] && ev["shraddha"] && Object.keys(ev).filter(k => ev[k]).length === 4;

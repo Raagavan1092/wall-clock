@@ -506,7 +506,8 @@
     // Pañcaka-rahita (Settings > Yogas), a local practice: tithi (1-30 from
     // śukla pratipadā) + weekday (Sunday 1) + nakṣatra (Aśvinī 1) + lagna
     // (Meṣa 1), divided by 9. Remainder 1 mṛtyu, 2 agni, 4 rāja, 6 cora,
-    // 8 roga; 3, 5, 7 and 0 are free of pañcaka.
+    // 8 roga; 3, 5, 7 and 0 are free of pañcaka. Agni and rāja are relaxed
+    // at night, cora and roga by day; mṛtyu holds throughout.
     if (ctx.opts.yogaSets && ctx.opts.yogaSets.panchaka) {
       const lagnas = snapshot.lagnaSequence.map(function (l) { return Object.assign(iv(ms(l.segStart), ms(l.segEnd)), { l: l }); });
       T.forEach(function (ts) {
@@ -518,7 +519,8 @@
             if (!o) return;
             const name = panchakaOf(ts.t.number, v, ns.n.index, ls.l.index);
             if (!name) return;
-            bad.push({ w: win(o, name + " pañcaka", "bad", name + " pañcaka: tithi " + ts.t.number + " + " + varaName + " " + (v + 1) + " + " + nakName(data, ns.n.index) + " " + (ns.n.index + 1) + " + " + data.rashi.names[ls.l.index] + " lagna " + (ls.l.index + 1) + " = " + (ts.t.number + v + 1 + ns.n.index + 1 + ls.l.index + 1) + ", remainder " + ((ts.t.number + v + ns.n.index + ls.l.index + 3) % 9) + " of 9. A local practice, not from Muhūrta Cintāmaṇi (its bāṇa, 6.73–74, is counted from the Sun's degrees).") });
+            bad.push({ w: win(o, name + " pañcaka", "bad", name + " pañcaka: tithi " + ts.t.number + " + " + varaName + " " + (v + 1) + " + " + nakName(data, ns.n.index) + " " + (ns.n.index + 1) + " + " + data.rashi.names[ls.l.index] + " lagna " + (ls.l.index + 1) + " = " + (ts.t.number + v + 1 + ns.n.index + 1 + ls.l.index + 1) + ", remainder " + ((ts.t.number + v + ns.n.index + ls.l.index + 3) % 9) + " of 9. A local practice, not from Muhūrta Cintāmaṇi (its bāṇa, 6.73–74, is counted from the Sun's degrees)."),
+              reliefs: name === "Agni" || name === "Rāja" ? [{ span: P.night, reason: name + " pañcaka is relaxed at night" }] : name === "Cora" || name === "Roga" ? [{ span: P.day, reason: name + " pañcaka is relaxed by day" }] : [] });
           });
         });
       });
@@ -564,6 +566,7 @@
         cancel.forEach(function (c) { reliefs.push(c); });
       }
       if (b.shunya) siddhaSpans.forEach(function (s) { reliefs.push({ span: s, reason: "a Siddha tithi removes māsa-śūnya faults (Vasiṣṭha, 1.4)" }); });
+      if (b.reliefs) b.reliefs.forEach(function (r) { reliefs.push(r); });
       if (b.afterNoon) reliefs.push({ span: P.afterNoon, reason: "if unavoidable, the time after midday is good (1.42)" });
       relieve(w, reliefs).forEach(function (x) { out.push(x); });
     });
