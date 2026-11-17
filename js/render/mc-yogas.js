@@ -561,6 +561,9 @@
     const M = D(), ctx = ctxFor(snapshot, opts), P = dayParts(snapshot);
     const v = snapshot.varaIndex, s = snapshot.settings;
     const sections = [];
+    // An item is a string, or { text, mark } ("bad" | "good" | "mid") when it
+    // is out of the ordinary: marked items are repeated in the lead section.
+    const B = function (t) { return { text: t, mark: "bad" }; };
     const fmt = function (d) { return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }) + VedicEngine.RingAdapter.dateNote(d, snapshot.anchors); };
     const range = function (a, b) { return fmt(a) + "–" + fmt(b); };
 
@@ -569,7 +572,8 @@
       const items = [];
       const pi = t.pakshaIndex, c = classOf(pi), key = t.number === 30 ? 30 : pi;
       items.push("Lord: " + (t.number === 30 ? M.amavasyaLord : M.tithiLord[pi - 1]) + ". Worship or install a deity on its own tithi (1.3).");
-      items.push(M.tithiClass[c] + " tithi: " + M.tithiClassResult[c] + " (1.4).");
+      const classLine = M.tithiClass[c] + " tithi: " + M.tithiClassResult[c] + " (1.4).";
+      items.push(c === 3 ? B(classLine) : classLine);
       const third = pi <= 5 ? 0 : pi <= 10 ? 1 : 2;
       const strength = t.paksha === "shukla" ? ["inauspicious (Moon weak)", "middling", "best"][third] : ["best", "middling", "inauspicious"][third];
       items.push("Pakṣa strength: " + strength + " (1.4).");
@@ -579,9 +583,9 @@
       if (w.avoid) items.push("Avoid: " + w.avoid + " (1.3).");
       const pkey = t.number === 30 ? 30 : t.number === 15 ? 45 : pi;
       M.tithiProhibit.forEach(function (p) { if (p.tithis.indexOf(pkey) !== -1) items.push(p.text); });
-      if ((t.paksha === "krishna" && (pi === 8 || pi === 14)) || pi === 15) items.push("A parva day (1.7 commentary).");
+      if ((t.paksha === "krishna" && (pi === 8 || pi === 14)) || pi === 15) items.push({ text: "A parva day (1.7 commentary).", mark: "mid" });
       items.push("For bathing, oil, tooth-cleaning, union, birth and death use the tithi at that moment, not the one at sunrise (1.7).");
-      sections.push({ title: "Tithi: " + tithiLabel(data, t), sub: range(t.segStart, t.segEnd), items: items });
+      sections.push({ title: "Tithi: " + tithiLabel(data, t), sub: range(t.segStart, t.segEnd), when: range(t.segStart, t.segEnd), items: items });
     });
 
     // ---- Nakṣatra ----
@@ -601,7 +605,7 @@
       if (i === 18) items.push("Mūla's abode this month: " + M.mulaAbodeByMasa[masaAt(snapshot, ms(n.segStart))] + (M.mulaAbodeByMasa[masaAt(snapshot, ms(n.segStart))] === "bhūmi" ? " (a Mūla birth's result applies, 2.56)." : " (little harm on earth, 2.56)."));
       if (i === 18 || i === 8) items.push("Birth in " + data.nakshatra.names[i] + " by pada: " + (i === 18 ? "1 father, 2 mother, 3 wealth, 4 good" : "4 father, 3 mother, 2 wealth, 1 good") + "; śānti removes it (2.55).");
       if (i === 17) items.push("Jyeṣṭhā birth: śānti by the 10 parts of 6 ghaṭīs (2.57).");
-      if (n.index >= 22) items.push("Pañcaka from the middle of Dhaniṣṭhā to the end of Revatī (2.48): no cremation without śānti, no travel south, no cot-weaving, thatching or gathering wood.");
+      if (n.index >= 22) items.push(("Pañcaka from the middle of Dhaniṣṭhā to the end of Revatī (2.48): no cremation without śānti, no travel south, no cot-weaving, thatching or gathering wood."));
       sections.push({ title: "Nakṣatra: " + data.nakshatra.names[i], sub: range(n.segStart, n.segEnd), items: items });
     });
 
@@ -636,10 +640,10 @@
       actItems.push(a.name + " (" + a.v + "): " + merged.map(function (x) { return range(x.startTime, x.endTime); }).join(", ") + (a.need ? ". Also needs: " + a.need + "." : ""));
     });
     if (v === 2 || snapshot.yogaSequence.some(function (y) { return y.index === 10; }) || (v === 0 && nakNow.some(function (n) { return n.index === 12; }))) {
-      actItems.push("Do not borrow money today (Tuesday, Vṛddhi yoga, Saṅkrānti or Sunday + Hasta): the debt passes to sons and grandsons (2.27).");
+      actItems.push(B("Do not borrow money today (Tuesday, Vṛddhi yoga, Saṅkrānti or Sunday + Hasta): the debt passes to sons and grandsons (2.27)."));
     }
     if (v === 2) actItems.push("Repaying a debt is good on a Tuesday (2.27).");
-    M.siddhaCaution.forEach(function (c) { if (c[0] === v && nakNow.some(function (n) { return n.index === c[1]; })) actItems.push("Avoid " + c[2] + " today despite the good yoga (1.22)."); });
+    M.siddhaCaution.forEach(function (c) { if (c[0] === v && nakNow.some(function (n) { return n.index === c[1]; })) actItems.push(B("Avoid " + c[2] + " today despite the good yoga (1.22).")); });
     sections.push({ title: "Activities by nakṣatra, weekday and tithi", sub: "Prakaraṇa 2. Lagna conditions are not checked.", items: actItems.length ? actItems : ["No listed activity suits today's nakṣatra, weekday and tithi together."] });
 
     // ---- The day ----
@@ -686,12 +690,85 @@
     }
     sections.push({ title: "Your region", sub: "", items: regItems });
 
+    const janma = janmaOf(opts);
     sections.push({ title: "Not computed", sub: "", items: [
-      "Rules that need birth details: janma nakṣatra, māsa and tithi for the first-born (1.34); nāḍī nakṣatras (2.43, 2.61); tārā and the Moon from the janma rāśi.",
+      "Rules that need birth details: janma māsa and tithi for the first-born (1.34); nāḍī nakṣatras (2.43, 2.61)" + (janma ? "." : "; tārā-bala and candra-bala (set your janma nakṣatra under Settings > Personal to see them)."),
       "Portents, earthquakes and planetary war (1.32), and a nakṣatra pierced by a planet.",
       "Lagna strength and placements the activities ask for (benefics in kendra, a clean 8th house, and so on).",
     ] });
+
+    // ---- Lead: what is different today ----
+    const lead = [];
+    if (janma) personalItems(snapshot, data, janma, range).forEach(function (x) { lead.push(x); });
+    const daily = Object.keys(M.namedMuhurta);
+    const full = Object.assign({}, opts, { descriptive: true });
+    const wins = secondary(snapshot, data, full).windows.concat(mainWindows(snapshot, data, full).filter(function (w) { return daily.indexOf(w.text) === -1; }));
+    const byName = {}, order = [];
+    wins.forEach(function (w) {
+      const parts = w.goodBad === "bad" ? unrelieved(w) : [w];
+      if (!parts.length) return;
+      const k = w.goodBad + "|" + w.text;
+      if (!byName[k]) { byName[k] = { w: w, spans: [] }; order.push(k); }
+      parts.forEach(function (p) { if (ms(p.endTime) - ms(p.startTime) >= 5 * 60000) byName[k].spans.push(range(p.startTime, p.endTime)); });
+    });
+    order.sort(function (a, b) { return (a[0] === "b" ? 0 : 1) - (b[0] === "b" ? 0 : 1); });
+    order.forEach(function (k) {
+      const e = byName[k];
+      if (!e.spans.length) return;
+      const ref = /\d+\.\d+[a-z]?(?:[–-]\d+)?/.exec(e.w.tip || "");
+      lead.push({ text: e.w.text + ": " + uniq(e.spans).join(", ") + (ref ? " (" + ref[0] + ")." : /local practice/i.test(e.w.tip || "") ? " (local practice)." : "."), mark: e.w.goodBad === "bad" ? "bad" : "good" });
+    });
+    sections.forEach(function (sec) {
+      sec.items.forEach(function (it) {
+        if (!it || !it.mark) return;
+        const text = sec.when ? sec.when + ": " + it.text : it.text;
+        if (!lead.some(function (x) { return x.text === text; })) lead.push({ text: text, mark: it.mark });
+      });
+    });
+    sections.unshift({ lead: true, title: "What is different today", sub: "", items: lead.length ? lead : ["Nothing out of the ordinary: no special yoga, and no bad window beyond the daily ones on the Good / Bad Times ring."] });
     return sections;
+  }
+
+  // ---- Tārā-bala and candra-bala from the janma nakṣatra -------------------
+  // opts.janma = { nakshatra: 0..26, pada: 1..4 } (Settings > Personal).
+  const TARA = [["Janma", "mid", "mixed: avoided for some works"], ["Sampat", "good", "wealth"], ["Vipat", "bad", "danger"], ["Kṣema", "good", "well-being"], ["Pratyari", "bad", "obstacles"], ["Sādhaka", "good", "success"], ["Vadha", "bad", "harm"], ["Mitra", "good", "friendly"], ["Parama-mitra", "good", "most friendly"]];
+  function janmaOf(opts) {
+    const j = opts && opts.janma;
+    return j && j.nakshatra != null && j.nakshatra >= 0 && j.nakshatra < 27 ? { nakshatra: j.nakshatra, pada: j.pada >= 1 && j.pada <= 4 ? j.pada : 1 } : null;
+  }
+  function taraOf(janmaNak, nak) { return ((nak - janmaNak + 27) % 27) % 9; }
+  function janmaRashi(j) { return Math.floor((j.nakshatra * 4 + j.pada - 1) / 9); }
+  // House of the Moon's sign from the janma rāśi -> "good" | "mid" | "bad".
+  function chandraBala(house, shukla) {
+    if ([1, 3, 6, 7, 10, 11].indexOf(house) !== -1) return "good";
+    if ([2, 5, 9].indexOf(house) !== -1) return shukla ? "good" : "mid";
+    return "bad";
+  }
+  function personalItems(snapshot, data, j, range) {
+    const s = snapshot.settings, out = [], SRC = " (Prakaraṇa 4, Gocara)";
+    snapshot.nakshatraSequence.forEach(function (n) {
+      const t = TARA[taraOf(j.nakshatra, n.index)];
+      out.push({ text: "Tārā-bala, " + range(n.segStart, n.segEnd) + ": " + t[0] + " tārā, " + t[2] + " — " + nakName(data, n.index) + " is no. " + (((n.index - j.nakshatra + 27) % 27) + 1) + " from your " + nakName(data, j.nakshatra) + SRC + ".", mark: t[1] });
+    });
+    // The Moon's sign through the day: split each nakṣatra span where the sign changes.
+    const jr = janmaRashi(j), signAt = function (t) { return Math.floor(VedicEngine.Sidereal.longitude("moon", new Date(t), s.ayanamsa, s.method) / 30); };
+    const a = ms(snapshot.nakshatraSequence[0].segStart), b = ms(snapshot.nakshatraSequence[snapshot.nakshatraSequence.length - 1].segEnd);
+    const spans = [];
+    let from = a, sign = signAt(a + 1000);
+    for (let t = a + 600000; t < b; t += 600000) {
+      if (signAt(t) === sign) continue;
+      let lo = t - 600000, hi = t;
+      while (hi - lo > 30000) { const mid = (lo + hi) / 2; if (signAt(mid) === sign) lo = mid; else hi = mid; }
+      spans.push([from, hi, sign]); from = hi; sign = signAt(t);
+    }
+    spans.push([from, b, sign]);
+    spans.forEach(function (x) {
+      const house = ((x[2] - jr + 12) % 12) + 1;
+      const tithi = snapshot.tithiSequence.find(function (t) { return ms(t.segEnd) > x[0]; }) || snapshot.tithi;
+      const r = chandraBala(house, tithi.paksha === "shukla");
+      out.push({ text: "Candra-bala, " + range(new Date(x[0]), new Date(x[1])) + ": the Moon in " + data.rashi.names[x[2]] + ", house " + house + " from your " + data.rashi.names[jr] + " — " + (r === "good" ? "good" : r === "bad" ? "bad (4, 8, 12 are to be avoided)" : "middling (2, 5, 9 count as good only in the bright half)") + SRC + ".", mark: r });
+    });
+    return out;
   }
   // Mean Rāhu (ascending node), sidereal nakṣatra index.
   function rahuNakshatra(date, settings) {
@@ -706,6 +783,7 @@
   function planetaryItems(snapshot, data, ctx, P) {
     const A = global.Astronomy, M = D(), items = [];
     if (!A) return ["Planetary checks need the ephemeris."];
+    const flag = function (t) { items.push({ text: t, mark: "bad" }); };
     const s = snapshot.settings, date = new Date((P.rise + P.set) / 2);
     const DAY = 86400000;
     function sidLon(body, d) {
@@ -724,9 +802,9 @@
     [["Jupiter (Guru)", A.Body.Jupiter], ["Venus (Śukra)", A.Body.Venus]].forEach(function (p) {
       const now = setNow(p[1], date);
       const before = setNow(p[1], new Date(ms(date) - 15 * DAY)), after = setNow(p[1], new Date(ms(date) + 15 * DAY));
-      if (now) items.push(p[0] + " is set (combust). " + BARRED);
-      else if (before) items.push(p[0] + " rose within the last 15 days: 'young' (bālya; Nārada's 15 days, others 10 or 7). " + BARRED);
-      else if (after) items.push(p[0] + " sets within 15 days: 'old' (vṛddha; Nārada's 15 days, others 10 or 7). " + BARRED);
+      if (now) flag(p[0] + " is set (combust). " + BARRED);
+      else if (before) flag(p[0] + " rose within the last 15 days: 'young' (bālya; Nārada's 15 days, others 10 or 7). " + BARRED);
+      else if (after) flag(p[0] + " sets within 15 days: 'old' (vṛddha; Nārada's 15 days, others 10 or 7). " + BARRED);
       else items.push(p[0] + " is visible: no asta-doṣa.");
     });
     const jl = sidLon(A.Body.Jupiter, date), jSign = Math.floor(jl / 30), sunL = VedicEngine.Sidereal.longitude("sun", date, s.ayanamsa, s.method), sunSign = Math.floor(sunL / 30);
@@ -735,17 +813,17 @@
     items.push("Jupiter in " + data.rashi.names[jSign] + " (" + (jl % 30).toFixed(1) + "°)" + (jRetro ? ", retrograde (some bar the same rites, 1.47)" : "") + ".");
     if (jSign === 4) {
       const deg = jl - 120;
-      if (deg < 40 / 3) items.push("Siṃhastha Guru in Maghā: barred in every country (1.50–51)." + (sunSign === 0 ? " The Sun is in Meṣa, so upanayana and marriage are allowed (1.49)." : ""));
-      else if (ctx.inRegion(["gangaGodavari", "kalinga", "gauda", "gurjara"])) items.push("Siṃhastha Guru: barred here (between the Gaṅgā and Godāvarī; in Kaliṅga, Gauḍa and Gurjara all of Siṃha) (1.49–51)." + (sunSign === 0 ? " The Sun is in Meṣa, so it is allowed (1.49)." : "") + (deg >= 40 / 3 && deg < 50 / 3 ? " Marriage is barred only in this Siṃha navāṃśa (1.49)." : ""));
+      if (deg < 40 / 3) flag("Siṃhastha Guru in Maghā: barred in every country (1.50–51)." + (sunSign === 0 ? " The Sun is in Meṣa, so upanayana and marriage are allowed (1.49)." : ""));
+      else if (ctx.inRegion(["gangaGodavari", "kalinga", "gauda", "gurjara"])) flag("Siṃhastha Guru: barred here (between the Gaṅgā and Godāvarī; in Kaliṅga, Gauḍa and Gurjara all of Siṃha) (1.49–51)." + (sunSign === 0 ? " The Sun is in Meṣa, so it is allowed (1.49)." : "") + (deg >= 40 / 3 && deg < 50 / 3 ? " Marriage is barred only in this Siṃha navāṃśa (1.49)." : ""));
       else items.push("Siṃhastha Guru past Maghā: the text bars it only between the Gaṅgā and Godāvarī and in Kaliṅga, Gauḍa and Gurjara, not here (1.50–51).");
     }
     if (jSign === 9) {
-      if (ctx.inRegion(["konkana", "magadha", "gauda", "sindhu"])) items.push("Jupiter in Makara (debilitated): barred here, in Koṅkaṇa, Magadha, Gauḍa and Sindhu (1.52). Vyavahāra-Caṇḍeśvara bars only its 5° of deep debilitation" + (Math.abs((jl % 30) - 5) < 1 ? ", which it is in now." : "."));
+      if (ctx.inRegion(["konkana", "magadha", "gauda", "sindhu"])) flag("Jupiter in Makara (debilitated): barred here, in Koṅkaṇa, Magadha, Gauḍa and Sindhu (1.52). Vyavahāra-Caṇḍeśvara bars only its 5° of deep debilitation" + (Math.abs((jl % 30) - 5) < 1 ? ", which it is in now." : "."));
       else items.push("Jupiter in Makara: the text bars it only in Koṅkaṇa, Magadha, Gauḍa and Sindhu, not here (1.52).");
     }
-    if (jSign === sunSign) items.push("Gurvāditya: the Sun and Jupiter in one sign; the asta rites are barred (1.48).");
+    if (jSign === sunSign) flag("Gurvāditya: the Sun and Jupiter in one sign; the asta rites are barred (1.48).");
     if ((jSign - vSign + 12) % 12 === 6) {
-      if (ctx.inRegion(["northNarmada"])) items.push("Samasaptaka: Jupiter and Venus in mutual 7th. Avoid marriage this month north of the Narmadā (1.53).");
+      if (ctx.inRegion(["northNarmada"])) flag("Samasaptaka: Jupiter and Venus in mutual 7th. Avoid marriage this month north of the Narmadā (1.53).");
       else items.push("Samasaptaka (Jupiter and Venus in mutual 7th) holds, but the text limits it to north of the Narmadā (1.53).");
     }
     // Lupta saṃvatsara (1.53): Jupiter races (atichāra) through a sign in
@@ -762,7 +840,7 @@
       const months = (last - first) / (30.4 * DAY);
       const fromSign = (jSign + 11) % 12;
       if (first > ms(date) - 395 * DAY && last < ms(date) + 395 * DAY && months < 10 && [0, 1, 10, 11].indexOf(fromSign) === -1) {
-        if (ctx.inRegion(["revaGanga"])) items.push("Lupta saṃvatsara: Jupiter spends only about " + months.toFixed(1) + " months in " + data.rashi.names[jSign] + " (atichāra). Highly condemned for auspicious work between the Revā and Gaṅgā (1.53).");
+        if (ctx.inRegion(["revaGanga"])) flag("Lupta saṃvatsara: Jupiter spends only about " + months.toFixed(1) + " months in " + data.rashi.names[jSign] + " (atichāra). Highly condemned for auspicious work between the Revā and Gaṅgā (1.53).");
         else items.push("Jupiter spends only about " + months.toFixed(1) + " months in " + data.rashi.names[jSign] + " (atichāra), but the lupta-saṃvatsara fault holds only between the Revā and Gaṅgā (1.53).");
       }
     } catch (e) { /* skip */ }
@@ -775,14 +853,14 @@
       const s1 = Math.floor(VedicEngine.Sidereal.longitude("sun", prevNew, s.ayanamsa, s.method) / 30);
       const s2 = Math.floor(VedicEngine.Sidereal.longitude("sun", nextNew, s.ayanamsa, s.method) / 30);
       const changes = (s2 - s1 + 12) % 12;
-      if (changes === 0) items.push("Adhika māsa: no saṅkrānti this lunar month. All non-routine work is barred (1.35, 1.46).");
-      if (changes === 2) items.push("Kṣaya māsa: two saṅkrāntis this lunar month. All non-routine work is barred; the months either side count as adhika (1.46).");
+      if (changes === 0) flag("Adhika māsa: no saṅkrānti this lunar month. All non-routine work is barred (1.35, 1.46).");
+      if (changes === 2) flag("Kṣaya māsa: two saṅkrāntis this lunar month. All non-routine work is barred; the months either side count as adhika (1.46).");
       // Viśvaghasra (1.48): a pakṣa of only 13 sunrises.
       const full = A.SearchMoonPhase(180, prevNew, 31).date;
       const half = ms(date) < ms(full) ? [prevNew, full] : [full, nextNew];
       let count = 0, t = VedicEngine.Sunrise.sunriseAfter(s.location, half[0], s.sunriseEdge);
       while (t && ms(t) < ms(half[1]) && count < 20) { count++; t = VedicEngine.Sunrise.sunriseAfter(s.location, new Date(ms(t) + 3600000), s.sunriseEdge); }
-      if (count <= 13) items.push("Viśvaghasra pakṣa: only " + count + " days in this pakṣa. Do not make or wear ivory or jewelled ornaments; asta rites barred (1.48).");
+      if (count <= 13) flag("Viśvaghasra pakṣa: only " + count + " days in this pakṣa. Do not make or wear ivory or jewelled ornaments; asta rites barred (1.48).");
     } catch (e) { /* skip */ }
     // Eclipses (1.32-33).
     try {
@@ -811,15 +889,15 @@
       ecl.forEach(function (e) {
         const days = (ms(e.time) - ms(date)) / DAY;
         const when = e.time.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" });
-        if (Math.abs(days) <= 3.5) items.push("A " + e.what + " eclipse on " + when + ": avoid auspicious work for 3 days before and after (1.32). Japa and homa are not affected.");
+        if (Math.abs(days) <= 3.5) flag("A " + e.what + " eclipse on " + when + ": avoid auspicious work for 3 days before and after (1.32). Japa and homa are not affected.");
         const monthsBar = e.frac >= 0.99 ? 6 : e.frac >= 0.5 ? 3 : 1;
         if (days < 0 && -days <= monthsBar * 30.4 && todayNaks.indexOf(e.nak) !== -1) {
-          items.push(data.nakshatra.names[e.nak] + " was the nakṣatra of the " + e.what + " eclipse on " + when + ": avoid it for auspicious work for " + monthsBar + " month" + (monthsBar > 1 ? "s" : "") + " after (1.33).");
+          flag(data.nakshatra.names[e.nak] + " was the nakṣatra of the " + e.what + " eclipse on " + when + ": avoid it for auspicious work for " + monthsBar + " month" + (monthsBar > 1 ? "s" : "") + " after (1.33).");
         }
       });
     } catch (e) { /* skip */ }
     return items;
   }
 
-  VedicEngine.MCYogas = { regionsFor: regionsFor, mainWindows: mainWindows, unrelieved: unrelieved, secondary: secondary, todaySpecial: todaySpecial };
+  VedicEngine.MCYogas = { regionsFor: regionsFor, mainWindows: mainWindows, unrelieved: unrelieved, secondary: secondary, todaySpecial: todaySpecial, taraOf: taraOf, chandraBala: chandraBala, janmaRashi: janmaRashi };
 })(typeof window !== "undefined" ? window : globalThis);

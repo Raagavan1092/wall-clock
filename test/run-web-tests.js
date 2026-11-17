@@ -547,6 +547,47 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await ctx.close();
   }
 
+  // Today Details: lead block, verse chips, and tārā / candra bala from the janma nakṣatra
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 1100 } });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.addInitScript(() => {
+      if (!localStorage.getItem("vedicWallClock.settings.v1")) localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify({ location: { latitude: 13.08, longitude: 80.27, elevation: 0, name: "Chennai" } }));
+    });
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForTimeout(800);
+    const pure = await page.evaluate(() => {
+      const Y = VedicEngine.MCYogas;
+      return { same: Y.taraOf(3, 3), tenth: Y.taraOf(3, 12), wrap: Y.taraOf(25, 1), rashiKrittika1: Y.janmaRashi({ nakshatra: 2, pada: 1 }), rashiKrittika2: Y.janmaRashi({ nakshatra: 2, pada: 2 }), rashiRevati4: Y.janmaRashi({ nakshatra: 26, pada: 4 }),
+        cb: [Y.chandraBala(1, false), Y.chandraBala(8, true), Y.chandraBala(5, true), Y.chandraBala(5, false)] };
+    });
+    ok("tara: janma is 1st, the 10th is janma again, the count wraps past Revati", pure.same === 0 && pure.tenth === 0 && pure.wrap === 3, JSON.stringify(pure));
+    ok("janma rashi from nakshatra and pada", pure.rashiKrittika1 === 0 && pure.rashiKrittika2 === 1 && pure.rashiRevati4 === 11, JSON.stringify(pure));
+    ok("candra-bala by house and paksha", pure.cb.join() === "good,bad,good,mid", pure.cb.join());
+    await page.click("#btn-todays-specialities");
+    await page.waitForSelector("#ts-body .ts-lead");
+    let st = await page.evaluate(() => ({ lead: document.querySelectorAll("#ts-body .ts-lead").length, first: document.querySelector("#ts-body").children[1].className, open: document.querySelectorAll("#ts-body details[open]").length, secs: document.querySelectorAll("#ts-body details").length, chips: document.querySelectorAll("#ts-body .ts-ref").length, personal: /Tārā-bala,/.test(document.querySelector(".ts-lead").textContent) }));
+    ok("today details: one lead block first, reference sections collapsed, verses as chips", st.lead === 1 && /ts-lead/.test(st.first) && st.open === 0 && st.secs >= 6 && st.chips > 10 && !st.personal, JSON.stringify(st));
+    await page.click("#ts-close");
+    await page.click("#settings-toggle");
+    await page.evaluate(() => { document.querySelectorAll("#settings-panel details").forEach(d => { d.open = true; }); });
+    ok("settings: the janma nakshatra list has 27 stars", await page.evaluate(() => document.getElementById("set-janma-nak").options.length === 28));
+    await page.selectOption("#set-janma-nak", "3");
+    await page.selectOption("#set-janma-pada", "2");
+    await page.click("#settings-save");
+    ok("settings: janma nakshatra is saved", await page.evaluate(() => { const j = JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).janma; return j.nakshatra === 3 && j.pada === 2; }));
+    await page.click("#btn-todays-specialities");
+    await page.waitForSelector("#ts-body .ts-lead");
+    st = await page.evaluate(() => { const t = document.querySelector(".ts-lead").textContent; return { tara: /Tārā-bala,/.test(t), chandra: /Candra-bala,/.test(t), marked: document.querySelectorAll(".ts-lead li.ts-good, .ts-lead li.ts-bad, .ts-lead li.ts-mid").length }; });
+    ok("today details: tara-bala and candra-bala lead the block once the star is set", st.tara && st.chandra && st.marked >= 2, JSON.stringify(st));
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
+    ok("today details: no page errors", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
+
   await browser.close();
   server.close();
   console.log(failures ? failures + " FAILED" : "ALL PASSED");
