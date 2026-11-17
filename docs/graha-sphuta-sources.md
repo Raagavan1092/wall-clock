@@ -2821,6 +2821,59 @@ What every method does: find where the Sun and the Moon are (as sidereal longitu
   - Planets: computed as seen from the Sun first (true heliocentric place and distance), then turned into the place seen from the Earth by the Sun–Earth–planet triangle. Jupiter and Saturn also get their long mutual inequality.
   - Accuracy today: Sun 0.02°, Moon 0.25°, planets within 1.5°. Tithi times fall within minutes of Drik.
 
+## The Thanjavur vākya pañcāṅgam: its own rules
+
+The user's Tamil (asal) vākya almanac for Thanjavur. Pages seen: the Parābhava-year sunrise table, and the daily entries for Kārttikai 1–26 (17 Nov – 12 Dec 2026). The `vakya-tamil` option is built to reproduce it. Details and numbers: section A2.
+
+**Where its numbers come from**
+- **Positions:** from the Vākyakaraṇa (the 248 Moon vākyas and the text's Sun). They do not come from *Kumārasvāmīyam*. That is a Tamil book of astrology and muhurta rules (names, good and bad times, horoscopes), with no position calculations. It plays the part Muhūrta Cintāmaṇi plays in this app.
+- **Its own Moon correction (mānyādi):** the almanac does not print the Vākyakaraṇa Moon as it stands.
+  - It moves the Moon from Ujjain's 6 a.m. to **Thanjavur's actual sunrise**, using its own sunrise table, not the text's rough sunrise rule.
+  - Then it adds a fixed **28′**. This is the bīja of this almanac. The table in the 1962 Vākyakaraṇa edition implies 26′ against the text's rough sunrise.
+  - Effect: its tithi, nakṣatra and yoga end about an hour earlier, in IST, than plain Vākyakaraṇa.
+- **Sun:** plain Vākyakaraṇa. Its month starts agree: Kārttikai 1 = 17 Nov 2026.
+
+**Sunrise**
+- The table is given in IST for days 1, 6, 11, 16, 21, 26 of each solar month, for Thanjavur only.
+- It is the **centre of the Sun's disc at the horizon, with no allowance for refraction**. The table drops the seconds. A "visible sunrise" (top edge, with refraction) is about 3 minutes earlier.
+
+**How it gives times**
+- Each end time is printed as **nāḻigai-vināḻigai from sunrise** (1 nāḻigai = 24 min, 1 vināḻigai = 24 s), followed by a clock time in brackets.
+- **The bracketed clock time is 06:00 IST + the nāḻigai**, not Thanjavur sunrise + the nāḻigai. Example: navamī 52-20 → "02-56 இ", i.e. 2:56 AM.
+- **The user's decision:** these IST times are the correct times, one instant for everyone in IST. The app reproduces the IST times, not the nāḻigai counts.
+- Clock-time suffixes:
+
+  | Suffix | Tamil | Meaning |
+  |---|---|---|
+  | கா | காலை | morning |
+  | ப | பகல் | daytime |
+  | மா | மாலை | evening |
+  | இ | இரவு | night |
+  | அகா | அதிகாலை | before dawn, still counted in that date's entry |
+  | முழு | முழுவதும் | the tithi runs the whole day, past the next sunrise |
+
+**How a day's entry is written**
+- Order: weekday, then tithi, nakṣatra, yoga, karaṇa (each with its end), then further items (e.g. "தி …", rāśi changes as "… சந் …"), festivals and observances.
+- Names are shortened: அஷ் (aṣṭamī), நவ (navamī), துவா (dvādaśī), சசி (caturdaśī), பௌள (pūrṇimā), அமா (amāvāsyā), அவி (aviṭṭam), சதய (sadayam), கார் (kārttikai) and so on.
+- The first tithi of a pakṣa is written with its lunar month: கார்த்திகபகுளபிர = Kārttika kṛṣṇa pratipadā, மார்க்கசிரகசுத்தபிர = Mārgaśira śukla pratipadā. So its lunar months are amānta.
+- When two tithis or yogas end on one day, both are listed: e.g. "ஷஷ் 04-13, ஸப் 55-20" on 30 Nov.
+- Lines beginning with a red ○ or ● mark full moon and new moon. A ★ marks the Kārttikai nakṣatra day.
+
+**Misprints found** (the almanac's own figures disagree)
+- 30 Nov saptamī "55-20 (05-49 அகா)": 05:49 AM is 59-32 by its own 06:00 rule. The IST time is kept.
+- 27 Nov śubha yoga "52-11": probably 58-11.
+- 17 Nov dhruva yoga "59-22": 16 minutes off everything else, so probably 59-52.
+
+**What the app copies, and what not**
+- Copied:
+  - the Moon correction (Thanjavur's sunrise + 28′), giving the same IST instant for every place;
+  - disc-centre sunrise for the day boundaries.
+- Not copied:
+  - its Thanjavur-only sunrise: the app uses the sunrise at your own location for day boundaries and ghaṭīs;
+  - its nāḻigai counting.
+- Planets: the app uses the Vākyakaraṇa planet tables. This almanac's planets have not been checked; some Tamil almanacs use a corrected Parahita method for them.
+- Fit over the month seen: tithi and nakṣatra within 2.1 minutes, yogas within 3.2 minutes. Pages from other months would show whether the 28′ holds all year.
+
 ## What "reduction to local sunrise" is, and why the app leaves it out
 
 - The old texts do not give a planet's place "at this instant". They give it once a day, at a standard moment: **mean sunrise at Ujjain** (6 a.m. Ujjain mean time; midnight for Sūrya Siddhānta).
