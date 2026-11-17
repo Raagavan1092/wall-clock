@@ -244,6 +244,11 @@
     return w;
   }
 
+  // Devanāgarī, Kannada and Tamil letters stand taller than Latin ones at the same font
+  // size (marks above and below the line), so a label in them is kept a little smaller
+  // against the height of its ring or lane.
+  function tallScript(text) { return /[\u0900-\u0DFF]/.test(text) ? 0.8 : 1; }
+
   // Names are drawn through this (app.js sets it to VedicEngine.Script.name).
   let labelTr = function (text) { return text; };
   function setLabelTransform(fn) { labelTr = fn || function (text) { return text; }; }
@@ -626,7 +631,7 @@
           const usable = geom.labelAtStart ? span - 2 * startPadDeg(midRadius) : span;
           const fitted = usable > 0 ? fittedCurvedFont(shown, usable, midRadius) : 0;
           // On a small dial the label may take up to half the ring's width to stay readable.
-          const cap = Math.max(Math.min(CURVED_MAX_FONT, thickness * 0.36), Math.min(minU, thickness * 0.5));
+          const cap = Math.max(Math.min(CURVED_MAX_FONT, thickness * 0.36 * tallScript(shown)), Math.min(minU, thickness * 0.5));
           const size = Math.min(cap, fitted);
           if (size >= Math.max(MIN_CURVED_FONT, minU)) {
             if (geom.labelAtStart) curvedLabelAtStart(segGroup, shown, seg.startAngle, span, midRadius, labelClass, size);
@@ -744,6 +749,24 @@
     return counts;
   }
 
+  // Per window, the lanes it is drawn across: { lo, hi }. It starts in its own lane and
+  // widens, toward the axis and toward the wall, over each lane that no window meeting
+  // it in time is using. Longer windows choose first, so two neighbours never take the
+  // same free lane.
+  function laneSpans(segments, counts) {
+    const spans = new Map();
+    segments.forEach(function (ev) { spans.set(ev, { lo: ev.lane, hi: ev.lane }); });
+    function meets(a, b) { return a.startTime < b.endTime && b.startTime < a.endTime; }
+    segments.slice().sort(function (a, b) { return (b.endTime - b.startTime) - (a.endTime - a.startTime); }).forEach(function (ev) {
+      const n = counts.get(ev) || 1, s = spans.get(ev);
+      const others = segments.filter(function (o) { return o !== ev && meets(o, ev); }).map(function (o) { return spans.get(o); });
+      function free(lane) { return !others.some(function (o) { return o.lo <= lane && lane <= o.hi; }); }
+      while (s.hi + 1 < n && free(s.hi + 1)) s.hi++;
+      while (s.lo > 0 && free(s.lo - 1)) s.lo--;
+    });
+    return spans;
+  }
+
   function renderGoodBadRing(group, good, bad, show) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const showGood = !show || show.good !== false, showBad = !show || show.bad !== false;
@@ -783,28 +806,31 @@
       const midRadius = (laneInner + laneOuter) / 2;
       const shown = labelTr(ev.text);
       // A thin lane on a small dial lets its label fill more of it (LANE_FONT_RATIO_MAX) to stay readable.
-      const byLane = Math.max(laneWidth * LANE_FONT_RATIO, Math.min(minU, laneWidth * LANE_FONT_RATIO_MAX));
+      const byLane = Math.max(laneWidth * LANE_FONT_RATIO * tallScript(shown), Math.min(minU, laneWidth * LANE_FONT_RATIO_MAX));
       const size = Math.min(MAX_LANE_FONT, byLane, fittedCurvedFont(shown, span, midRadius));
       if (size < Math.max(MIN_LANE_FONT, minU)) return;
       curvedLabel(g, shown, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
     }
-    // Lane geometry for a window: its cluster's lane count sets the width.
-    function laneOf(ev, counts, depth) {
+    // Lane geometry for a window: its cluster's lane count sets the lane width, and the
+    // window takes its own lane plus every neighbouring lane that is free for its whole
+    // length (laneSpans), so the lanes in use reach the ring's walls wherever they can.
+    function laneOf(ev, counts, spans, depth) {
       const n = counts.get(ev) || 1;
-      const width = (depth - LANE_GAP * (n - 1)) / n;
-      return { width: width, offset: ev.lane * (width + LANE_GAP) };
+      const unit = (depth - LANE_GAP * (n - 1)) / n;
+      const s = spans.get(ev);
+      return { width: (s.hi - s.lo + 1) * unit + (s.hi - s.lo) * LANE_GAP, offset: s.lo * (unit + LANE_GAP) };
     }
     if (showGood) {
-      const counts = clusterLaneCounts(good.segments);
+      const counts = clusterLaneCounts(good.segments), spans = laneSpans(good.segments, counts);
       good.segments.forEach(function (ev) {
-        const l = laneOf(ev, counts, goodDepth);
+        const l = laneOf(ev, counts, spans, goodDepth);
         draw(ev, goodBase + l.offset, goodBase + l.offset + l.width);
       });
     }
     if (showBad) {
-      const counts = clusterLaneCounts(bad.segments);
+      const counts = clusterLaneCounts(bad.segments), spans = laneSpans(bad.segments, counts);
       bad.segments.forEach(function (ev) {
-        const l = laneOf(ev, counts, badDepth);
+        const l = laneOf(ev, counts, spans, badDepth);
         draw(ev, badBase - l.offset - l.width, badBase - l.offset);
       });
     }
@@ -924,15 +950,28 @@
   const CENTRE_LINE_HEIGHT_DEFAULT = 36;
   // Text may reach a little past the plate's edge (into the empty space
   // before the day/night ring) but no further than this radius.
-  const CENTRE_REACH = 236;
+  const CENTRE_REACH = 250;
+  // No text is written over the hands' hub: the lines are split into a block above it
+  // and a block below it, at the line break nearest the middle, HUB_GAP apart.
+  const HUB_GAP = 44;
   function setCentreText(centreGroup, lines, switchGroup) {
     while (centreGroup.firstChild) centreGroup.removeChild(centreGroup.firstChild);
     const heights = lines.map(function (line) { return CENTRE_LINE_HEIGHT[line.emphasis] || CENTRE_LINE_HEIGHT_DEFAULT; });
     const total = heights.reduce(function (a, b) { return a + b; }, 0);
-    let y = CY + R.centreTextY - total / 2;
+    let above = 0, split = 0; // `split` lines (of height `above`) go over the hub
+    for (let i = 0, cum = 0; i < heights.length; i++) {
+      cum += heights[i];
+      if (Math.abs(cum - total / 2) < Math.abs(above - total / 2)) { above = cum; split = i + 1; }
+    }
+    // A spacer line right at the split is not needed: the hub's gap is the space.
+    if (lines[split] && !lines[split].text) heights[split] = 0;
+    else if (split > 0 && !lines[split - 1].text) { above -= heights[split - 1]; heights[split - 1] = 0; }
+    const below = heights.slice(split).reduce(function (a, b) { return a + b; }, 0);
+    let y = CY + R.centreTextY - HUB_GAP / 2 - above;
     // The switch button sits just below the last line of text.
-    if (switchGroup) switchGroup.setAttribute("transform", "translate(0 " + (y + total + 42).toFixed(1) + ")");
+    if (switchGroup) switchGroup.setAttribute("transform", "translate(0 " + (CY + R.centreTextY + HUB_GAP / 2 + below + 40).toFixed(1) + ")");
     lines.forEach(function (line, i) {
+      if (i === split) y += HUB_GAP;
       const lineY = y + heights[i] / 2;
       y += heights[i];
       if (!line.text) return; // a blank spacer line

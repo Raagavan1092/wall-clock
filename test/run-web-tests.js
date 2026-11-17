@@ -582,6 +582,22 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       return /Ghaṭī 33 · Pala \d+/.test(t) && /Bhadrā · till 20:43/.test(t) && !/Nov 2026|Current Ring/.test(t) && /Switch to hours/.test(document.getElementById("btn-switch-time").textContent);
     }));
 
+    ok("centre: nothing is written over the hands' hub", await page.evaluate(() => {
+      const hub = document.querySelector("#dial .hand-hub").getBoundingClientRect(), mid = hub.top + hub.height / 2;
+      return Array.from(document.querySelectorAll("#dial .centre-text text")).every(t => { const r = t.getBoundingClientRect(); return r.bottom <= mid - hub.height / 2 + 1 || r.top >= mid + hub.height / 2 - 1; });
+    }));
+    ok("windows ring: lanes in use reach the ring's walls where a neighbouring lane is free", await page.evaluate(async () => {
+      // 14 Nov 2026 morning has bad windows in clusters of two lanes with a lane free beside some of them.
+      const E = window.VedicEngine, data = await fetch("js/data/panchanga-data.json").then(r => r.json());
+      const snap = E.Panchanga.compute(new Date("2026-11-14T09:10:00+05:30"), E.Settings.load());
+      const gb = E.RingAdapter.buildGoodBadTimes(snap, data, {});
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      E.Dial.renderGoodBadRing(g, gb.good, gb.bad);
+      const R = E.Dial.R, radii = Array.from(g.querySelectorAll(".event-segment.bad")).map(p => { const m = p.getAttribute("d").match(/A ([\d.]+) [\d.]+ .* A ([\d.]+) /); return [+m[2], +m[1]]; });
+      const rahu = gb.bad.segments.findIndex(s => s.text === "Rāhu Kālam");
+      const depth = radii.reduce((a, r) => Math.max(a, r[1]), 0) - R.goodBadRingInner;
+      return gb.bad.laneCount > 1 && rahu !== -1 && Math.abs(radii[rahu][0] - R.goodBadRingInner) < 0.01 && radii[rahu][1] - radii[rahu][0] > depth * 0.9;
+    }));
     const panel = () => page.evaluate(() => document.getElementById("today-panel").innerText);
     let text = await panel();
     ok("Today panel: date, vāra, sunrise and sunset", /13 Nov 2026/.test(text) && /Śukravāra/.test(text) && /Sunrise 06:\d\d · Sunset 17:\d\d/.test(text), text.slice(0, 80));
@@ -650,6 +666,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("script: Devanāgarī on the dial, the ring buttons and in the centre", await page.evaluate(() =>
       /चतुर्थी \(शुक्ल\)/.test(document.querySelector("#dial .outer-ring").textContent) && /भद्रा · till 20:43/.test(document.querySelector("#dial .centre-text").textContent) &&
       document.querySelector("#btn-next-display .rc-name").textContent === "नक्षत्र" && JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).script === "deva"));
+    ok("script: ghaṭī and pala in the centre are in the script too", await page.evaluate(() => /घटी 33 · पल \d+/.test(document.querySelector("#dial .centre-text").textContent)));
     ok("script: the transliteration itself", await page.evaluate(() => {
       const S = window.VedicEngine.Script, was = S.get(), out = {};
       const want = {

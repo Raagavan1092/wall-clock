@@ -1358,3 +1358,19 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .mf-chip:hover { border-color: #7a6636; }
 .mf-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 600; }
 .mf-chip-more { background: transparent; color: var(--gold-hi); }
+
+/* Today panel: every row is ruled, and the time a thing ends or starts is the
+   brightest thing in its row, in a column of its own at the right. */
+.tp-row { padding: 7px 0; border-top: 1px solid #4a3d27; }
+.tp-row:last-child { border-bottom: 1px solid #4a3d27; }
+.tp-sec { border-top: 0; padding-top: 2px; }
+.tp-now { gap: 0; }
+.tp-now li { padding: 6px 0; border-top: 1px solid #4a3d27; }
+.tp-now li:last-child { border-bottom: 1px solid #4a3d27; }
+.tp-ring-line { padding: 6px 0; border-top: 1px solid #4a3d27; border-bottom: 1px solid #4a3d27; }
+.tp-foot { border-top: 0; padding-top: 0; }
+.tp-till, #tp-ring-next { color: #c9b88f; }
+.tp-time { padding: 1px 7px; margin: 0 1px; border-radius: 6px; background: rgba(232, 199, 122, 0.14); color: var(--gold-hi); font-size: 14px; font-weight: 700; }
+.tp-bad .tp-time { background: rgba(192, 68, 43, 0.22); color: #ffb39c; }
+.tp-good .tp-time { background: rgba(47, 134, 201, 0.22); color: #a9d6ff; }
+@media (min-width: 1000px) and (min-height: 720px) { .tp-time { font-size: 15.5px; } .tp-row { padding: 9px 0; } .tp-now li { padding: 7px 0; } }

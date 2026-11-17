@@ -24,6 +24,16 @@
     return n;
   }
 
+  // "till 20:25 (Nov 14)": the clock time in its own element, so it can stand out.
+  function when(text) {
+    const span = h("span", "tp-till");
+    String(text).split(/(\d\d:\d\d)/).forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2) span.appendChild(h("b", "tp-time", part)); else span.appendChild(document.createTextNode(part));
+    });
+    return span;
+  }
+
   function update(model) {
     const key = JSON.stringify(model);
     if (key === lastKey) return;
@@ -41,7 +51,7 @@
       row.appendChild(h("dt", null, r.k));
       const dd = h("dd");
       dd.appendChild(h("span", "tp-val", r.v));
-      if (r.till) dd.appendChild(h("span", "tp-till", r.till));
+      if (r.till) dd.appendChild(when(r.till));
       row.appendChild(dd);
       rows.appendChild(row);
     });
@@ -53,14 +63,16 @@
       const li = h("li", "tp-" + n.kind);
       li.appendChild(h("span", "tp-dot"));
       li.appendChild(h("span", "tp-val", n.text));
-      if (n.when) li.appendChild(h("span", "tp-till", n.when));
+      if (n.when) li.appendChild(when(n.when));
       now.appendChild(li);
     });
 
     $("tp-ring").hidden = !model.ring;
     if (model.ring) {
       $("tp-ring-name").textContent = model.ring.name;
-      $("tp-ring-next").textContent = model.ring.next || "";
+      const next = $("tp-ring-next");
+      next.textContent = "";
+      if (model.ring.next) next.appendChild(when(model.ring.next));
     }
   }
 

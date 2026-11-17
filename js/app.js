@@ -169,10 +169,10 @@
     const lines = timeMode === "hour"
       ? [
           { text: clockText, emphasis: "ghati" },
-          { text: "Ghaṭī " + g.ghati + " · Pala " + g.pala + " · Vipala " + g.vipala, emphasis: "clock-secondary" },
+          { text: N("Ghaṭī") + " " + g.ghati + " · " + N("Pala") + " " + g.pala + " · " + N("Vipala") + " " + g.vipala, emphasis: "clock-secondary" },
         ]
       : [
-          { text: "Ghaṭī " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
+          { text: N("Ghaṭī") + " " + g.ghati + " · " + N("Pala") + " " + g.pala, subText: " · " + N("Vipala") + " " + g.vipala, emphasis: "ghati" },
           { text: clockText, emphasis: "clock-secondary" },
         ];
     if (full) {
@@ -349,7 +349,7 @@
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
     E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow), dialHandles.switchGroup);
-    E.Dial.setSwitchLabel(dialHandles.switchGroup, timeMode === "hour" ? "Switch to ghaṭī" : "Switch to hours");
+    E.Dial.setSwitchLabel(dialHandles.switchGroup, timeMode === "hour" ? "Switch to " + (E.Script.get() === "iast" ? "ghaṭī" : N("Ghaṭī")) : "Switch to hours");
     if (!document.body.classList.contains("fullview")) E.TodayPanel.update(buildPanelModel(now, snapshot, lastOuterRingDescriptor));
     updateSwitchLabel();
     if (changed || !controlsSynced) { controlsSynced = true; syncDayControls(); }
