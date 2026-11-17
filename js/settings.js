@@ -67,7 +67,7 @@
       hiddenMarkers: [],
       // Optional local-practice yoga sets (Settings > Yogas). asalVakya: the
       // Amṛta / Siddha / Maraṇa Yogam weekday x nakṣatra table. Off by default.
-      yogaSets: { asalVakya: false },
+      yogaSets: { asalVakya: false, panchaka: false },
       // Janma nakṣatra (0..26, or null) and pāda (1..4), for tārā-bala and
       // candra-bala in Today Details (Settings > Personal).
       janma: { nakshatra: null, pada: 1 },
@@ -132,7 +132,7 @@
       // more, so anything an earlier version saved for them is dropped.
       hiddenRings: sanitizeKeys(saved.hiddenRings, VedicEngine.RingAdapter.RING_ORDER),
       hiddenMarkers: sanitizeKeys(saved.hiddenMarkers, VedicEngine.RingAdapter.MARKER_TITLES),
-      yogaSets: { asalVakya: !!(saved.yogaSets && saved.yogaSets.asalVakya) },
+      yogaSets: { asalVakya: !!(saved.yogaSets && saved.yogaSets.asalVakya), panchaka: !!(saved.yogaSets && saved.yogaSets.panchaka) },
       janma: sanitizeJanma(saved.janma),
       regionalLimits: saved.regionalLimits !== false,
       descriptiveTips: saved.descriptiveTips === true,
