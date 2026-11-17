@@ -397,6 +397,56 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.close();
   }
 
+  // 6b. Tamil vakya against a printed Tamil vakya panchangam (Thanjavur, Karthigai 2026):
+  //     its sunrise table and its tithi / nakshatra / yoga ends in nazhigai from sunrise.
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    const fx = JSON.parse(fs.readFileSync(path.join(root, "test/fixtures/vakya-tamil-thanjavur-2026.json"), "utf8"));
+    const r = await page.evaluate(fx => {
+      const V = window.VedicEngine, S = V.Sidereal, Su = V.Sunrise, loc = fx.location, IST = 5.5 * 3600000;
+      const dayStart = iso => Date.parse(iso + "T00:00:00Z") - IST;
+      const sunriseErr = fx.sunrise.times.map(([d, hm]) => {
+        const want = dayStart(d) + (+hm.slice(0, 2) * 60 + +hm.slice(3)) * 60000;
+        return (Su.sunriseAfter(loc, new Date(dayStart(d)), "disc-centre").getTime() - want) / 60000;
+      });
+      const index = (kind, ms, method) => {
+        const d = new Date(ms), s = S.longitude("sun", d, "lahiri", method), m = S.longitude("moon", d, "lahiri", method);
+        if (kind === "tithi") return Math.floor(((m - s + 360) % 360) / 12) + 1;
+        if (kind === "nakshatra") return Math.floor(m / (360 / 27)) + 1;
+        return Math.floor(((m + s) % 360) / (360 / 27)) + 1;
+      };
+      const diffs = method => {
+        S.setPlace(loc, "disc-centre");
+        const out = { tithi: [], nakshatra: [], yoga: [] };
+        fx.ends.forEach(e => {
+          const rise = Su.sunriseAfter(loc, new Date(dayStart(e.date)), "disc-centre").getTime();
+          const [n, v] = e.ends.split("-").map(Number), printed = rise + (n * 24 + v * 0.4) * 60000;
+          let t = printed - 4 * 3600000, guard = 0;
+          while (index(e.kind, t, method) !== e.index && guard++ < 100) t += 600000;
+          while (index(e.kind, t, method) === e.index && guard++ < 300) t += 600000;
+          let a = t - 600000, b = t;
+          for (let i = 0; i < 25; i++) { const m = (a + b) / 2; if (index(e.kind, m, method) === e.index) a = m; else b = m; }
+          out[e.kind].push((b - printed) / 60000);
+        });
+        return out;
+      };
+      const tamil = diffs("vakya-tamil"), plain = diffs("vakya");
+      S.setPlace(V.Panchanga.DEFAULT_SETTINGS.location, "upper-limb");
+      return { sunriseErr, tamil, plain, n: fx.ends.length };
+    }, fx);
+    const all = o => o.tithi.concat(o.nakshatra, o.yoga), mean = a => a.reduce((x, y) => x + y, 0) / a.length, worst = a => Math.max.apply(null, a.map(Math.abs));
+    ok("Thanjavur almanac: its sunrise table is the disc centre without refraction (within 2 min; it drops the seconds)", worst(r.sunriseErr) <= 2, r.sunriseErr.map(x => x.toFixed(1)).join(" "));
+    ok("Thanjavur almanac: Tamil vakya reproduces the " + (r.tamil.tithi.length + r.tamil.nakshatra.length) + " printed tithi/nakshatra ends within 6 min (nazhigai from sunrise)", worst(r.tamil.tithi.concat(r.tamil.nakshatra)) <= 6, "worst " + worst(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1) + " min, mean " + mean(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1));
+    ok("Thanjavur almanac: Tamil vakya yoga ends within 12 min, mean within 3 min overall", worst(r.tamil.yoga) <= 12 && Math.abs(mean(all(r.tamil))) <= 3, "worst " + worst(r.tamil.yoga).toFixed(1) + " min, mean " + mean(all(r.tamil)).toFixed(1));
+    ok("Thanjavur almanac: plain Vakyakarana is ~50 min late (the manyadi bija matters)", mean(all(r.plain)) > 40, "mean " + mean(all(r.plain)).toFixed(1) + " min");
+    ok("Thanjavur almanac: no page errors", errors.length === 0, errors.join("; "));
+    await page.close();
+  }
+
   // 3. bridge against a fake native side
   {
     const ctx = await browser.newContext();
