@@ -51,11 +51,13 @@ html, body {
   font-family: "Segoe UI", system-ui, sans-serif;
 }
 
-/* Portrait: navigator stuck to the top, the clock, then the buttons below it.
-   The clock is as large as fits (a square no wider than the screen), centred in
-   the room between the two; see the landscape block further down for the
+/* Portrait: the buttons at the top, the clock, then the Today panel under it.
+   The clock is a square as wide as the screen, but no taller than leaves room
+   for the buttons and the top of the panel (--dial); the page scrolls if the
+   panel runs past the bottom. See the landscape block further down for the
    side-by-side arrangement. */
 #stage {
+  --dial: min(calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)), max(170px, calc(min(100vh, 100dvh) - 300px)));
   position: relative;
   width: 100vw;
   height: 100vh;
@@ -72,9 +74,9 @@ html, body {
 /* The dial sits in a square wrapper so the two ring buttons can hug its bottom corners. */
 #dial-wrap {
   order: 2;
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
+  flex: none;
+  width: var(--dial);
+  height: var(--dial);
   margin: 0;
   display: grid;
   place-items: center;
@@ -186,12 +188,15 @@ html, body {
 
 /* Now / past (dial.js updateTimeState): segments already over fade back,
    the active one gets a bright outline and a lift. */
-.timed { transition: opacity 0.6s; }
-.timed.is-past { opacity: 0.3; }
+.timed .ring-segment, .timed .relief-hatch, .timed .dial-label { transition: opacity 0.6s; }
+.timed.is-past .ring-segment, .timed.is-past .relief-hatch { opacity: 0.3; }
+.timed.is-past .dial-label { opacity: 0.62; } /* the name of a window that is over stays readable */
 .timed.is-active .ring-segment { stroke: var(--active-outline); stroke-width: 2.5; }
 /* Event lanes can be thin, so their outline is too: the lift does the work. */
 .timed.is-active .event-segment { stroke-width: 1; filter: brightness(1.3); }
 .timed.is-active .dial-label { fill: #ffffff; font-weight: 700; }
+/* The segment whose card is up (a tap on it). */
+.ring-segment.is-picked, .timed.is-active .ring-segment.is-picked { stroke: #ffffff; stroke-width: 3; }
 .bad-label { fill: var(--bad-label); font-weight: 600; }
 .good-label { fill: var(--good-label); font-weight: 600; }
 
@@ -220,7 +225,7 @@ html, body {
 .pala-hand-line { stroke: #ffe9a6; stroke-width: 3; stroke-linecap: round; }
 .centre-switch { cursor: pointer; }
 .centre-switch rect { fill: #1d1912; stroke: var(--ring-stroke); stroke-width: 1.5; }
-.centre-switch text { fill: var(--centre-ghati); font-size: 22px; font-weight: 600; pointer-events: none; }
+.centre-switch text { fill: var(--centre-ghati); font-size: 28px; font-weight: 600; pointer-events: none; }
 .centre-switch:hover rect { fill: #2a2314; }
 .centre-plate { fill: var(--dial-bg); }
 
@@ -255,9 +260,9 @@ html, body {
   font-size: 36px;
   font-variant-numeric: tabular-nums;
 }
-.centre-line-bad { fill: var(--centre-bad); font-weight: 600; }
-.centre-line-good { fill: var(--centre-good); font-weight: 600; }
-.centre-line-muted { fill: var(--centre-clock-secondary); font-size: 25px; }
+.centre-line-bad { fill: var(--centre-bad); font-weight: 600; font-size: 30px; }
+.centre-line-good { fill: var(--centre-good); font-weight: 600; font-size: 30px; }
+.centre-line-muted { fill: var(--centre-clock-secondary); font-size: 28px; }
 .centre-line-ring { fill: var(--centre-ghati); font-weight: 700; font-size: 31px; }
 .centre-line-sub {
   font-size: 30px;
@@ -296,95 +301,103 @@ html, body {
 #edit-toggle svg, #alarm-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 #edit-toggle.on, #alarm-toggle.on { color: #1a1208; background: var(--gold-fill); border-color: #e8c878; }
 
+/* Settings: a sheet at the right edge, in the same look as the dialogs (.ld-card):
+   a title bar, each section a rounded card that opens, pill buttons, Cancel and Save at the foot. */
 #settings-panel {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(360px, 90vw);
+  width: min(420px, 100vw);
   overflow-y: auto;
-  background: #1a1510;
-  color: var(--centre-text);
-  border-left: 1px solid var(--ring-stroke);
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 18px;
+  background: #16130e;
+  color: var(--ink);
+  border-left: 1px solid #3a3020;
+  border-radius: 22px 0 0 22px;
   font-family: "Segoe UI", system-ui, sans-serif;
   z-index: 20;
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
+  box-shadow: -18px 0 60px rgba(0, 0, 0, 0.6);
+  scrollbar-width: thin;
+  scrollbar-color: #5a4a2a transparent;
 }
 #settings-panel.hidden { display: none; }
-#settings-close {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #332817;
-  color: var(--centre-text);
-  border: 1px solid var(--ring-stroke);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
+#settings-panel > * { flex: none; }
+.st-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; margin: 0 -18px; padding: 14px 18px; background: #16130e; border-bottom: 1px solid #2b2418; }
+.st-head h2 { margin: 0; flex: 1; font-size: 18px; font-weight: 600; }
+#settings-panel #settings-close, .ld-x {
+  width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
+  border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: #b3a586; cursor: pointer;
 }
-#settings-panel h2 { margin-top: 0; color: var(--centre-ghati); }
-#settings-panel h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--numeral); margin-bottom: 8px; }
-#settings-panel section { margin-bottom: 10px; border-bottom: 1px solid #3a3022; padding-bottom: 6px; }
-#settings-panel details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+#settings-close svg, .ld-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#settings-panel section { border: 1px solid #3a3020; border-radius: 14px; background: #1f1a11; }
+#settings-panel details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; }
 #settings-panel details > summary::-webkit-details-marker { display: none; }
-#settings-panel details > summary::after { content: "\25BE"; color: var(--numeral); transition: transform 0.15s; }
-#settings-panel details[open] > summary::after { transform: rotate(180deg); }
-#settings-panel details > summary h3 { margin: 0; }
-#settings-panel details[open] > summary { margin-bottom: 6px; }
-#settings-panel label { display: block; margin-bottom: 8px; font-size: 14px; }
+#settings-panel details > summary::after { content: ""; flex: none; width: 7px; height: 7px; margin-right: 4px; border-right: 2px solid #a99a7c; border-bottom: 2px solid #a99a7c; transform: translateY(-2px) rotate(45deg); transition: transform 0.15s; }
+#settings-panel details[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+#settings-panel h3 { margin: 0; font-size: 14.5px; font-weight: 600; color: var(--gold-hi); }
+#settings-panel details > :not(summary) { margin-left: 14px; margin-right: 14px; }
+#settings-panel details[open] { padding-bottom: 4px; }
+#settings-panel label { display: block; margin-top: 0; margin-bottom: 10px; font-size: 13.5px; line-height: 1.4; }
+#settings-panel input[type="checkbox"], #settings-panel input[type="radio"] { width: 16px; height: 16px; margin: 0 6px 0 0; vertical-align: -3px; accent-color: var(--primary); }
 #settings-panel input[type="number"],
 #settings-panel input[type="text"],
-#settings-panel input[type="datetime-local"] {
-  width: 100%;
-  background: #262019;
-  color: var(--centre-text);
-  border: 1px solid #555;
-  padding: 5px 8px;
-  margin-top: 3px;
-}
 #settings-panel select {
-  width: 100%;
-  background: #262019;
-  color: var(--centre-text);
-  border: 1px solid #555;
-  padding: 5px 8px;
+  width: calc(100% - 28px);
+  height: 40px;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid #3a3020;
+  background: #0f0d09;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  color-scheme: dark;
 }
-#settings-panel .settings-note code { background: #262019; padding: 0 4px; border: 1px solid #3a3022; border-radius: 3px; font-size: 11px; color: var(--numeral); }
+#settings-panel select:focus, #settings-panel input:focus { outline: 0; border-color: var(--gold-hi); box-shadow: 0 0 0 2px rgba(255, 215, 122, 0.2); }
+#settings-panel .settings-note code { background: #0f0d09; padding: 0 4px; border: 1px solid #3a3022; border-radius: 3px; font-size: 11px; color: var(--numeral); }
 #stage[inert] { opacity: 0.2; transition: opacity 0.3s; }
 #settings-panel label.pending { opacity: 0.6; }
-#settings-panel .pending-tag { font-size: 11px; color: #a89a78; border: 1px solid #3a3022; border-radius: 3px; padding: 0 4px; margin-left: 4px; white-space: nowrap; }
-#settings-panel .settings-note { font-size: 12px; color: #a89a78; margin: 6px 0 0; }
+#settings-panel .pending-tag { font-size: 11px; color: #a89a78; border: 1px solid #3a3022; border-radius: 999px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
+#settings-panel .settings-note { font-size: 12.5px; line-height: 1.4; color: #a99a7c; margin-top: 0; margin-bottom: 10px; }
 #settings-panel button {
-  background: #332817;
-  color: var(--centre-text);
-  border: 1px solid var(--ring-stroke);
-  padding: 6px 14px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #3a3020;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
   cursor: pointer;
-  margin-top: 6px;
 }
+#settings-panel button:hover:not(:disabled) { background: rgba(201, 168, 92, 0.14); }
 #settings-panel button:disabled { opacity: 0.3; cursor: default; }
-.reorder-list { list-style: none; padding: 0; margin: 0; }
+#settings-panel > button { align-self: flex-start; }
+#settings-panel #settings-reset { margin-bottom: 10px; }
+.reorder-list { list-style: none; padding: 0; margin-top: 0; margin-bottom: 10px; }
 .reorder-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
-  background: #221c14;
-  border: 1px solid #3a3022;
+  padding: 5px 6px 5px 10px;
+  background: #16130e;
+  border: 1px solid #3a3020;
+  border-radius: 10px;
   margin-bottom: 4px;
-  font-size: 14px;
+  font-size: 13.5px;
 }
-.reorder-list li button { padding: 2px 8px; margin: 0 0 0 4px; }
-.reorder-list li label { margin: 0; flex: 1; }
-.settings-actions { display: flex; gap: 10px; }
-.settings-actions button { flex: 1; }
-#settings-save { background: var(--ring-stroke); font-weight: 600; }
-#set-time { margin-right: 8px; }
-#set-time-live { font-style: italic; }
+#settings-panel .reorder-list li button { width: 34px; height: 30px; padding: 0; margin: 0 0 0 4px; }
+#settings-panel .reorder-list li label { margin: 0; flex: 1; }
+.settings-actions { position: sticky; bottom: 0; display: flex; gap: 10px; margin: auto -18px 0; padding: 12px 18px max(12px, env(safe-area-inset-bottom)); background: #16130e; border-top: 1px solid #2b2418; }
+#settings-panel .settings-actions button { flex: 1; height: 44px; font-size: 14px; }
+#settings-panel #settings-save { order: 2; background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 600; }
+#settings-panel #settings-save:hover { background: var(--primary-hi); }
+@media (max-width: 480px) { #settings-panel { border-radius: 0; border-left: 0; } }
 
 /* Custom dark-mode tooltip for ring segments (replaces SVG's native <title>,
    which is OS-rendered and can't be styled - see dial.js attachTooltip).
@@ -396,15 +409,23 @@ html, body {
   background: var(--tooltip-bg);
   color: var(--tooltip-text);
   border: 1px solid var(--tooltip-border);
-  border-radius: 4px;
-  padding: 6px 10px;
+  border-radius: 12px;
+  padding: 8px 12px;
   font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.45;
   pointer-events: none;
-  white-space: pre-line;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
+.dial-tooltip .tip-title { font-size: 14px; font-weight: 600; color: var(--gold-hi); }
+/* On a touch screen: a sheet across the bottom of the screen, larger, scrolling if long. */
+.dial-tooltip.sheet {
+  left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); top: auto;
+  max-width: 560px; max-height: 45vh; margin: 0 auto; overflow-y: auto; overscroll-behavior: contain;
+  padding: 12px 16px; border-radius: 16px; font-size: 14.5px; pointer-events: auto;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.65);
+}
+.dial-tooltip.sheet .tip-title { font-size: 16px; margin-bottom: 2px; }
 
 /* ======================================================================
    Top-right controls: Yesterday / Today / Tomorrow, the time slider, the
@@ -413,7 +434,11 @@ html, body {
 :root {
   --gold: #c9a85c;
   --gold-hi: #ffd77a;
-  --gold-fill: linear-gradient(180deg, #f6dc94, #c9a05a);
+  /* One fill for every primary button and "on" state. */
+  --primary: #e8c77a;
+  --primary-hi: #f3d68f;
+  --primary-ink: #1a1408;
+  --gold-fill: var(--primary);
   --ink: #f0e6c8;
   --muted: #a89a78;
   --glass: rgba(21, 18, 13, 0.72);
@@ -455,13 +480,10 @@ html, body {
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
 body.secondary-view .rc-corner:not(.rc-day) { display: none; }
-/* Toggle rings / Toggle windows: a full-width pair under the three buttons, same look; gold when on. */
-.tc-toggles { flex-wrap: nowrap; }
-.tc-toggles .tc-chip { flex: 1 1 0; justify-content: center; align-self: stretch; padding: 6px 10px; }
-.tc-toggles .tc-chip[aria-pressed="true"] { background: #e8c77a; color: #1a1408; border-color: #e8c77a; font-weight: 600; }
-body.secondary-view .tc-toggles { display: none; }
+body.secondary-view #tc-toggles { display: none; }
 body.rings-off .rc-corner:not(.rc-day) { display: none; }
 body.fullview #ts-dialog,
+body.fullview #today-panel, body.fullview #help-dialog,
 body.fullview .tc-row, body.fullview #loc-menu, body.fullview #edit-bar, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
 body.fullview #settings-panel { display: none !important; }
 body.fullview #btn-fullview {
@@ -475,6 +497,7 @@ body.fullview #btn-fullview svg { display: none; }
 #btn-fullview.fv-inline { flex: none; width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
 #btn-fullview.fv-inline .fv-text { display: none; }
 body.fullview.fv-idle #btn-fullview { opacity: 0; pointer-events: none; }
+body.fullview #stage { --dial: min(100vw, calc(min(100vh, 100dvh) - 16px)); justify-content: center; padding-bottom: env(safe-area-inset-bottom); }
 @media (orientation: landscape) {
   body.fullview #stage { --dial: min(calc(100vw - 16px), calc(100vh - 16px), calc(100dvh - 16px)); grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; }
   body.fullview #dial-wrap { grid-row: 1; }
@@ -680,7 +703,7 @@ body.fullview .gb-toggle { display: none; }
 }
 .al-head-icon .ai { width: 26px; height: 26px; stroke-width: 1.8; }
 .al-head-text { flex: 1; min-width: 0; }
-.al-head h2 { margin: 0; font-family: var(--serif); font-size: 27px; font-weight: 600; letter-spacing: 0.01em; color: var(--gold-hi); }
+.al-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--ink); }
 .al-head p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 .al-x { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid #3a3022; background: #1b160f; color: var(--muted); cursor: pointer; }
 .al-x:hover { color: var(--ink); border-color: var(--gold); }
@@ -800,7 +823,7 @@ body.fullview .gb-toggle { display: none; }
 .al-btn { padding: 11px 22px; border-radius: 13px; border: 1px solid #5a4a2a; background: #2a2214; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; transition: background 0.12s, transform 0.1s; }
 .al-btn:hover:not(:disabled) { background: #3a2f1b; }
 .al-btn.primary { border-color: #e8c878; background: var(--gold-fill); color: #1a1208; font-weight: 700; box-shadow: 0 8px 20px rgba(201, 168, 92, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
-.al-btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #ffe7a6, #d4ab62); }
+.al-btn.primary:hover:not(:disabled) { background: var(--primary-hi); }
 .al-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .al-fineprint { margin: 0; padding: 0 26px 12px; background: rgba(0, 0, 0, 0.26); font-size: 11px; color: #7d7156; text-align: right; }
 .al-card button:focus-visible, .al-card input:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
@@ -811,7 +834,7 @@ body.fullview .gb-toggle { display: none; }
   .alarm-modal { padding: 0; align-items: flex-end; }
   .al-card { width: 100%; max-height: 94vh; border-radius: 22px 22px 0 0; }
   .al-head { padding: 18px 18px 12px; }
-  .al-head h2 { font-size: 23px; }
+  .al-head h2 { font-size: 18px; }
   .al-head p { display: none; }
   .al-body { display: block; overflow-y: auto; }
   .al-col { padding: 2px 18px 12px; display: block; }
@@ -849,7 +872,7 @@ body.fullview .gb-toggle { display: none; }
 .ring-kicker { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); }
 .ring-list { list-style: none; margin: 0 0 22px; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 .ring-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.ring-item strong { font-family: var(--serif); font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--ink); }
+.ring-item strong { font-size: 26px; font-weight: 600; line-height: 1.15; color: var(--ink); }
 .ring-item.tone-bad strong { color: var(--centre-bad); }
 .ring-item.tone-good strong { color: var(--centre-good); }
 .ring-group { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
@@ -858,7 +881,7 @@ body.fullview .gb-toggle { display: none; }
 .ring-note { margin: -8px 0 16px; font-size: 12px; color: var(--muted); }
 .ring-note[hidden] { display: none; }
 .ring-dismiss { min-width: 210px; padding: 14px 30px; border: 1px solid #e8c878; border-radius: 999px; background: var(--gold-fill); color: #1a1208; font: inherit; font-size: 16px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; box-shadow: 0 10px 26px rgba(201, 168, 92, 0.3); }
-.ring-dismiss:hover { background: linear-gradient(180deg, #ffe7a6, #d4ab62); }
+.ring-dismiss:hover { background: var(--primary-hi); }
 .ring-dismiss:focus-visible { outline: 3px solid var(--gold-hi); outline-offset: 3px; }
 @keyframes ring-in { from { opacity: 0; } }
 @keyframes ring-glow { 50% { opacity: 0.55; } }
@@ -944,18 +967,13 @@ body.fullview .gb-toggle { display: none; }
 
 /* ======================================================================
    Edit mode (pencil button): day navigators in the clock's top corners
-   (the ring navigators turned upside down), Now and the date over the
-   clock in portrait / at its right in landscape, and a draggable day hand.
+   (the ring navigators turned upside down), Now and the date in a row under
+   the buttons, and a draggable day hand.
    ====================================================================== */
 .rc-day { display: none; top: 0; bottom: auto; }
 body.edit-mode .rc-day { display: block; }
 .rc-day .rc-label { bottom: auto; top: 7%; }
-#edit-bar {
-  display: none;
-  position: absolute; z-index: 4;
-  bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  align-items: center; gap: 8px;
-}
+#edit-bar { display: none; align-items: center; justify-content: flex-end; gap: 8px; }
 body.edit-mode #edit-bar { display: flex; }
 #edit-now, #edit-date {
   height: 36px; padding: 0 13px 0 11px; border-radius: 999px; border: 1px solid var(--ring-stroke);
@@ -970,13 +988,6 @@ body.edit-mode #edit-bar { display: flex; }
 #edit-date svg { width: 16px; height: 16px; flex: none; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
 #edit-date span { pointer-events: none; font-variant-numeric: tabular-nums; }
 #edit-date:hover { background: rgba(42, 33, 19, 0.9); }
-@media (orientation: portrait) {
-  /* Room above the clock for Now and the date. */
-  body.edit-mode:not(.fullview) #dial-wrap { padding-top: 48px; }
-}
-@media (orientation: landscape) {
-  #edit-bar { bottom: auto; top: 50%; left: calc(100% + 12px); transform: translateY(-50%); flex-direction: column; align-items: flex-start; }
-}
 /* The day hand: a knob at its tip shows it can be dragged. */
 .hand-knob { display: none; }
 body.edit-mode .hand-knob { display: inline; fill: var(--gold-hi); stroke: var(--dial-bg); stroke-width: 3; }
@@ -992,19 +1003,19 @@ body.edit-mode:not(.fullview) #dial { touch-action: none; }
 }
 #loc-dialog.hidden { display: none; }
 /* Today Details dialog: shares the location dialog's card. */
-#ts-dialog {
+#ts-dialog, #help-dialog {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
   padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   background: rgba(5, 4, 3, 0.72);
 }
-#ts-dialog.hidden { display: none; }
+#ts-dialog.hidden, #help-dialog.hidden { display: none; }
 #mf-dialog {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
   padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   background: rgba(5, 4, 3, 0.72);
 }
 #mf-dialog.hidden { display: none; }
-#mf-dialog .ld-card { width: min(680px, 100%); height: min(860px, 100%); }
+#mf-dialog .ld-card { width: min(680px, 100%); }
 #mf-close {
   width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
   border-radius: 999px; border: 1px solid #3a3020; background: transparent; color: #b3a586; cursor: pointer;
@@ -1031,8 +1042,8 @@ body.edit-mode:not(.fullview) #dial { touch-action: none; }
   height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #3a3020; background: #1d1912;
   color: var(--gold-hi); font: inherit; font-size: 13.5px; cursor: pointer;
 }
-.mf-find { flex: none; background: #b8975a; border-color: #b8975a; color: #1a1408; font-weight: 600; }
-.mf-find:hover:not(:disabled) { background: #c6a666; }
+.mf-find { flex: none; background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 600; }
+.mf-find:hover:not(:disabled) { background: var(--primary-hi); }
 .mf-find:disabled { opacity: 0.5; cursor: default; }
 .mf-go { height: 32px; font-size: 12.5px; align-self: flex-start; }
 /* The event search with Find and Clear beside it. */
@@ -1136,7 +1147,7 @@ body.fullview #mf-dialog { display: none; }
   font: inherit; font-size: 14px; cursor: pointer;
 }
 .ld-foot button:disabled { opacity: 0.35; cursor: default; }
-.ld-foot button.ld-primary { padding: 0 22px; border-color: #f2b01e; background: #f2b01e; color: #1a1408; font-weight: 600; }
+.ld-foot button.ld-primary { padding: 0 22px; border-color: var(--primary); background: var(--primary); color: var(--primary-ink); font-weight: 600; }
 .ld-foot button:focus-visible, #loc-close:focus-visible, #loc-geo:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
 @media (max-width: 480px) {
   .ld-foot-left { flex-basis: 100%; }
@@ -1165,14 +1176,12 @@ body.fullview #mf-dialog { display: none; }
 /* Portrait on a short screen: the clock keeps a usable size and the page scrolls, rather than the clock shrinking to nothing or being cut off. */
 @media (orientation: portrait) {
   #stage { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
-  #dial-wrap { min-height: min(100vw, 170px); }
-  body.fullview #dial-wrap { min-height: 0; }
 }
 
 /* Landscape phone: the drop-downs fit beside the clock. */
 @media (orientation: landscape) {
-  #stage { --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - min(540px, 48vw)))); grid-template-columns: minmax(0, 1fr) min(540px, 48vw); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
-  #dial-wrap { grid-row: 1; }
+  #stage { --dial: min(calc(100vh - 24px), calc(100dvh - 24px), max(200px, calc(100vw - min(540px, 48vw)))); grid-template-columns: minmax(0, 1fr) min(540px, 48vw); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+  #dial-wrap { grid-row: 1 / span 2; }
   #top-controls { align-self: start; }
   #alarm-section, #loc-menu { max-height: calc(100dvh - 76px); }
 }
@@ -1224,7 +1233,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .ld-body::-webkit-scrollbar-track, #mf-list::-webkit-scrollbar-track { background: transparent; }
 .ld-body::-webkit-scrollbar-thumb, #mf-list::-webkit-scrollbar-thumb { background: #5a4a2a; border-radius: 999px; }
 .ld-body::-webkit-scrollbar-thumb:hover, #mf-list::-webkit-scrollbar-thumb:hover { background: #7a6538; }
-@media (hover: hover) { .tc-toggles .tc-chip[aria-pressed="true"]:hover { background: #f3d68f; } }
 
 /* Android: the alarm time fields are vertical wheels (swipe to roll the numbers). */
 .al-wheel { position: relative; width: 84px; height: 176px; border: 1px solid var(--ring-stroke); border-radius: 12px; background: rgba(255, 255, 255, 0.04); overflow: hidden; }
@@ -1239,3 +1247,114 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .al-time-rows { flex: 0 1 auto; min-width: 0; }
 .al-seg-v { display: flex; flex-direction: column; flex: none; width: 104px; }
 .al-seg-v button { white-space: nowrap; }
+
+/* ======================================================================
+   The Today panel (js/today-panel.js): the date, the day's pañcāṅga and what
+   is running now, under the clock (portrait) or beside it (landscape).
+   ====================================================================== */
+#today-panel {
+  order: 3; flex: none; width: min(520px, calc(100vw - 12px));
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
+  background: #16130e; border: 1px solid #3a3020; border-radius: 16px;
+  color: var(--ink); font-size: 14px; line-height: 1.35;
+  scrollbar-width: thin; scrollbar-color: #5a4a2a transparent;
+}
+.tp-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; }
+.tp-date { display: flex; flex-wrap: wrap; gap: 0 9px; font-size: 16px; font-weight: 600; color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+#tp-vara { color: var(--ink); }
+.tp-sun, .tp-till, #tp-ring-next { font-size: 12.5px; color: #a99a7c; font-variant-numeric: tabular-nums; }
+.tp-rows { margin: 0; }
+.tp-row { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 10px; padding: 5px 0; border-top: 1px solid #2b2418; }
+.tp-row dt { align-self: center; font-size: 12.5px; color: #a99a7c; }
+.tp-row dd { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.tp-val { min-width: 0; font-weight: 500; }
+.tp-till { flex: none; white-space: nowrap; }
+.tp-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #a99a7c; }
+.tp-sec { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid #2b2418; }
+.tp-sec[hidden] { display: none; }
+.tp-now { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.tp-now li { display: flex; align-items: baseline; gap: 8px; }
+.tp-now .tp-val { flex: 1; }
+.tp-dot { flex: none; align-self: center; width: 9px; height: 9px; border-radius: 50%; }
+.tp-bad .tp-dot { background: var(--bad-fill); }
+.tp-good .tp-dot { background: var(--good-fill); }
+.tp-bad .tp-val { color: var(--centre-bad); font-weight: 600; }
+.tp-good .tp-val { color: var(--centre-good); font-weight: 600; }
+.tp-next-bad .tp-dot { border: 2px solid var(--bad-fill); }
+.tp-next-good .tp-dot { border: 2px solid var(--good-fill); }
+.tp-next-bad .tp-val, .tp-next-good .tp-val { color: #c9b88f; font-weight: 400; }
+.tp-none .tp-dot { display: none; }
+.tp-none .tp-val { color: #a99a7c; font-weight: 400; }
+.tp-ring-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
+#tp-ring-name { font-weight: 500; }
+/* The two switches for the dial's layers: small, with the state on show. */
+.tp-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding-top: 8px; border-top: 1px solid #2b2418; }
+.tp-foot .tp-label { flex: 1; white-space: nowrap; }
+.tp-switch { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 0; border: 0; background: none; color: #a99a7c; font: inherit; font-size: 12.5px; cursor: pointer; }
+.tp-track { position: relative; flex: none; width: 32px; height: 18px; border-radius: 999px; background: #2b2418; border: 1px solid #5a4a2a; transition: background 0.15s; }
+.tp-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #a99a7c; transition: transform 0.15s; }
+.tp-switch[aria-checked="true"] { color: var(--ink); }
+.tp-switch[aria-checked="true"] .tp-track { background: var(--primary); border-color: var(--primary); }
+.tp-switch[aria-checked="true"] .tp-knob { transform: translateX(14px); background: var(--primary-ink); }
+.tp-hint { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px 8px 12px; border: 1px dashed #5a4a2a; border-radius: 10px; background: transparent; color: var(--gold-hi); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.tp-hint[hidden] { display: none; }
+.tp-hint svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover: hover) { .tp-hint:hover { background: rgba(201, 168, 92, 0.14); } }
+/* Landscape: in the right-hand column under the buttons, scrolling within itself if it is taller than the screen. */
+@media (orientation: landscape) {
+  #today-panel { grid-column: 2; grid-row: 2; order: 0; justify-self: end; align-self: start; width: min(100% - 8px, 524px); max-height: 100%; overflow-y: auto; }
+}
+/* A large screen has the room for larger type. */
+@media (min-width: 1000px) and (min-height: 720px) {
+  #today-panel { gap: 12px; padding: 16px 18px; font-size: 15.5px; }
+  .tp-date { font-size: 20px; }
+  .tp-sun, .tp-till, #tp-ring-next, .tp-row dt { font-size: 13.5px; }
+  .tp-row { grid-template-columns: 92px minmax(0, 1fr); padding: 7px 0; }
+  .tp-switch { font-size: 13.5px; }
+}
+
+/* The ? button beside Find muhurta, and narrow phones: the four buttons stay on one line. */
+.tc-chip.tc-round { justify-content: center; width: 30px; padding: 6px 0; font-weight: 700; }
+@media (max-width: 400px) {
+  .tc-plain { gap: 5px; }
+  .tc-chip { padding: 6px 9px; font-size: 11.5px; }
+  .tc-chip.tc-round { width: 27px; padding: 6px 0; }
+}
+
+/* How to read the clock. */
+#help-dialog .ld-card { width: min(720px, 100%); }
+#help-dialog .ld-card:focus { outline: none; }
+.help-grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
+.help-fig { width: 100%; height: auto; }
+.hf-ring1 { fill: var(--div-base); stroke: var(--ring-stroke); }
+.hf-ring2 { fill: var(--ring-neutral); stroke: var(--ring-stroke); }
+.hf-axis { fill: none; stroke: var(--tick-major); stroke-opacity: 0.6; }
+.hf-bad { fill: var(--bad-fill); }
+.hf-good { fill: var(--good-fill); }
+.hf-scale { fill: var(--dial-bg); stroke: var(--ring-stroke); }
+.hf-ticks path { stroke: var(--tick-major); stroke-width: 2; }
+.hf-night { fill: none; stroke: #000; stroke-width: 8; }
+.hf-day { fill: none; stroke: var(--daynight-day); stroke-width: 8; }
+.hf-centre { fill: var(--dial-bg); }
+.hf-hand { stroke: #ff5a47; stroke-width: 3; stroke-linecap: round; }
+.hf-hand2 { stroke: #ffe9a6; stroke-width: 2; stroke-linecap: round; }
+.hf-hub { fill: #ff5a47; }
+.hf-marker { stroke: #fff; stroke-opacity: 0.6; stroke-width: 1.5; }
+.hf-num circle { fill: #16130e; stroke: var(--gold-hi); }
+.hf-num text { fill: var(--gold-hi); font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+.help-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.45; }
+.help-list strong { color: var(--gold-hi); font-weight: 600; }
+.help-good { color: var(--centre-good); font-weight: 600; }
+.help-bad { color: var(--centre-bad); font-weight: 600; }
+.help-more { padding-top: 12px; border-top: 1px solid #2b2418; }
+@media (max-width: 560px) {
+  .help-grid { grid-template-columns: 1fr; }
+  .help-fig { width: 190px; margin: 0 auto; }
+}
+
+/* Find muhurta: common events as chips under the search box. */
+.mf-suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+.mf-chip { height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid #3a3020; background: #1d1912; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.mf-chip:hover { border-color: #7a6636; }
+.mf-chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 600; }
+.mf-chip-more { background: transparent; color: var(--gold-hi); }

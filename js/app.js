@@ -38,6 +38,9 @@
   // so cycling/rendering code doesn't care whether it came from a saved
   // setting or the engine's own default order.
   let settings = E.Settings.load();
+  // The script names are drawn in (js/script.js); N() writes a name in it.
+  E.Script.set(settings.script);
+  const N = E.Script.name;
   // The Switch display cycle: the saved order minus any ring hidden in
   // Settings. Can be empty, in which case the outer ring is left blank.
   function visibleRingOrder() {
@@ -110,7 +113,7 @@
   try { secondaryView = localStorage.getItem(SECONDARY_KEY) === "1"; } catch (e) { /* storage unavailable */ }
   let lastSecondaryView = null;
 
-  // "Toggle rings" / "Toggle windows": show or hide the switchable rings and the
+  // The "Outer ring" / "Good / bad" switches in the Today panel: show or hide the switchable rings and the
   // Good / Bad windows in the main view. Viewing preferences, remembered.
   const RINGS_KEY = "vedicWallClock.showRings", WINDOWS_KEY = "vedicWallClock.showWindows";
   let ringsOn = true, windowsOn = true;
@@ -142,8 +145,17 @@
     return fmtTime(date) + E.RingAdapter.dateNote(date, snapshot.anchors);
   }
 
+  // The tithi / nakṣatra / yoga / karaṇa entry of a day's sequence that holds at `now`.
+  function currentIn(sequence, now) {
+    return sequence.find(function (e) { return e.segStart <= now && now < e.segEnd; }) || sequence[0];
+  }
+
+  // The centre of the clock: the time in both conventions and the window running now.
+  // The date, the pañcāṅga and the outer ring's state are in the Today panel beside or
+  // under the clock (buildPanelModel); in the full screen view, where only the clock is
+  // on screen, they are written in the centre as well.
   function buildCentreLines(now, snapshot, ringDescriptor, ghatiNow) {
-    const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
+    const full = document.body.classList.contains("fullview");
     // `ghatiNow`, not `snapshot.ghati`: the snapshot is cached for hours at a
     // time (see getSnapshot/isExpired above), so snapshot.ghati is whatever
     // it was AT CACHE TIME - reading it here left this readout frozen between
@@ -154,7 +166,7 @@
     // Ghati/pala leads by default (this is a Vedic clock first), with the
     // modern clock as the smaller line underneath; "Switch time" swaps them.
     const clockText = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
-    const timeLines = timeMode === "hour"
+    const lines = timeMode === "hour"
       ? [
           { text: clockText, emphasis: "ghati" },
           { text: "Ghaṭī " + g.ghati + " · Pala " + g.pala + " · Vipala " + g.vipala, emphasis: "clock-secondary" },
@@ -163,30 +175,35 @@
           { text: "Ghaṭī " + g.ghati + " · Pala " + g.pala, subText: " · Vipala " + g.vipala, emphasis: "ghati" },
           { text: clockText, emphasis: "clock-secondary" },
         ];
-    // Then the day: date and vāra on one line ("10 Nov 2026 · Ravivāra"),
-    // the tithi (with pakṣa) and nakṣatra holding right now on the next.
-    const dateText = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
-    const nak = snapshot.nakshatraSequence.find(function (n) { return n.segStart <= now && now < n.segEnd; }) || snapshot.nakshatraSequence[0];
-    const lines = timeLines.concat([
-      { text: dateText + " · " + varaName },
-      { text: E.RingAdapter.tithiNameAt(snapshot, data, now) + " · " + data.nakshatra.names[nak.index] },
-    ]);
-
-    // A blank line, then the Good / Bad Times ring's status: bad first (the one people check),
-    // then good. Each says what is active and until when, or what is next.
-    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1 && (secondaryView || windowsOn) && (show.bad || show.good)) {
-      lines.push({ text: "", emphasis: "gap" });
-      [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].filter(function (row) { return show[row[0]]; }).forEach(function (row) {
-        const st = E.RingAdapter.statusFor(row[1], now);
-        if (!st) {
-          lines.push({ text: "No more " + row[0] + " times today", emphasis: "muted" });
-        } else if (st.active) {
-          lines.push({ text: row[2] + st.text + " · till " + fmtTimeD(st.until, snapshot), emphasis: row[0] });
-        } else {
-          lines.push({ text: "Next " + row[0] + ": " + st.text + " @ " + fmtTimeD(st.at, snapshot), emphasis: "muted" });
-        }
-      });
+    if (full) {
+      // The day: date and vāra on one line, the tithi (with pakṣa) and nakṣatra holding now on the next.
+      const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
+      const dateText = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+      const nak = currentIn(snapshot.nakshatraSequence, now);
+      lines.push({ text: dateText + " · " + N(varaName) });
+      lines.push({ text: N(E.RingAdapter.tithiNameAt(snapshot, data, now)) + " · " + N(data.nakshatra.names[nak.index]) });
     }
+
+    // The Good / Bad Times ring's status: what is running now (bad first, the one
+    // people check, then good) and until when; with nothing running, what comes next.
+    if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1 && (secondaryView || windowsOn)) {
+      const rows = [["bad", lastGoodBad.bad, "⚠\uFE0E "], ["good", lastGoodBad.good, "✓ "]].map(function (row) {
+        return { kind: row[0], mark: row[2], st: E.RingAdapter.statusFor(row[1], now) };
+      });
+      const active = rows.filter(function (r) { return r.st && r.st.active; });
+      lines.push({ text: "", emphasis: "gap" });
+      if (active.length) {
+        // Beside the Today panel the line is kept short (the panel has the date of a time after midnight).
+        active.forEach(function (r) { lines.push({ text: r.mark + N(r.st.text) + " · till " + (full ? fmtTimeD(r.st.until, snapshot) : fmtTime(r.st.until)), emphasis: r.kind }); });
+      } else {
+        const upcoming = rows.filter(function (r) { return r.st; }).sort(function (x, y) { return x.st.at - y.st.at; });
+        if (!upcoming.length) lines.push({ text: "No more windows today", emphasis: "muted" });
+        else (full ? upcoming : upcoming.slice(0, 1)).forEach(function (r) {
+          lines.push({ text: "Next " + r.kind + ": " + N(r.st.text) + " @ " + (full ? fmtTimeD(r.st.at, snapshot) : fmtTime(r.st.at)), emphasis: "muted" });
+        });
+      }
+    }
+    if (!full) return lines;
 
     if (secondaryView) {
       lines.push({ text: "", emphasis: "gap" });
@@ -204,9 +221,59 @@
     // The current division is already highlighted on the dial, so the centre
     // names the ring (highlighted) and says only when the next one starts.
     lines.push({ text: "", emphasis: "gap" });
-    lines.push({ text: "Current Ring: " + ringDescriptor.title, emphasis: "ring" });
-    if (nextSeg) lines.push({ text: "next " + nextSeg.text + " " + fmtTimeD(nextSeg.startTime, snapshot) });
+    lines.push({ text: "Current Ring: " + N(ringDescriptor.title), emphasis: "ring" });
+    if (nextSeg) lines.push({ text: "next " + N(nextSeg.text) + " " + fmtTimeD(nextSeg.startTime, snapshot) });
     return lines;
+  }
+
+  // What the Today panel shows (js/today-panel.js draws it).
+  function buildPanelModel(now, snapshot, ringDescriptor) {
+    const a = snapshot.anchors;
+    function till(entry) { const end = entry.endTime || entry.segEnd; return "till " + fmtTimeD(end, snapshot); }
+    const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
+    const tithi = currentIn(snapshot.tithiSequence, now), nak = currentIn(snapshot.nakshatraSequence, now);
+    const yoga = currentIn(snapshot.yogaSequence, now), karana = currentIn(snapshot.karanaSequence, now);
+    const karanaName = karana.key.indexOf("movable:") === 0 ? data.karana.movable[Number(karana.key.split(":")[1])] : data.karana.fixed[karana.key];
+    const model = {
+      date: now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }),
+      vara: N(varaName),
+      sun: "Sunrise " + fmtTime(a.governingSunrise) + " · Sunset " + fmtTime(a.sunsetToday),
+      rows: [
+        { k: N("Tithi"), v: N(E.RingAdapter.tithiNameAt(snapshot, data, now)), till: till(tithi) },
+        { k: N("Nakṣatra"), v: N(data.nakshatra.names[nak.index]), till: till(nak) },
+        { k: N("Yoga"), v: N(data.yoga.names[yoga.index]), till: till(yoga) },
+        { k: N("Karaṇa"), v: N(karanaName), till: till(karana) },
+        { k: N("Māsa"), v: N(data.amantaMasa.names[tithi.amantaMasaRashiIndex]), till: "" },
+      ],
+      nowTitle: secondaryView ? "SECONDARY YOGAS NOW" : "GOOD AND BAD TIMES NOW",
+      now: [],
+      ring: null,
+    };
+    // Every window running now (bad first), then the next of each kind.
+    if (lastGoodBad) {
+      const t = now.getTime();
+      const next = [];
+      [["bad", lastGoodBad.bad], ["good", lastGoodBad.good]].forEach(function (pair) {
+        const events = pair[1].segments;
+        events.filter(function (e) { return e.startTime <= t && t < e.endTime; })
+          .sort(function (x, y) { return x.endTime - y.endTime; })
+          .forEach(function (e) { model.now.push({ kind: pair[0], text: N(e.text), when: "till " + fmtTimeD(e.endTime, snapshot) }); });
+        const upcoming = events.filter(function (e) { return e.startTime > t; }).sort(function (x, y) { return x.startTime - y.startTime; })[0];
+        if (upcoming) next.push({ kind: "next-" + pair[0], text: "Next " + pair[0] + ": " + N(upcoming.text), when: "at " + fmtTimeD(upcoming.startTime, snapshot), at: upcoming.startTime.getTime() });
+      });
+      if (!model.now.length) model.now.push({ kind: "none", text: "Nothing running now", when: "" });
+      next.sort(function (x, y) { return x.at - y.at; }).forEach(function (n) { model.now.push({ kind: n.kind, text: n.text, when: n.when }); });
+    }
+    // The outer ring: what it shows, the division holding now and when the next starts.
+    if (ringDescriptor && ringsOn && !secondaryView) {
+      const cur = ringDescriptor.segments.find(function (seg) { return seg.startTime <= now && now < seg.endTime && seg.text; });
+      const nextSeg = ringDescriptor.segments.find(function (seg) { return seg.startTime > now && seg.text; });
+      model.ring = {
+        name: N(ringDescriptor.title) + (cur ? " · " + N(cur.text) : ""),
+        next: nextSeg ? "next " + N(nextSeg.text) + " at " + fmtTimeD(nextSeg.startTime, snapshot) : "",
+      };
+    }
+    return model;
   }
 
   function render() {
@@ -215,7 +282,7 @@
     const ringKey = activeRingOrder[currentRingIndex];
 
     const layoutKey = (ringsOn ? "r" : "-") + (windowsOn ? "w" : "-");
-    const viewChanged = secondaryView !== lastSecondaryView || layoutKey !== lastLayoutKey;
+    let viewChanged = secondaryView !== lastSecondaryView || layoutKey !== lastLayoutKey;
     if (viewChanged) {
       E.Dial.setLayout(ringsOn, windowsOn);
       E.Dial.setSecondaryMode(secondaryView);
@@ -224,6 +291,15 @@
       lastSecondaryView = secondaryView;
       lastLayoutKey = layoutKey;
     }
+    // The dial changed size on screen (or its view box did): labels are redrawn at a
+    // readable size, and those that cannot have one are left out (Dial.updateScale).
+    let scaleChanged = false;
+    if (scaleDirty || viewChanged) {
+      scaleDirty = false;
+      scaleChanged = E.Dial.updateScale();
+      if (scaleChanged) lastRenderedTimeMode = null;
+    }
+    viewChanged = viewChanged || scaleChanged; // from here on: everything on the dial is redrawn
     if (changed || viewChanged) {
       // Good/bad times and day/night only depend on the snapshot (and the
       // view), never on which switchable ring is toggled, so they're rebuilt
@@ -273,10 +349,13 @@
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
     E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow), dialHandles.switchGroup);
+    E.Dial.setSwitchLabel(dialHandles.switchGroup, timeMode === "hour" ? "Switch to ghaṭī" : "Switch to hours");
+    if (!document.body.classList.contains("fullview")) E.TodayPanel.update(buildPanelModel(now, snapshot, lastOuterRingDescriptor));
     updateSwitchLabel();
     if (changed || !controlsSynced) { controlsSynced = true; syncDayControls(); }
   }
   let controlsSynced = false;
+  let scaleDirty = true; // set whenever the dial's size on screen changes (main)
 
   // "Next ring (<ring>)" / "Previous ring (<ring>)" on the corner buttons by the dial.
   let lastSwitchLabel = null;
@@ -284,7 +363,7 @@
     const n = activeRingOrder.length;
     function title(delta) {
       const k = n ? activeRingOrder[(currentRingIndex + delta + n) % n] : null;
-      return k ? (E.RingAdapter.RING_TITLES[k] || k) : "";
+      return k ? N(E.RingAdapter.RING_TITLES[k] || k) : "";
     }
     const next = title(1), prev = title(-1);
     const key = prev + "|" + next;
@@ -381,12 +460,12 @@
       const b = document.getElementById(t[0]);
       b.addEventListener("click", function () {
         t[3](!t[2]());
-        b.setAttribute("aria-pressed", String(t[2]()));
+        b.setAttribute("aria-checked", String(t[2]()));
         b.blur();
         try { localStorage.setItem(t[1], t[2]() ? "1" : "0"); } catch (e) { /* storage unavailable */ }
         render();
       });
-      b.setAttribute("aria-pressed", String(t[2]()));
+      b.setAttribute("aria-checked", String(t[2]()));
     });
 
     if (E.MuhurtaFinder) {
@@ -690,6 +769,7 @@
     // part of this form: it is changed from the place name at the top of the clock screen.
     function populateForm(from) {
       ayanamsaSelect.value = from.ayanamsa;
+      document.getElementById("set-script").value = from.script || "iast";
       Array.from(document.getElementsByName("calcMethod")).forEach(function (radio) {
         radio.checked = radio.value === from.method;
       });
@@ -738,9 +818,12 @@
         yogaSets: { asalVakya: document.getElementById("set-yoga-asal-vakya").checked },
         regionalLimits: document.getElementById("set-yoga-regional").checked,
         descriptiveTips: document.getElementById("set-yoga-descriptive").checked,
+        script: document.getElementById("set-script").value,
         layerOrder: settings.layerOrder.slice(),
       };
       E.Settings.save(settings);
+      E.Script.set(settings.script);
+      lastSwitchLabel = null;
       E.Dial.setLayerOrder(settings.layerOrder);
       activeRingOrder = visibleRingOrder();
       currentRingIndex = 0;
@@ -791,6 +874,35 @@
     });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !menu.hidden && !document.querySelector(".alarm-modal")) { setAlarmMenu(false); btn.focus(); }
+    });
+  }
+
+  // "How to read the clock": the ? button beside Find muhurta, and a one-line pointer
+  // to it in the Today panel until it has been opened once.
+  function wireHelp() {
+    const dlg = document.getElementById("help-dialog"), btn = document.getElementById("btn-help"), hint = document.getElementById("tp-hint");
+    const KEY = "vedicWallClock.helpSeen";
+    let seen = false;
+    try { seen = localStorage.getItem(KEY) === "1"; } catch (e) { /* storage unavailable */ }
+    hint.hidden = seen;
+    let opener = btn;
+    function open(from) {
+      opener = from;
+      dlg.classList.remove("hidden");
+      dlg.querySelector(".ld-card").focus();
+      hint.hidden = true;
+      try { localStorage.setItem(KEY, "1"); } catch (e) { /* storage unavailable */ }
+    }
+    function close() {
+      dlg.classList.add("hidden");
+      (opener && document.contains(opener) && !opener.hidden ? opener : btn).focus();
+    }
+    btn.addEventListener("click", function () { open(btn); });
+    hint.addEventListener("click", function () { open(hint); });
+    document.getElementById("help-close").addEventListener("click", close);
+    dlg.addEventListener("click", function (e) { if (e.target === dlg) close(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !dlg.classList.contains("hidden")) close();
     });
   }
 
@@ -854,6 +966,10 @@
     const svg = document.getElementById("dial");
     dialHandles = E.Dial.buildStaticStructure(svg);
     E.Dial.setLayerOrder(settings.layerOrder);
+    E.Dial.setLabelTransform(N);
+    // The clock is redrawn for its size on screen whenever that changes (render).
+    if (window.ResizeObserver) new ResizeObserver(function () { scaleDirty = true; }).observe(svg);
+    else window.addEventListener("resize", function () { scaleDirty = true; });
 
     wireInput(svg);
     startControlSync();
@@ -862,6 +978,7 @@
     wireLocation();
     wireEditMode();
     wireFullView();
+    wireHelp();
     wireAlarmMenu();
     // Alarms are an add-on: if they fail to start, the clock itself carries on.
     let alarmsOk = false;

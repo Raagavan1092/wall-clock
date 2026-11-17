@@ -547,6 +547,147 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await ctx.close();
   }
 
+  // 7. The clock screen: a readable dial on a phone, the Today panel, the layer switches,
+  //    the tap sheet, the help dialog, the event chips and the script for names
+  {
+    const seed = extra => { // a returning visitor in Chennai, on a fixed evening
+      const loc = { name: "Chennai", latitude: 13.08, longitude: 80.27, elevation: 6 };
+      if (localStorage.getItem("vedicWallClock.settings.v1")) return;
+      localStorage.setItem("vedicWallClock.defaultLocation.v1", JSON.stringify(loc));
+      localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify(Object.assign({ location: loc }, extra || {})));
+    };
+    const at = "/index.html?t=2026-11-13T19:25:00%2B05:30";
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+    await page.addInitScript(seed);
+    await page.goto(base + at);
+    await page.waitForSelector("#dial text", { timeout: 20000 });
+    await page.waitForTimeout(600);
+
+    // Every piece of text on the dial is at least about 9px tall on screen (the small
+    // "Vipala" tail and a long marker name may go a little under).
+    const sizes = await page.evaluate(() => {
+      const svg = document.getElementById("dial");
+      const k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+      return Array.from(svg.querySelectorAll("text")).filter(t => t.textContent.trim()).map(t => ({ px: parseFloat(getComputedStyle(t).fontSize) * k, text: t.textContent.slice(0, 24) }));
+    });
+    const small = sizes.filter(x => x.px < 8.6);
+    ok("phone: no dial text under 9px", sizes.length > 10 && small.length === 0, JSON.stringify(small.slice(0, 4)));
+    ok("phone: only every fifth ghaṭī is numbered", await page.evaluate(() => document.querySelectorAll("#dial .ghati-numeral-minor").length === 0 && document.querySelectorAll("#dial .ghati-numeral").length === 12));
+    ok("centre: the time, the window running now and the switch; the date is not in it", await page.evaluate(() => {
+      const t = document.querySelector("#dial .centre-text").textContent;
+      return /Ghaṭī 33 · Pala \d+/.test(t) && /Bhadrā · till 20:43/.test(t) && !/Nov 2026|Current Ring/.test(t) && /Switch to hours/.test(document.getElementById("btn-switch-time").textContent);
+    }));
+
+    const panel = () => page.evaluate(() => document.getElementById("today-panel").innerText);
+    let text = await panel();
+    ok("Today panel: date, vāra, sunrise and sunset", /13 Nov 2026/.test(text) && /Śukravāra/.test(text) && /Sunrise 06:\d\d · Sunset 17:\d\d/.test(text), text.slice(0, 80));
+    ok("Today panel: tithi, nakṣatra, yoga, karaṇa with their end times, and the māsa", /Caturthī \(śukla\)\s+till 20:43/.test(text) && /Pūrva Āṣāḍhā\s+till \d\d:\d\d/.test(text) && /Yoga\s+\S+\s+till/.test(text) && /Viṣṭi\s+till 20:43/.test(text) && /Māsa\s+Kārttika/.test(text));
+    ok("Today panel: the windows running now and the next one", /Bhadrā\s+till 20:43/.test(text) && /Pradoṣa\s+till \d\d:\d\d/.test(text) && /Next bad: \S+\s+at \d\d:\d\d/.test(text));
+    ok("Today panel: the outer ring's division and the next", /Tithi · Caturthī \(śukla\)\s+next Pañcamī \(śukla\) at 20:43/.test(text));
+    ok("Today panel: sits under the clock in portrait", await page.evaluate(() => document.getElementById("today-panel").getBoundingClientRect().top >= document.getElementById("dial").getBoundingClientRect().bottom - 1));
+
+    // the two layer switches say their state and work
+    ok("switches: both on, as switches", await page.evaluate(() => ["btn-toggle-rings", "btn-toggle-windows"].every(id => { const b = document.getElementById(id); return b.getAttribute("role") === "switch" && b.getAttribute("aria-checked") === "true"; })));
+    await page.evaluate(() => document.getElementById("btn-toggle-rings").click());
+    await page.waitForTimeout(300);
+    ok("switches: Outer ring off hides the ring and its line in the panel", await page.evaluate(() =>
+      document.getElementById("btn-toggle-rings").getAttribute("aria-checked") === "false" && !document.querySelector("#dial .outer-ring *") && document.getElementById("tp-ring").hidden));
+    await page.evaluate(() => document.getElementById("btn-toggle-rings").click());
+    await page.waitForTimeout(300);
+
+    // a tap on the dial: a sheet at the bottom of the screen, and the segment is outlined
+    await page.evaluate(() => document.getElementById("stage").scrollTo(0, 0));
+    const box = await page.locator("#dial").boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2 + 4, box.y + box.height * 0.035);
+    await page.waitForTimeout(300);
+    ok("tap: the name and times come up as a sheet at the bottom", await page.evaluate(() => {
+      const tip = document.querySelector(".dial-tooltip");
+      const r = tip.getBoundingClientRect();
+      return tip.classList.contains("sheet") && getComputedStyle(tip).display !== "none" && r.bottom > innerHeight - 40 && /Caturthī/.test(tip.querySelector(".tip-title").textContent) && /Hr:Min/.test(tip.textContent) && !!document.querySelector("#dial .is-picked");
+    }));
+    await page.touchscreen.tap(20, 20);
+    await page.waitForTimeout(200);
+    ok("tap elsewhere: the sheet goes away", await page.evaluate(() => getComputedStyle(document.querySelector(".dial-tooltip")).display === "none" && !document.querySelector("#dial .is-picked")));
+
+    // help
+    ok("help: a pointer in the panel until it is opened", await page.evaluate(() => !document.getElementById("tp-hint").hidden && document.getElementById("help-dialog").classList.contains("hidden")));
+    await page.click("#btn-help");
+    ok("help: the ? button opens How to read the clock", await page.evaluate(() => !document.getElementById("help-dialog").classList.contains("hidden") && document.querySelectorAll("#help-dialog .help-list li").length >= 8));
+    await page.keyboard.press("Escape");
+    ok("help: Esc closes it, and the pointer is gone for good", await page.evaluate(() => document.getElementById("help-dialog").classList.contains("hidden") && document.getElementById("tp-hint").hidden && localStorage.getItem("vedicWallClock.helpSeen") === "1"));
+
+    // Find muhurta: common events as chips
+    await page.click("#btn-next-muhurta");
+    ok("Find muhurta: opens with common events as chips", await page.evaluate(() => document.querySelectorAll("#mf-suggest .mf-chip[data-id]").length >= 8 && document.getElementById("mf-list").hidden));
+    await page.click('#mf-suggest .mf-chip[data-id="vivaha"]');
+    ok("Find muhurta: a chip chooses its event", await page.evaluate(() => /Vivāha/.test(document.getElementById("mf-search").value) && /6\.13/.test(document.getElementById("mf-ref").textContent) &&
+      document.querySelector('#mf-suggest .mf-chip[data-id="vivaha"]').getAttribute("aria-pressed") === "true"));
+    await page.click("#mf-suggest .mf-chip-more");
+    ok("Find muhurta: 'All events' opens the full list", await page.evaluate(() => !document.getElementById("mf-list").hidden && document.querySelectorAll("#mf-list .mf-item").length > 50));
+    await page.click("#mf-close");
+
+    // full screen view: only the clock, so the date and pañcāṅga go back into its centre
+    await page.evaluate(() => document.body.classList.add("fullview"));
+    await page.waitForTimeout(400);
+    ok("full screen: the centre carries the date, tithi and nakṣatra again", await page.evaluate(() => {
+      const t = document.querySelector("#dial .centre-text").textContent;
+      return /13 Nov 2026 · Śukravāra/.test(t) && /Caturthī \(śukla\) · Pūrva Āṣāḍhā/.test(t) && getComputedStyle(document.getElementById("today-panel")).display === "none";
+    }));
+    await page.evaluate(() => document.body.classList.remove("fullview"));
+
+    // script for names: chosen in Settings, applied on the dial and in the panel, the data untouched
+    await page.click("#settings-toggle");
+    await page.evaluate(() => { document.querySelector("#set-script").closest("details").open = true; });
+    await page.selectOption("#set-script", "deva");
+    await page.click("#settings-save");
+    await page.waitForTimeout(500);
+    text = await panel();
+    ok("script: Devanāgarī in the Today panel", /शुक्रवार/.test(text) && /तिथि\s+चतुर्थी \(शुक्ल\)/.test(text) && /नक्षत्र\s+पूर्व आषाढा/.test(text) && /भद्रा\s+till 20:43/.test(text), text.slice(0, 120));
+    ok("script: Devanāgarī on the dial, the ring buttons and in the centre", await page.evaluate(() =>
+      /चतुर्थी \(शुक्ल\)/.test(document.querySelector("#dial .outer-ring").textContent) && /भद्रा · till 20:43/.test(document.querySelector("#dial .centre-text").textContent) &&
+      document.querySelector("#btn-next-display .rc-name").textContent === "नक्षत्र" && JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).script === "deva"));
+    ok("script: the transliteration itself", await page.evaluate(() => {
+      const S = window.VedicEngine.Script, was = S.get(), out = {};
+      const want = {
+        deva: { "Caturthī (śukla)": "चतुर्थी (शुक्ल)", "Pūrva Āṣāḍhā": "पूर्व आषाढा", "Abhijit": "अभिजित्", "Kiṃstughna": "किंस्तुघ्न", "Pañcamī": "पञ्चमी", "Kṛttikā": "कृत्तिका", "First Yāma (night)": "प्रथम याम (रात्रि)", "Bhadrā +1": "भद्रा +1", "Sarvārtha-siddhi": "सर्वार्थ-सिद्धि" },
+        kn: { "Caturthī (śukla)": "ಚತುರ್ಥೀ (ಶುಕ್ಲ)", "Pañcamī": "ಪಂಚಮೀ", "Candrodaya": "ಚಂದ್ರೋದಯ", "Śukravāra": "ಶುಕ್ರವಾರ" },
+        ta: { "Caturthī (śukla)": "சதுர்த்தி (சுக்ல)", "Pūrva Phalgunī": "பூரம்", "Śukravāra": "வெள்ளி", "Rāhu Kālam": "ராகு காலம்", "Vyatīpāta": "வியதீபாதம்", "Dhvāṅkṣa": "த்வாங்க்ஷ" },
+        iast: { "Caturthī (śukla)": "Caturthī (śukla)" },
+      };
+      const bad = [];
+      Object.keys(want).forEach(k => { S.set(k); Object.keys(want[k]).forEach(n => { if (S.name(n) !== want[k][n]) bad.push(k + ": " + n + " -> " + S.name(n)); }); });
+      S.set(was);
+      return bad;
+    }).then(bad => { if (bad.length) console.log("  " + bad.join("\n  ")); return bad.length === 0; }));
+    ok("clock screen: no page errors", errors.length === 0, errors.join("; "));
+    await ctx.close();
+
+    // landscape / desktop: the panel sits beside the clock, and every ghaṭī is numbered
+    const wide = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const wp = await wide.newPage();
+    await wp.addInitScript(seed);
+    await wp.goto(base + at);
+    await wp.waitForSelector("#dial text", { timeout: 20000 });
+    await wp.waitForTimeout(600);
+    ok("desktop: the Today panel is beside the clock, under the buttons, and they do not overlap", await wp.evaluate(() => {
+      const p = document.getElementById("today-panel").getBoundingClientRect(), d = document.getElementById("dial").getBoundingClientRect(), c = document.getElementById("top-controls").getBoundingClientRect();
+      return p.left >= d.right && p.top >= c.bottom && p.bottom <= innerHeight;
+    }));
+    ok("desktop: all 60 ghaṭīs are numbered and the marker lines are named", await wp.evaluate(() =>
+      document.querySelectorAll("#dial .ghati-numeral-minor").length === 48 && document.querySelectorAll("#dial .day-marker-label").length >= 2));
+    await wp.setViewportSize({ width: 844, height: 390 });
+    await wp.waitForTimeout(500);
+    ok("landscape phone: the panel stays clear of the clock and the dial is redrawn for its size", await wp.evaluate(() => {
+      const p = document.getElementById("today-panel").getBoundingClientRect(), d = document.getElementById("dial").getBoundingClientRect();
+      return p.left >= d.right && document.querySelectorAll("#dial .ghati-numeral-minor").length === 0;
+    }));
+    await wide.close();
+  }
+
   await browser.close();
   server.close();
   console.log(failures ? failures + " FAILED" : "ALL PASSED");
