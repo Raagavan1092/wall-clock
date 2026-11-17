@@ -48,8 +48,6 @@
     const settings = mergeSettings(settingsOverrides);
     const location = settings.location;
     const edge = settings.sunriseEdge;
-    // A place-dependent method ("vakya-tamil") computes for this location and sunrise definition.
-    VedicEngine.Sidereal.setPlace(location, edge);
 
     // Resolve the sunrise that governs "now" first (per spec: before today's
     // sunrise, everything - vara, ghati count - belongs to the previous Vedic day).

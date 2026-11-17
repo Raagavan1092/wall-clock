@@ -348,28 +348,24 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const MANYADI = [15, 10, 7, 8, 11, 17, 23, 28, 30, 29, 26, 21];
       const sankDay = deg => { for (let N = 1735000; ; N++) if (sw(VI.sun(N) - deg) < 0 && sw(VI.sun(N + 1) - deg) >= 0) return N + 1; };
       const manyadiErr = Math.max.apply(null, MANYADI.map((m, k) => Math.abs(VI.manyadi(10.787, 79.138, sankDay((30 * (k + 1)) % 360), 18) - m)));
-      // At a place's real sunrise the Tamil Moon is the Vakyakarana Moon at the text's sunrise
-      // (Ujjain mean sunrise + reduction) + 26'.
-      const Sid = V.Sidereal, chennai = { latitude: 13.08, longitude: 80.27, elevation: 6 };
-      Sid.setPlace(chennai, "upper-limb");
-      const N0 = Math.floor(VK.kaliDays(new Date(Date.UTC(2026, 5, 1)))) + 1;
-      const rise = V.Sunrise.sunriseAfter(chennai, new Date(VI.kaliDayToMs(N0) - 6 * 3600000), "upper-limb");
-      const red = VI.sunriseReduction(13.08, 80.27, VI.sun(N0), VI.precession(VI.kaliYear(N0)));
-      const atRise = asec(Sid.longitude("moon", rise, "lahiri", "vakya-tamil"), VI.moon(N0 + red / 3600) + 26 / 60);
-      // Continuous (no steps at sunrise), and it depends on the place.
+      // At 06:00 IST the Tamil Moon is the Vakyakarana Moon at Thanjavur's disc-centre sunrise
+      // that day + the 28' bija; the same for every place; continuous.
+      const Sid = V.Sidereal, TH = VK.ALMANAC_PLACE, IST = 5.5 * 3600000;
+      const six = Date.UTC(2026, 5, 1) - IST + 6 * 3600000;
+      const rise = V.Sunrise.sunriseAfter(TH, new Date(six - 3 * 3600000), "disc-centre");
+      const atSix = asec(Sid.longitude("moon", new Date(six), "lahiri", "vakya-tamil"), VK.trueLongitude("moon", rise) + VK.ALMANAC_BIJA_ARCMIN / 60);
       let tamilStep = 0;
       for (let h = 0; h < 24 * 120; h += 1) {
         const a = new Date(Date.UTC(2026, 0, 1) + h * 3600000), b = new Date(a.getTime() + 3600000);
         const s = sw(Sid.longitude("moon", b, "lahiri", "vakya-tamil") - Sid.longitude("moon", a, "lahiri", "vakya-tamil"));
         if (s < 0.45 || s > 0.67) tamilStep++;
       }
-      const tChennai = Sid.longitude("moon", d0, "lahiri", "vakya-tamil");
-      Sid.setPlace({ latitude: 9.93, longitude: 78.12, elevation: 130 }, "upper-limb");
-      const placeDiff = Math.abs(sw(Sid.longitude("moon", d0, "lahiri", "vakya-tamil") - tChennai)) * 60;
-      const bijaDiff = sw(tChennai - VK.trueLongitude("moon", d0)) * 60;
+      const tChennai = E_moonAt(d0);
+      function E_moonAt(d) { return V.Panchanga.compute(d, { location: { latitude: 13.08, longitude: 80.27, elevation: 6 }, method: "vakya-tamil" }).tithi.endTime.getTime(); }
+      const placeSame = tChennai === V.Panchanga.compute(d0, { location: { latitude: 9.93, longitude: 78.12, elevation: 130 }, method: "vakya-tamil" }).tithi.endTime.getTime();
+      const bijaDiff = sw(Sid.longitude("moon", d0, "lahiri", "vakya-tamil") - VK.trueLongitude("moon", d0)) * 60;
       const sunDiff = Math.abs(sw(Sid.longitude("sun", d0, "lahiri", "vakya-tamil") - VK.trueLongitude("sun", d0))) * 60;
-      Sid.setPlace(V.Panchanga.DEFAULT_SETTINGS.location, "upper-limb");
-      const tamil = { manyadiErr, atRise, tamilStep, placeDiff, bijaDiff, sunDiff, precession2026: VI.precession(VI.kaliYear(N0)) };
+      const tamil = { manyadiErr, atSix, tamilStep, placeSame, bijaDiff, sunDiff, precession2026: VI.precession(VI.kaliYear(Math.floor(VK.kaliDays(d0)))) };
       return { vk, vkp, vkSteps, moonStep, unknownThrows, kt, kWorst, vWorst, kJump, mkr, tamil };
     });
     ok("Vakya: Kali day count and weekday of the worked example (1844004, Saturday)", Math.abs(r.vk.kaliDays - 1844004) < 1e-6 && r.vk.weekday === 6, r.vk.kaliDays + " / " + r.vk.weekday);
@@ -377,9 +373,9 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("Vakya: true Sun = book's 5r23°28'33\" (within 2\")", r.vk.sun <= 2, r.vk.sun.toFixed(1) + '"');
     ok("Vakya: true Moon = book's 4r11°17'32\" (within 2\")", r.vk.moon <= 2, r.vk.moon.toFixed(1) + '"');
     ok("Tamil vakya: the text's sunrise reductions for Thanjavur + 26' bija reproduce the printed manyadi table (within 1.2')", r.tamil.manyadiErr < 1.2, r.tamil.manyadiErr.toFixed(2) + "'");
-    ok("Tamil vakya: at real sunrise (Chennai) the Moon = Vakyakarana Moon at Ujjain mean sunrise + reduction, + 26' (within 1\")", r.tamil.atRise < 1, r.tamil.atRise.toFixed(2) + '"');
-    ok("Tamil vakya: Moon runs smoothly hour by hour for 120 days (no steps at sunrise)", r.tamil.tamilStep === 0, r.tamil.tamilStep + " bad steps");
-    ok("Tamil vakya: Moon about 26' ahead of plain Vakyakarana, Sun within 1', and the place matters", Math.abs(r.tamil.bijaDiff - 26) < 12 && r.tamil.sunDiff < 1 && r.tamil.placeDiff > 0.05, r.tamil.bijaDiff.toFixed(1) + "' / " + r.tamil.sunDiff.toFixed(2) + "' / " + r.tamil.placeDiff.toFixed(2) + "'");
+    ok("Tamil vakya: at 06:00 IST the Moon = Vakyakarana Moon at Thanjavur's disc-centre sunrise + 28' (within 1\")", r.tamil.atSix < 1, r.tamil.atSix.toFixed(2) + '"');
+    ok("Tamil vakya: Moon runs smoothly hour by hour for 120 days (no steps at 06:00 IST)", r.tamil.tamilStep === 0, r.tamil.tamilStep + " bad steps");
+    ok("Tamil vakya: Moon 28' +- (sunrise - 06:00) x motion ahead of plain Vakyakarana, Sun within 1', and the tithi end is the same instant for every place", r.tamil.bijaDiff > 18 && r.tamil.bijaDiff < 48 && r.tamil.sunDiff < 1 && r.tamil.placeSame, r.tamil.bijaDiff.toFixed(1) + "' / " + r.tamil.sunDiff.toFixed(2) + "'");
     ok("Tamil vakya: the text's precession (III.1) is 22.76 deg in Kali 5127 (2026)", Math.abs(r.tamil.precession2026 - 22.76) < 0.01, r.tamil.precession2026.toFixed(3));
     ok("Vakya: Rahu = book's 1r1°6'34\" (within 2\")", r.vk.rahu <= 2, r.vk.rahu.toFixed(1) + '"');
     ok("Vakya: ketu opposite rahu; 248 Moon vakyas loaded", Math.abs(r.vk.ketu) < 1e-9 && r.vk.vakya154);
@@ -417,7 +413,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
   }
 
   // 6b. Tamil vakya against a printed Tamil vakya panchangam (Thanjavur, Karthigai 2026):
-  //     its sunrise table and its tithi / nakshatra / yoga ends in nazhigai from sunrise.
+  //     its sunrise table, and its tithi / nakshatra / yoga ends as printed in IST
+  //     (06:00 IST + the nazhigai; the IST times are the reference).
   {
     const page = await browser.newPage();
     const errors = [];
@@ -439,11 +436,9 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         return Math.floor(((m + s) % 360) / (360 / 27)) + 1;
       };
       const diffs = method => {
-        S.setPlace(loc, "disc-centre");
         const out = { tithi: [], nakshatra: [], yoga: [] };
-        fx.ends.forEach(e => {
-          const rise = Su.sunriseAfter(loc, new Date(dayStart(e.date)), "disc-centre").getTime();
-          const [n, v] = e.ends.split("-").map(Number), printed = rise + (n * 24 + v * 0.4) * 60000;
+        fx.ends.filter(e => !e.suspect).forEach(e => {
+          const [n, v] = e.ends.split("-").map(Number), printed = dayStart(e.date) + 6 * 3600000 + (n * 24 + v * 0.4) * 60000;
           let t = printed - 4 * 3600000, guard = 0;
           while (index(e.kind, t, method) !== e.index && guard++ < 100) t += 600000;
           while (index(e.kind, t, method) === e.index && guard++ < 300) t += 600000;
@@ -454,14 +449,13 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
         return out;
       };
       const tamil = diffs("vakya-tamil"), plain = diffs("vakya");
-      S.setPlace(V.Panchanga.DEFAULT_SETTINGS.location, "upper-limb");
       return { sunriseErr, tamil, plain, n: fx.ends.length };
     }, fx);
     const all = o => o.tithi.concat(o.nakshatra, o.yoga), mean = a => a.reduce((x, y) => x + y, 0) / a.length, worst = a => Math.max.apply(null, a.map(Math.abs));
     ok("Thanjavur almanac: its sunrise table is the disc centre without refraction (within 2 min; it drops the seconds)", worst(r.sunriseErr) <= 2, r.sunriseErr.map(x => x.toFixed(1)).join(" "));
-    ok("Thanjavur almanac: Tamil vakya reproduces the " + (r.tamil.tithi.length + r.tamil.nakshatra.length) + " printed tithi/nakshatra ends within 6 min (nazhigai from sunrise)", worst(r.tamil.tithi.concat(r.tamil.nakshatra)) <= 6, "worst " + worst(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1) + " min, mean " + mean(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1));
-    ok("Thanjavur almanac: Tamil vakya yoga ends within 12 min, mean within 3 min overall", worst(r.tamil.yoga) <= 12 && Math.abs(mean(all(r.tamil))) <= 3, "worst " + worst(r.tamil.yoga).toFixed(1) + " min, mean " + mean(all(r.tamil)).toFixed(1));
-    ok("Thanjavur almanac: plain Vakyakarana is ~50 min late (the manyadi bija matters)", mean(all(r.plain)) > 40, "mean " + mean(all(r.plain)).toFixed(1) + " min");
+    ok("Thanjavur almanac: Tamil vakya reproduces the " + (r.tamil.tithi.length + r.tamil.nakshatra.length) + " printed tithi/nakshatra IST times within 3 min, mean within 1 min", worst(r.tamil.tithi.concat(r.tamil.nakshatra)) <= 3 && Math.abs(mean(r.tamil.tithi.concat(r.tamil.nakshatra))) <= 1, "worst " + worst(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(1) + " min, mean " + mean(r.tamil.tithi.concat(r.tamil.nakshatra)).toFixed(2));
+    ok("Thanjavur almanac: Tamil vakya yoga ends within 3.5 min", worst(r.tamil.yoga) <= 3.5, "worst " + worst(r.tamil.yoga).toFixed(1) + " min");
+    ok("Thanjavur almanac: plain Vakyakarana is over an hour late in IST (the manyadi matters)", mean(all(r.plain)) > 55, "mean " + mean(all(r.plain)).toFixed(1) + " min");
     ok("Thanjavur almanac: no page errors", errors.length === 0, errors.join("; "));
     await page.close();
   }

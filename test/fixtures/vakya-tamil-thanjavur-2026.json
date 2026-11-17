@@ -1,5 +1,5 @@
 {
- "_readme": "A Tamil (asal) vakya panchangam for Thanjavur, Parabhava year (Kali 5127, Saka 1948), Karthigai (Vrscika) month, 17 Nov - 12 Dec 2026, supplied by the user as a scan on 2026-11-17 and transcribed by hand. 'ends' = nazhigai-vinazhigai from the day's sunrise when the tithi / nakshatra / yoga with that index (tithi 1-30 from sukla pratipada, nakshatra 1-27 from Asvini, yoga 1-27 from Viskambha) ends. The almanac's printed clock times are 06:00 IST + the nazhigai (not sunrise + nazhigai), so they are not used. Left out as misprints (the almanac's own clock time or the neighbouring entries disagree): 30 Nov saptami '55-20 (05-49 akalai)' - 05:49 is 59-32 by its own rule; 27 Nov subha yoga '52-11' (likely 58-11).",
+ "_readme": "A Tamil (asal) vakya panchangam for Thanjavur, Parabhava year (Kali 5127, Saka 1948), Karthigai (Vrscika) month, 17 Nov - 12 Dec 2026, supplied by the user as a scan on 2026-11-17 and transcribed by hand. 'ends' = the printed nazhigai-vinazhigai when the tithi / nakshatra / yoga with that index ends (tithi 1-30 from sukla pratipada, nakshatra 1-27 from Asvini, yoga 1-27 from Viskambha). The almanac prints the IST time as 06:00 IST + the nazhigai; those IST times are the reference (user's decision, 2026-11-17). Corrections: 30 Nov saptami is printed '55-20 (05-49 akalai)'; the IST 05:49 is kept, i.e. 59-32 (the 55-20 contradicts it). Marked suspect (not tested): 27 Nov subha yoga '52-11' (likely 58-11), 17 Nov dhruva yoga '59-22' (16 min off; likely 59-52).",
  "location": {
   "name": "Thanjavur",
   "latitude": 10.787,
@@ -56,7 +56,8 @@
    "date": "2026-11-17",
    "kind": "yoga",
    "index": 12,
-   "ends": "59-22"
+   "ends": "59-22",
+   "suspect": true
   },
   {
    "date": "2026-11-18",
@@ -495,6 +496,13 @@
    "kind": "yoga",
    "index": 11,
    "ends": "12-28"
+  },
+  {
+   "date": "2026-11-30",
+   "kind": "tithi",
+   "index": 22,
+   "ends": "59-32",
+   "note": "printed 55-20 (05-49 akalai); the IST 05:49 is kept"
   }
  ]
 }

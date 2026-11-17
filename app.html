@@ -81,9 +81,9 @@
     <label><input type="radio" name="calcMethod" value="ss"> Plain Sūrya Siddhānta (classical, no corrections)</label>
     <label><input type="radio" name="calcMethod" value="ss-ranganatha"> Raṅganātha Daivajña's updated rules (bīja; Makaranda sāriṇī for now)</label>
     <label><input type="radio" name="calcMethod" value="vakya"> Vākyakaraṇa rules (Āryabhaṭīya-based)</label>
-    <label><input type="radio" name="calcMethod" value="vakya-tamil"> Tamil vākya pañcāṅgam (Vākyakaraṇa + the almanac makers' mānyādi, worked for the selected location)</label>
+    <label><input type="radio" name="calcMethod" value="vakya-tamil"> Tamil vākya pañcāṅgam (Vākyakaraṇa + the almanac makers' mānyādi; matches a Thanjavur almanac's IST times)</label>
     <label><input type="radio" name="calcMethod" value="ketkar"> Veṅkaṭeśa Ketkar's rules (Sūrya Siddhānta-based)</label>
-    <p class="settings-note">The Ayanāṃśa setting is used only for Drik: every other option computes the Sun and Moon by its own text's rules. (Lagna, Jupiter and Rāhu use the Ayanāṃśa under every option.) Expect the Sūrya Siddhānta and Vākya options to differ from Drik by up to a few degrees (hours of tithi time); Ketkar's stays within minutes of it. The Tamil vākya option is what Tamil vākya pañcāṅgams print: the Vākyakaraṇa Moon plus their mānyādi (a fixed +26′ bīja, and the text's own reduction to sunrise at your location), so its tithi and nakṣatra end about 40–60 minutes before the plain Vākyakaraṇa option.</p>
+    <p class="settings-note">The Ayanāṃśa setting is used only for Drik: every other option computes the Sun and Moon by its own text's rules. (Lagna, Jupiter and Rāhu use the Ayanāṃśa under every option.) Expect the Sūrya Siddhānta and Vākya options to differ from Drik by up to a few degrees (hours of tithi time); Ketkar's stays within minutes of it. The Tamil vākya option gives the IST times a Tamil vākya pañcāṅgam prints (checked against a Thanjavur almanac, within about 2 minutes): the Vākyakaraṇa Moon plus their mānyādi correction, the same IST instant for every place. Its tithi and nakṣatra end about an hour before the plain Vākyakaraṇa option.</p>
     </details>
   </section>
 
@@ -129,7 +129,7 @@
     <summary><h3>Sunrise definition</h3></summary>
     <label><input type="radio" name="sunriseEdge" value="upper-limb"> Upper limb, with refraction (default)</label>
     <label><input type="radio" name="sunriseEdge" value="disc-centre"> Disc centre, geometric (no refraction)</label>
-    <p class="settings-note" id="sunrise-edge-fixed" style="display:none">The Tamil vākya pañcāṅgam option always uses the disc centre, as the almanacs' sunrise tables do, so its ghaṭīs from sunrise match their nāḻigai. Your choice here applies to the other methods.</p>
+    <p class="settings-note" id="sunrise-edge-fixed" style="display:none">The Tamil vākya pañcāṅgam option always uses the disc centre, as the almanacs' sunrise tables do. Your choice here applies to the other methods.</p>
     </details>
   </section>
 

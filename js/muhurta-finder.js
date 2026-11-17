@@ -90,7 +90,6 @@
   // ---------------------------------------------------------------------------
   // Range-wide caches
   function buildCaches(fromMs, toMs, s) {
-    E.Sidereal.setPlace(s.location, s.sunriseEdge);   // for a place-dependent method ("vakya-tamil")
     const As = A(), cache = { eclipses: [], sankrantis: [], adhika: {} };
     try {
       const obs = new As.Observer(s.location.latitude, s.location.longitude, s.location.elevation || 0);

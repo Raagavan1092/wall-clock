@@ -122,12 +122,18 @@ The table (VK edition, intro pp. xi–xii; section A, "Intro tables") at the sta
 - Tests (section 6): the table is reproduced within 1.2′; at real sunrise the Moon = VK Moon at the text's sunrise + 26′; the Moon has no steps; the place matters.
 - Not done: a printed almanac's own clock times also depend on how it computes sunrise (cara by the text gives ±a few minutes). The app uses the modern sunrise for the day boundary under every method.
 
+**The method now (redone 2026-11-17, superseding the per-place model above): fitted to the almanac's IST times.** The user's decision: the printed IST times are the truth, the same instant for every place. The almanac's own bookkeeping (nāḻigai from its sunrise, printed as 06:00 + nāḻigai) is not modelled separately. The almanac evidently brings the Moon to Thanjavur's real sunrise, so:
+- Moon(t) = Vākyakaraṇa Moon at (t + Thanjavur disc-centre sunrise − 06:00 IST) + **28′**; the Sun is taken at the same shifted time. The shift is interpolated between 06:00 IST of successive days. The selected place plays no part (`Vakya.tamilLongitude`, `ALMANAC_PLACE`, `ALMANAC_BIJA_ARCMIN`).
+- Against the 52 printed tithi and nakṣatra IST times (17 Nov – 12 Dec 2026): within 2.1 min, mean +0.3, rms 1.2. Yogas are within 3.2 min. Today's aṣṭamī: 02:14 against the printed 02:15.
+- Alternatives fitted to the same IST times, as the bīja C implied by each entry (scatter, drift over the 25 days): the text's own sunrise rule (VK I.14b–16) → C 24.6′, sd 0.73′, drift +2.1′; the real disc-centre sunrise → C 28.3′, sd 0.64′, drift −1.5′; upper-limb sunrise → 30.3′, sd 0.72′; no shift → 38.4′, sd 1.45′, drift +3.8′. The real sunrise is the best and the simplest. What is left (a ±1.5 min wave) needs more months of the almanac to resolve.
+- So the bīja of this almanac is 28′, not the 26′ decoded from the VK edition's table. The table's 26′ is measured against the text's rough sunrise; against a real sunrise its equivalent is ~28′.
+
 **Checked against a printed almanac (2026-11-17).** The user supplied a scan of a Tamil (asal) vākya pañcāṅgam for **Thanjavur**: its sunrise table for the Parābhava year, and the daily entries for Kārttikai 1–26 (17 Nov – 12 Dec 2026). The values are transcribed in `test/fixtures/vakya-tamil-thanjavur-2026.json` and tested in section 6b.
 - **Sunrise.** The almanac's sunrise is the centre of the disc without refraction (the app's "disc-centre"; it is 0.7–1.9 min later than the table, which drops the seconds). "Upper-limb" is about 3 min earlier.
 - **Nāḻigai.** Counted from that sunrise, `vakya-tamil` reproduces all 51 tithi and nakṣatra ends within 5.3 min (mean −2.5 min, sd ~1.4). The yoga ends match within 4 min, except 17 Nov dhruva (printed 59-22, app 59-50; perhaps a misprint of 59-52). Plain `vakya` is 52 min late on average.
 - **Variants tried.** The printed mānyādi table instead of the text's reduction; an 18° precession for the cara instead of III.1's 22.76°; true instead of mean motion. Each moves the mean by under 1 min (the table is marginally the best: sd 0.95 vs 1.33 min for nakṣatras). Not enough to choose, so the general rule (any place) stays.
 - **Misprints found.** 30 Nov saptamī "55-20 (05-49 அகா)": 05:49 is 59-32 by the almanac's own clock rule; the app gives 59-30. 27 Nov śubha yoga "52-11": the app gives 58-05, so probably 58-11.
-- **Decided (user, 2026-11-17):** `vakya-tamil` always uses the disc-centre sunrise (`Sidereal.FIXED_SUNRISE_EDGE`). Settings shows that choice greyed out, and the user's own sunrise choice is kept and saved for the other methods (`settings.sunriseEdgeChoice`). Clock times stay true clock times, not the almanac's 06:00 + nāḻigai.
+- **Decided (user, 2026-11-17):** (superseded in part, see "The method now" above) `vakya-tamil` always uses the disc-centre sunrise (`Sidereal.FIXED_SUNRISE_EDGE`). Settings shows that choice greyed out, and the user's own sunrise choice is kept and saved for the other methods (`settings.sunriseEdgeChoice`). Clock times stay true clock times, not the almanac's 06:00 + nāḻigai.
 - **Same clock time everywhere?** Nearly. Positions are tied to one instant (Ujjain mean sunrise). The place enters only through the text's own sunrise rule, so the clock times differ between places only by that rule's error. Over four sample tithis, Chennai, Madurai, Tirunelveli, Bengaluru and Sringeri agree with Thanjavur within 0.1 min, Mumbai within 0.5, Delhi within 1.1. London (up to 9 min) and New York (up to 3.5) differ more, where the linear cara rule breaks down.
 - **The almanac's clock times are 06:00 IST + nāḻigai**, not sunrise + nāḻigai. For example, 18 Nov navamī 52-20 is printed "02-56 இ". So its printed clock times are early by (sunrise − 6:00), 8–27 min this month. The app shows true clock times. Its ghaṭī-pala from sunrise (with the "disc-centre" sunrise) are what match the almanac's nāḻigai.
 
@@ -2800,11 +2806,12 @@ What every method does: find where the Sun and the Moon are (as sidereal longitu
   - Accuracy today: Sun within about 0.6°, Moon within about 4° (the vākyas carry only the Moon's main inequality). The planets have drifted a long way, Mercury most of all.
 
 - **Tamil vākya pañcāṅgam (Vākyakaraṇa + mānyādi)**
-  - What Tamil vākya almanacs actually print. They take the Vākyakaraṇa Moon and add the *mānyādi*, a small correction looked up by the month.
-  - The mānyādi has two parts. The first moves the Moon from Ujjain's 6 a.m. to sunrise in the almanac's town, by the text's own rules: longitude (deśāntara), day length (cara) and the Sun's uneven speed (bhujāntara). The second is a fixed +26′ added to the Moon, a bīja the almanac makers have used since about 1800.
-  - The app works the first part out for **your selected location** with the same rules, and adds the 26′. So ghaṭīs from sunrise agree with the almanac's nāḻigai.
-  - Effect: tithi, nakṣatra and yoga end about 40–55 minutes earlier than under plain Vākyakaraṇa.
-  - The Sun and planets are the plain Vākyakaraṇa ones. Some Tamil almanacs compute planets by a corrected Parahita method instead, so their planets may still differ.
+  - Gives the IST times a Tamil vākya almanac prints. It was checked against a Thanjavur almanac: its tithi and nakṣatra ends agree within about 2 minutes.
+  - Tamil almanacs take the Vākyakaraṇa Moon and add the *mānyādi*. First they move the Moon from Ujjain's 6 a.m. to sunrise in their own town (Thanjavur). Then they add a fixed bīja, 28′ for this almanac.
+  - The app does the same. The IST time of a tithi end is then one instant, the same wherever you are.
+  - Day boundaries use the disc-centre sunrise, as the almanacs' sunrise tables do.
+  - Effect: tithi, nakṣatra and yoga end about an hour before plain Vākyakaraṇa.
+  - The Sun and planets are the plain Vākyakaraṇa ones. Some Tamil almanacs compute planets by a corrected Parahita method, so their planets may still differ.
 
 - **Veṅkaṭeśa Ketkar's rules (Ketakī Grahagaṇita)**
   - A traditional-style karaṇa built on modern (19th-century European) astronomical constants. Epoch: Śaka 1800, 3 April 1878, sunrise at Ujjain.
