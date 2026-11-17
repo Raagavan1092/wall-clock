@@ -640,40 +640,25 @@
 
     // ---- Good today for ----
     const actItems = [];
-    const nakNow = snapshot.nakshatraSequence;
+    // By the nakṣatra and tithi at sunrise, which hold for the whole day's rites.
+    const n0 = snapshot.nakshatraSequence[0], t0 = snapshot.tithiSequence[0];
+    const c0 = classOf(t0.pakshaIndex), nakNow = [n0];
     M.activities.forEach(function (a) {
-      const spans = [];
-      nakNow.forEach(function (n) {
-        if (a.naks.indexOf(n.index) === -1) return;
-        if (a.badVara && a.badVara.indexOf(v) !== -1) return;
-        if (a.okVara && a.okVara.indexOf(v) === -1) return;
-        snapshot.tithiSequence.forEach(function (t) {
-          const o = overlap(iv(ms(n.segStart), ms(n.segEnd)), iv(ms(t.segStart), ms(t.segEnd)));
-          if (!o) return;
-          const c = classOf(t.pakshaIndex);
-          if (a.badClass && a.badClass.indexOf(c) !== -1) return;
-          if (a.badTithi && a.badTithi.indexOf(t.pakshaIndex) !== -1) return;
-          if (a.okTithi && a.okTithi.indexOf(t.pakshaIndex) === -1) return;
-          if (a.badMasa && a.badMasa.indexOf(t.amantaMasaRashiIndex) !== -1) return;
-          spans.push(o);
-        });
-      });
-      if (!spans.length) return;
-      spans.sort(function (x, y) { return ms(x.startTime) - ms(y.startTime); });
-      const merged = [];
-      spans.forEach(function (x) {
-        const last = merged[merged.length - 1];
-        if (last && ms(x.startTime) - ms(last.endTime) <= 60000) last.endTime = new Date(Math.max(ms(last.endTime), ms(x.endTime)));
-        else merged.push(iv(ms(x.startTime), ms(x.endTime)));
-      });
-      actItems.push(a.name + " (" + a.v + "): " + merged.map(function (x) { return range(x.startTime, x.endTime); }).join(", ") + (a.need ? ". Also needs: " + a.need + "." : ""));
+      if (a.naks.indexOf(n0.index) === -1) return;
+      if (a.badVara && a.badVara.indexOf(v) !== -1) return;
+      if (a.okVara && a.okVara.indexOf(v) === -1) return;
+      if (a.badClass && a.badClass.indexOf(c0) !== -1) return;
+      if (a.badTithi && a.badTithi.indexOf(t0.pakshaIndex) !== -1) return;
+      if (a.okTithi && a.okTithi.indexOf(t0.pakshaIndex) === -1) return;
+      if (a.badMasa && a.badMasa.indexOf(t0.amantaMasaRashiIndex) !== -1) return;
+      actItems.push(a.name + " (" + a.v + ")" + (a.need ? ". Also needs: " + a.need + "." : "."));
     });
     if (v === 2 || snapshot.yogaSequence.some(function (y) { return y.index === 10; }) || (v === 0 && nakNow.some(function (n) { return n.index === 12; }))) {
       actItems.push(B("Do not borrow money today (Tuesday, Vṛddhi yoga, Saṅkrānti or Sunday + Hasta): the debt passes to sons and grandsons (2.27)."));
     }
     if (v === 2) actItems.push("Repaying a debt is good on a Tuesday (2.27).");
     M.siddhaCaution.forEach(function (c) { if (c[0] === v && nakNow.some(function (n) { return n.index === c[1]; })) actItems.push(B("Avoid " + c[2] + " today despite the good yoga (1.22).")); });
-    sections.push({ title: "Activities by nakṣatra, weekday and tithi", sub: "Prakaraṇa 2. Lagna conditions are not checked.", items: actItems.length ? actItems : ["No listed activity suits today's nakṣatra, weekday and tithi together."] });
+    sections.push({ title: "Activities by nakṣatra, weekday and tithi", sub: "Prakaraṇa 2, by the sunrise nakṣatra and tithi. Lagna conditions are not checked.", items: actItems.length ? actItems : ["No listed activity suits today's nakṣatra, weekday and tithi together."] });
 
     // ---- The day ----
     const dayItems = [];
