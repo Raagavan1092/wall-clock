@@ -150,6 +150,13 @@
     return sequence.find(function (e) { return e.segStart <= now && now < e.segEnd; }) || sequence[0];
   }
 
+  // The instant whose tithi and nakṣatra the Today panel shows. Rituals go by those at
+  // sunrise, so in edit mode, where the hand is dragged about the day, they stay those
+  // of the day's sunrise instead of following the hand.
+  function tithiNakTime(now, snapshot) {
+    return editMode ? snapshot.anchors.governingSunrise : now;
+  }
+
   // The centre of the clock: the time in both conventions and the window running now.
   // The date, the pañcāṅga and the outer ring's state are in the Today panel beside or
   // under the clock (buildPanelModel); in the full screen view, where only the clock is
@@ -231,7 +238,8 @@
     const a = snapshot.anchors;
     function till(entry) { const end = entry.endTime || entry.segEnd; return "till " + fmtTimeD(end, snapshot); }
     const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
-    const tithi = currentIn(snapshot.tithiSequence, now), nak = currentIn(snapshot.nakshatraSequence, now);
+    const held = tithiNakTime(now, snapshot);
+    const tithi = currentIn(snapshot.tithiSequence, held), nak = currentIn(snapshot.nakshatraSequence, held);
     const yoga = currentIn(snapshot.yogaSequence, now), karana = currentIn(snapshot.karanaSequence, now);
     const karanaName = karana.key.indexOf("movable:") === 0 ? data.karana.movable[Number(karana.key.split(":")[1])] : data.karana.fixed[karana.key];
     const model = {
@@ -239,7 +247,7 @@
       vara: N(varaName),
       sun: "Sunrise " + fmtTime(a.governingSunrise) + " · Sunset " + fmtTime(a.sunsetToday),
       rows: [
-        { k: N("Tithi"), v: N(E.RingAdapter.tithiNameAt(snapshot, data, now)), till: till(tithi) },
+        { k: N("Tithi"), v: N(E.RingAdapter.tithiNameAt(snapshot, data, held)), till: till(tithi) },
         { k: N("Nakṣatra"), v: N(data.nakshatra.names[nak.index]), till: till(nak) },
         { k: N("Yoga"), v: N(data.yoga.names[yoga.index]), till: till(yoga) },
         { k: N("Karaṇa"), v: N(karanaName), till: till(karana) },

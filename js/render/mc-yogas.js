@@ -595,7 +595,9 @@
     const range = function (a, b) { return fmt(a) + "–" + fmt(b); };
 
     // ---- Tithi ----
-    snapshot.tithiSequence.forEach(function (t) {
+    // Only the one at sunrise: rituals go by the tithi and nakṣatra at sunrise, so
+    // a second one that begins later in the day is left out of these details.
+    snapshot.tithiSequence.slice(0, 1).forEach(function (t) {
       const items = [];
       const pi = t.pakshaIndex, c = classOf(pi), key = t.number === 30 ? 30 : pi;
       items.push("Lord: " + (t.number === 30 ? M.amavasyaLord : M.tithiLord[pi - 1]) + ". Worship or install a deity on its own tithi (1.3).");
@@ -615,8 +617,8 @@
       sections.push({ title: "Tithi: " + tithiLabel(data, t), sub: range(t.segStart, t.segEnd), when: range(t.segStart, t.segEnd), items: items });
     });
 
-    // ---- Nakṣatra ----
-    snapshot.nakshatraSequence.forEach(function (n) {
+    // ---- Nakṣatra ---- (the one at sunrise only, as above)
+    snapshot.nakshatraSequence.slice(0, 1).forEach(function (n) {
       const i = n.index, items = [];
       items.push("Lord: " + M.nakLord[i] + " (2.1). Shape: " + M.shape[i] + "; stars: " + M.stars[i] + " (2.58–60).");
       Object.keys(M.NAK_CLASS).forEach(function (k) {
