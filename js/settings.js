@@ -79,6 +79,8 @@
       // commentators' views, verse and the reasons it is relaxed. Off (the
       // default): just its name and, for a relaxed bad yoga, when.
       descriptiveTips: false,
+      // The script names are shown in (js/script.js): "iast", "deva", "kn" or "ta".
+      script: "iast",
       // Physical order of the ring layers, outside in (Dial.LAYER_KEYS).
       layerOrder: VedicEngine.Dial.LAYER_KEYS.slice(),
     };
@@ -142,6 +144,7 @@
       janma: sanitizeJanma(saved.janma),
       regionalLimits: saved.regionalLimits !== false,
       descriptiveTips: saved.descriptiveTips === true,
+      script: VedicEngine.Script && VedicEngine.Script.SCRIPTS[saved.script] ? saved.script : d.script,
       layerOrder: d.layerOrder,
     };
   }

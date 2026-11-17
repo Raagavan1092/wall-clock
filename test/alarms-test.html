@@ -153,13 +153,13 @@
   check("...and the alarm moves on to the next occurrence", !!n5b);
   A.remove(a5.id);
 
-  // once: rings, then switches itself off
+  // once: rings, then is deleted
   const a3 = A.add({ events: ["win:yamaghanta"], mode: "start", repeat: "once" });
   await until(() => listed().find(a => a.id === a3.id).next);
   const n3 = listed().find(a => a.id === a3.id).next;
   A.tick(n3.fireAt + 500);
   check("'once' rings", rings.some(r => r.alarm.id === a3.id));
-  check("'once' then turns itself off", listed().find(a => a.id === a3.id).enabled === false);
+  check("'once' is then deleted", !listed().some(a => a.id === a3.id));
 
   // grace: within the grace period still rings
   const a4 = A.add({ events: ["win:kulika"], mode: "end", repeat: "always" });
@@ -189,12 +189,11 @@
   const nc = listed().find(a => a.id === ac.id);
   check("custom alarm lists with its wording", nc.title === "wake" && nc.triggerText === "At 06:30 IST" && nc.events.length === 0);
   A.tick(nc.next.fireAt + 1000);
-  check("custom alarm rings and 'once' switches off", rings.some(r => r.alarm.id === ac.id && r.items[0].label === "06:30 IST") && listed().find(a => a.id === ac.id).enabled === false);
-  A.remove(ac.id);
+  check("custom alarm rings and 'once' is deleted", rings.some(r => r.alarm.id === ac.id && r.items[0].label === "06:30 IST") && !listed().some(a => a.id === ac.id));
 
   // persistence + toggles
   const stored = JSON.parse(localStorage.getItem(KEY));
-  check("saved to storage", stored.alarms.length === 4 && stored.alarms.every(a => !Object.keys(a).some(k => k.startsWith("_"))));
+  check("saved to storage", stored.alarms.length === 3 && stored.alarms.every(a => !Object.keys(a).some(k => k.startsWith("_"))));
   A.setEnabled(a1.id, false);
   check("can be switched off", listed().find(a => a.id === a1.id).enabled === false && listed().find(a => a.id === a1.id).next === undefined);
   A.update(a1.id, { events: ["tithi:11", "tithi:26"], mode: "end", repeat: "always" });
@@ -255,7 +254,7 @@
   A.setEnabled(up.id, true);
   const once = A.add({ events: ["sun:rise"], mode: "start", repeat: "once" });
   const first = (await A.upcoming(once.id, 2))[0].fireAt;
-  check("markRang: records it, switches a once-alarm off", A.markRang(once.id, first, first + 2000) === true && A.get(once.id).enabled === false && A.get(once.id).lastRang === first + 2000);
+  check("markRang: records it, deletes a once-alarm", A.markRang(once.id, first, first + 2000) === true && A.get(once.id) === null);
   check("markRang: is idempotent", A.markRang(once.id, first, first + 2000) === false);
   const aw = A.get(up.id).armedAfter;
   A.markRang(up.id, upc[0].fireAt, upc[0].fireAt + 1000);

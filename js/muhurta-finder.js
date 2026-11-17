@@ -529,6 +529,37 @@
     openList(false);
     syncClear();
     $("mf-ref").textContent = chosen ? "Muhūrta Cintāmaṇi " + chosen.ref : "";
+    syncSuggest();
+  }
+
+  // Common events as chips under the search box, so the dialog does not open on a blank
+  // page: a tap chooses one, as picking it from the list does. Every event is still in
+  // the list (type, or tap the box).
+  const COMMON = [["vivaha", "Marriage"], ["upanayana", "Upanayana"], ["namakarana", "Naming"], ["annaprashana", "First solid food"], ["chaula", "First haircut"],
+    ["aksharambha", "First letters"], ["shop", "Opening a shop"], ["buying", "Buying"], ["medicine", "Medicine"], ["clothes", "New clothes"]];
+  function renderSuggest() {
+    const box = $("mf-suggest");
+    box.textContent = "";
+    const all = allEvents();
+    COMMON.forEach(function (c) {
+      const ev = all.find(function (e) { return e.id === c[0]; });
+      if (!ev) return;
+      const b = h("button", "mf-chip", c[1]);
+      b.type = "button";
+      b.title = ev.name;
+      b.dataset.id = ev.id;
+      box.appendChild(b);
+    });
+    const more = h("button", "mf-chip mf-chip-more", "All " + all.length + " events…");
+    more.type = "button";
+    more.dataset.all = "1";
+    box.appendChild(more);
+    syncSuggest();
+  }
+  function syncSuggest() {
+    $("mf-suggest").querySelectorAll(".mf-chip").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(!!chosen && b.dataset.id === chosen.id));
+    });
   }
 
   function init(c) {
@@ -537,6 +568,7 @@
       $("mf-dialog").classList.remove("hidden");
       if (!dateA) dateA = E.DatePicker.todayIST();
       renderRange(); renderList();
+      if (!$("mf-suggest").firstChild) renderSuggest();
       // No autofocus on the search box (it would pop the keyboard on phones):
       // focus the dialog itself, so Tab starts from the top.
       $("mf-dialog").querySelector(".ld-card").focus();
@@ -553,11 +585,17 @@
     });
     const search = $("mf-search");
     search.addEventListener("focus", function () { renderList(); openList(true); });
-    search.addEventListener("input", function () { chosen = null; $("mf-ref").textContent = ""; renderList(); openList(true); });
+    search.addEventListener("input", function () { chosen = null; $("mf-ref").textContent = ""; syncSuggest(); renderList(); openList(true); });
     search.addEventListener("keydown", function (e) {
       if (e.key === "Enter") { const first = $("mf-list").querySelector(".mf-item"); if (first) { e.preventDefault(); choose(first.dataset.id); } }
     });
     $("mf-list").addEventListener("click", function (e) { const li = e.target.closest(".mf-item"); if (li) choose(li.dataset.id); });
+    $("mf-suggest").addEventListener("click", function (e) {
+      const b = e.target.closest(".mf-chip");
+      if (!b) return;
+      if (b.dataset.all) { e.stopPropagation(); $("mf-search").value = ""; chosen = null; $("mf-ref").textContent = ""; syncClear(); syncSuggest(); renderList(); openList(true); return; }
+      choose(b.dataset.id);
+    });
     $("mf-mode").addEventListener("click", function (e) {
       const b = e.target.closest("button");
       if (!b) return;
@@ -569,12 +607,12 @@
     // × in the search box: clears the event. Clear: resets the whole form.
     $("mf-search-clear").addEventListener("click", function () {
       chosen = null; $("mf-search").value = ""; $("mf-ref").textContent = ""; $("mf-results").textContent = ""; runId++; $("mf-find").disabled = false;
-      renderList(); openList(false); syncClear();
+      renderList(); openList(false); syncClear(); syncSuggest();
     });
     $("mf-clear").addEventListener("click", function () {
       runId++; chosen = null; mode = "after"; dateA = E.DatePicker.todayIST(); dateB = null;
       $("mf-search").value = ""; $("mf-ref").textContent = ""; $("mf-results").textContent = ""; $("mf-find").disabled = false;
-      renderRange(); renderList(); openList(false); syncClear();
+      renderRange(); renderList(); openList(false); syncClear(); syncSuggest();
     });
     $("mf-search").addEventListener("input", syncClear);
     syncClear();

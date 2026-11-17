@@ -359,7 +359,9 @@
   function load() {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(storageKey) || "null"); } catch (e) { console.warn("Alarms: failed to read localStorage.", e); }
-    alarms = ((raw && Array.isArray(raw.alarms)) ? raw.alarms : []).map(normalize).filter(Boolean);
+    alarms = ((raw && Array.isArray(raw.alarms)) ? raw.alarms : []).map(normalize).filter(Boolean)
+      // A "just once" alarm is deleted when it rings; drop any kept (switched off) by older versions.
+      .filter(function (a) { return !(a.repeat === "once" && !a.enabled && a.lastRang != null); });
   }
 
   function emitChange() {
@@ -418,6 +420,7 @@
       return;
     }
     let changed = false;
+    const done = [];
     alarms.forEach(function (a) {
       if (!a.enabled || !a._next || now < a._next.fireAt) return;
       const next = a._next;
@@ -425,12 +428,14 @@
       a.armedAfter = next.fireAt + BATCH_MS;
       if (now - next.fireAt <= GRACE_MS) {
         a.lastRang = now;
-        if (a.repeat === "once") a.enabled = false;
+        if (a.repeat === "once") { a.enabled = false; done.push(a); }
         ring(a, next, now);
       }
       if (a.enabled) schedule(a);
       changed = true;
     });
+    // "Just once" alarms are deleted once they have rung.
+    done.forEach(function (a) { a._token = (a._token || 0) + 1; const i = alarms.indexOf(a); if (i >= 0) alarms.splice(i, 1); });
     if (changed) { persist(); emitChange(); }
   }
 
@@ -545,14 +550,14 @@
   }
 
   // A host rang alarm `id` (due at fireAt) for us: record it exactly as tick()
-  // would have, without ringing again. Idempotent. Returns true if it changed anything.
+  // would have, without ringing again (a "just once" alarm is deleted). Idempotent. Returns true if it changed anything.
   function markRang(id, fireAt, rangAt) {
     const a = find(id);
     if (!a || !isFinite(fireAt)) return false;
     if (a.lastRang != null && a.lastRang >= (isFinite(rangAt) ? rangAt : fireAt) && a.armedAfter >= fireAt + BATCH_MS) return false;
     a.lastRang = Math.max(a.lastRang || 0, isFinite(rangAt) ? rangAt : fireAt);
     a.armedAfter = Math.max(a.armedAfter, fireAt + BATCH_MS);
-    if (a.repeat === "once") a.enabled = false;
+    if (a.repeat === "once") { remove(id); return true; } // "just once": deleted once it has rung
     persist();
     schedule(a);
     emitChange();

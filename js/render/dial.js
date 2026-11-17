@@ -95,13 +95,28 @@
   // The tip is a small card with no title bar. A tap on a segment shows it (a mouse also shows it on
   // hover); a tap anywhere else, or a scroll, hides it. It opens beside the touch point on whichever
   // side has room, and is always kept fully on screen.
+  // On a touch screen the card is a sheet docked at the bottom of the screen instead (style.css
+  // .dial-tooltip.sheet): the finger does not cover it, the text is larger, and a long one scrolls.
+  let lastPointerType = "mouse";
+  let picked = null;
   function showTip(text, x, y) {
     const tip = getTooltip();
     tip.textContent = "";
     text.split("\n").forEach(function (line, i) {
-      if (i > 0) tip.appendChild(document.createElement("br"));
-      tip.appendChild(document.createTextNode(line));
+      const row = document.createElement("div");
+      if (i === 0) row.className = "tip-title";
+      row.textContent = line;
+      tip.appendChild(row);
     });
+    const sheet = lastPointerType !== "mouse";
+    tip.classList.toggle("sheet", sheet);
+    if (sheet) {
+      tip.style.left = tip.style.top = tip.style.maxWidth = "";
+      tip.style.visibility = "visible";
+      tip.style.display = "block";
+      tip.scrollTop = 0;
+      return;
+    }
     tip.style.maxWidth = Math.max(120, window.innerWidth - 16) + "px";
     tip.style.visibility = "hidden";
     tip.style.display = "block";
@@ -116,12 +131,24 @@
     tip.style.top = top + "px";
     tip.style.visibility = "visible";
   }
-  function hideTip() { if (tooltipEl) tooltipEl.style.display = "none"; }
-  document.addEventListener("pointerdown", hideTip, true);
-  window.addEventListener("scroll", hideTip, true);
+  function hideTip() {
+    if (tooltipEl) tooltipEl.style.display = "none";
+    if (picked) { picked.classList.remove("is-picked"); picked = null; }
+  }
+  // A press anywhere but on the sheet itself (which scrolls) puts the card away.
+  document.addEventListener("pointerdown", function (e) {
+    lastPointerType = e.pointerType || "mouse";
+    if (tooltipEl && tooltipEl.contains(e.target)) return;
+    hideTip();
+  }, true);
+  window.addEventListener("scroll", function (e) { if (!tooltipEl || e.target !== tooltipEl) hideTip(); }, true);
 
   function attachTooltip(path, text) {
-    path.addEventListener("click", function (e) { showTip(text, e.clientX, e.clientY); });
+    path.addEventListener("click", function (e) {
+      showTip(text, e.clientX, e.clientY);
+      // The tapped segment is outlined while its card is up.
+      if (path.classList.contains("ring-segment")) { picked = path; path.classList.add("is-picked"); }
+    });
     path.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") showTip(text, e.clientX, e.clientY); });
     path.addEventListener("pointermove", function (e) { if (e.pointerType === "mouse" && tooltipEl && tooltipEl.style.display === "block") showTip(text, e.clientX, e.clientY); });
     path.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") hideTip(); });
@@ -195,7 +222,42 @@
   }
 
   let curvedLabelCounter = 0;
-  const AVG_GLYPH_WIDTH = 0.55; // rough average advance per character, in ems
+  const AVG_GLYPH_WIDTH = 0.55; // rough average advance per character, in ems (when it cannot be measured)
+
+  // The width of `text` in ems, measured in the page's own font (so it is right for
+  // Devanāgarī, Kannada and Tamil too, where letters join). Cached per string.
+  const emCache = new Map();
+  let measureCtx;
+  function emWidth(text) {
+    let w = emCache.get(text);
+    if (w !== undefined) return w;
+    if (measureCtx === undefined) {
+      try {
+        measureCtx = document.createElement("canvas").getContext("2d");
+        measureCtx.font = "600 100px " + (getComputedStyle(document.body).fontFamily || "sans-serif");
+      } catch (e) { measureCtx = null; }
+    }
+    w = measureCtx ? measureCtx.measureText(text).width / 100 : 0;
+    if (!(w > 0)) w = text.length * AVG_GLYPH_WIDTH;
+    if (emCache.size > 2000) emCache.clear();
+    emCache.set(text, w);
+    return w;
+  }
+
+  // Devanāgarī, Kannada and Tamil letters stand taller than Latin ones at the same font
+  // size (marks above and below the line), so a label in them is kept a little smaller
+  // against the height of its ring or lane.
+  function tallScript(text) { return /[\u0900-\u0DFF]/.test(text) ? 0.8 : 1; }
+
+  // Names are drawn through this (app.js sets it to VedicEngine.Script.name).
+  let labelTr = function (text) { return text; };
+  function setLabelTransform(fn) { labelTr = fn || function (text) { return text; }; }
+
+  // No label is drawn smaller than MIN_LABEL_PX on screen. `minU` is that size in the
+  // dial's own units, for the dial's size right now (updateScale); a label that cannot
+  // reach it is left out, and a tap on its segment still names it.
+  const MIN_LABEL_PX = 9;
+  let minU = 0;
   const MIN_CURVED_FONT = 9;
   const CSS_LABEL_FONT = 15; // .dial-label's font-size in style.css (curvedLabelAtStart's fallback)
 
@@ -265,6 +327,18 @@
   const CLOCK_EDGE = 416; // inner edge of the innermost ring layer
   const CLOCK_ONLY_OUTER = 410; // just past the ghaṭī scale
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
+
+  // Measures the dial on screen and works out `minU`. True if it changed, in which
+  // case the caller redraws the rings, the scale and the marker lines.
+  function updateScale() {
+    if (!svgEl) return false;
+    const px = svgEl.getBoundingClientRect().width;
+    if (!(px > 0)) return false;
+    const u = Math.round(MIN_LABEL_PX / (px / ((visibleOuter + 5) * 2)) * 2) / 2;
+    if (u === minU) return false;
+    minU = u;
+    return true;
+  }
 
   // Assigns each layer its radii for `order` (outside in; any missing or
   // unknown keys fall back to the default order) and redraws the layer
@@ -338,6 +412,9 @@
     g.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: cls }));
   }
 
+  // The largest the scale's figures can be and still clear each other and the ticks.
+  const MINOR_NUMERAL_MAX = 18, LANDMARK_NUMERAL_MAX = 30;
+
   // The ghati scale never depends on the day (ghati 0 is sunrise, always at
   // the top), so it's identical every time it's drawn.
   function renderGhatiScale(g) {
@@ -360,7 +437,10 @@
       const angle = gh * 6;
       tick(g, angle, R.ghatiMajorTickInner, R.ghatiMajorTickOuter, "tick-major");
       const isLandmark = gh % 5 === 0;
-      g.appendChild(radialLabel(String(gh), angle, R.ghatiNumeral, isLandmark ? 20 : 15, isLandmark ? "ghati-numeral" : "ghati-numeral-minor", true));
+      // On a small dial only every fifth ghaṭī is numbered, in larger figures.
+      if (!isLandmark && minU > MINOR_NUMERAL_MAX) continue;
+      const size = isLandmark ? Math.min(LANDMARK_NUMERAL_MAX, Math.max(20, minU)) : Math.max(15, minU);
+      g.appendChild(radialLabel(String(gh), angle, R.ghatiNumeral, size, isLandmark ? "ghati-numeral" : "ghati-numeral-minor", true));
     }
   }
 
@@ -380,7 +460,8 @@
       const distFromTop = Math.min(h.angle, 360 - h.angle);
       if (distFromTop < 7) return;
       const isLandmark = h.hour % 6 === 0;
-      g.appendChild(radialLabel(String(h.hour), h.angle, R.ghatiNumeral, isLandmark ? 24 : 20, isLandmark ? "ghati-numeral" : "hour-numeral", true));
+      const size = Math.min(LANDMARK_NUMERAL_MAX, Math.max(isLandmark ? 24 : 20, minU));
+      g.appendChild(radialLabel(String(h.hour), h.angle, R.ghatiNumeral, size, isLandmark ? "ghati-numeral" : "hour-numeral", true));
     });
     // The first whole hour after sunrise is less than 15 deg clockwise of the
     // top, so the minor ticks before it still need drawing.
@@ -389,7 +470,7 @@
       tick(g, a, R.ghatiMinorTickInner, R.ghatiMinorTickOuter, "tick-minor");
     }
     tick(g, 0, R.ghatiMajorTickInner - 6, R.ghatiMajorTickOuter, "tick-sunrise");
-    g.appendChild(radialLabel(scale.sunriseLabel, 0, R.ghatiNumeral, 22, "sunrise-numeral", true));
+    g.appendChild(radialLabel(scale.sunriseLabel, 0, R.ghatiNumeral, Math.min(LANDMARK_NUMERAL_MAX, Math.max(22, minU)), "sunrise-numeral", true));
   }
 
   function buildStaticStructure(svg) {
@@ -447,8 +528,8 @@
     const centreGroup = el("g", { class: "centre-text" });
     svg.appendChild(centreGroup);
     const switchGroup = el("g", { id: "btn-switch-time", class: "centre-switch", role: "button", tabindex: "0", "aria-label": "Switch time convention" });
-    switchGroup.appendChild(el("rect", { x: CX - 150, y: -22, width: 300, height: 44, rx: 22 }));
-    switchGroup.appendChild(el("text", { x: CX, y: 0, "text-anchor": "middle", "dominant-baseline": "central" })).textContent = "Switch time convention";
+    switchGroup.appendChild(el("rect", { x: CX - 150, y: -27, width: 300, height: 54, rx: 27 }));
+    switchGroup.appendChild(el("text", { x: CX, y: 0, "text-anchor": "middle", "dominant-baseline": "central" })).textContent = "Switch to hours";
     svg.appendChild(switchGroup);
     svg.appendChild(palaHandGroup);
     svg.appendChild(handGroup);
@@ -464,26 +545,27 @@
   //   boundary instead of in its middle - see START_LABEL_RINGS in
   //   ring-adapter.js.
   function segmentTooltip(seg) {
-    return seg.text + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : "");
+    return labelTr(seg.text) + "\n" + timeRangeTooltip(seg) + (seg.extraTooltip ? "\n" + seg.extraTooltip : "");
   }
 
   // The font size a curved label of `text` needs to fit an arc of `span`
   // degrees at `radius`, with a little breathing room.
   function fittedCurvedFont(text, span, radius) {
     const arcLength = (Math.min(span, 170) * Math.PI / 180) * radius * 0.9;
-    return arcLength / (text.length * AVG_GLYPH_WIDTH);
+    return arcLength / emWidth(text);
   }
 
   // The largest font a straight label (one or two lines) can take in a cell
   // of `span` degrees at `radius`, `thickness` units deep.
   const RADIAL_MAX_FONT = 22, MIN_RADIAL_FONT = 8;
+  const RADIAL_MAX_FONT_SMALL_DIAL = 30; // a small dial's labels may grow to this to stay readable
   const CURVED_MAX_FONT = 26;
   function fittedRadialFont(lines, span, radius, thickness) {
-    const widest = Math.max.apply(null, lines.map(function (l) { return l.length; }));
+    const widest = Math.max.apply(null, lines.map(emWidth));
     const width = (span * Math.PI / 180) * radius * 0.92;
-    const byWidth = width / (widest * AVG_GLYPH_WIDTH);
+    const byWidth = width / widest;
     const byDepth = lines.length > 1 ? (thickness * 0.92) / 2.1 : thickness * 0.5;
-    return Math.min(RADIAL_MAX_FONT, byWidth, byDepth);
+    return Math.min(Math.max(RADIAL_MAX_FONT, Math.min(minU, RADIAL_MAX_FONT_SMALL_DIAL)), byWidth, byDepth);
   }
 
   // Each segment (its path and its label) goes in its own group tagged with
@@ -534,6 +616,7 @@
       if (seg.text) attachTooltip(path, segmentTooltip(seg));
 
       if (seg.text && span >= minSpanForLabel) {
+        const shown = labelTr(seg.text);
         const midAngle = seg.startAngle + span / 2;
         const midRadius = (geom.rInner + geom.rOuter) / 2;
         const labelClass = seg.contested ? "contested-label" : undefined;
@@ -546,19 +629,21 @@
           // label gives up a little of the arc to its padding from the
           // boundary.
           const usable = geom.labelAtStart ? span - 2 * startPadDeg(midRadius) : span;
-          const fitted = usable > 0 ? fittedCurvedFont(seg.text, usable, midRadius) : 0;
-          const size = Math.min(Math.min(CURVED_MAX_FONT, thickness * 0.36), fitted);
-          if (fitted >= MIN_CURVED_FONT) {
-            if (geom.labelAtStart) curvedLabelAtStart(segGroup, seg.text, seg.startAngle, span, midRadius, labelClass, size);
-            else curvedLabel(segGroup, seg.text, midAngle, span, midRadius, size, labelClass, size);
+          const fitted = usable > 0 ? fittedCurvedFont(shown, usable, midRadius) : 0;
+          // On a small dial the label may take up to half the ring's width to stay readable.
+          const cap = Math.max(Math.min(CURVED_MAX_FONT, thickness * 0.36 * tallScript(shown)), Math.min(minU, thickness * 0.5));
+          const size = Math.min(cap, fitted);
+          if (size >= Math.max(MIN_CURVED_FONT, minU)) {
+            if (geom.labelAtStart) curvedLabelAtStart(segGroup, shown, seg.startAngle, span, midRadius, labelClass, size);
+            else curvedLabel(segGroup, shown, midAngle, span, midRadius, size, labelClass, size);
           }
         } else {
           // "Tvaṣṭā (Brahma Muhūrta)" is too long for one 12-deg muhūrta
           // cell, so a parenthetical goes on a second line. The label is as
           // large as its cell's width (and the ring's thickness) allow.
-          const text = seg.text.replace(" (", "\n(");
+          const text = shown.replace(" (", "\n(");
           const size = fittedRadialFont(text.split("\n"), span, midRadius, thickness);
-          if (size >= MIN_RADIAL_FONT) segGroup.appendChild(radialLabel(text, midAngle, midRadius, size, labelClass, true));
+          if (size >= Math.max(MIN_RADIAL_FONT, minU)) segGroup.appendChild(radialLabel(text, midAngle, midRadius, size, labelClass, true));
         }
       }
       if (seg.contested) {
@@ -584,7 +669,7 @@
     const avail = Math.min(span - 2 * pad, 170);
     if (avail <= 0) return;
     const shownFont = forcedSize || CSS_LABEL_FONT;
-    const textDeg = Math.min(avail, (text.length * AVG_GLYPH_WIDTH * shownFont / radius) * 180 / Math.PI);
+    const textDeg = Math.min(avail, (emWidth(text) * shownFont / radius) * 180 / Math.PI);
     const from = startAngle + pad, to = from + avail;
     const labelMid = ((from + textDeg / 2) % 360 + 360) % 360;
     const bottomHalf = labelMid > 90 && labelMid < 270;
@@ -646,7 +731,7 @@
   const MAX_LANE_FONT = 44;
   // A label's font size as a share of its lane's width (the rest is padding, ~15% each side).
   // 0.67 puts a 28-unit lane's label at 18.8, up from 11.8 at the old 0.42.
-  const LANE_FONT_RATIO = 0.67;
+  const LANE_FONT_RATIO = 0.67, LANE_FONT_RATIO_MAX = 0.82;
   // Per window, the number of lanes its cluster of overlapping windows
   // needs (1 for a window on its own). Windows must be sorted by start, as
   // ring-adapter.js's layoutEvents leaves them.
@@ -662,6 +747,24 @@
     });
     flush();
     return counts;
+  }
+
+  // Per window, the lanes it is drawn across: { lo, hi }. It starts in its own lane and
+  // widens, toward the axis and toward the wall, over each lane that no window meeting
+  // it in time is using. Longer windows choose first, so two neighbours never take the
+  // same free lane.
+  function laneSpans(segments, counts) {
+    const spans = new Map();
+    segments.forEach(function (ev) { spans.set(ev, { lo: ev.lane, hi: ev.lane }); });
+    function meets(a, b) { return a.startTime < b.endTime && b.startTime < a.endTime; }
+    segments.slice().sort(function (a, b) { return (b.endTime - b.startTime) - (a.endTime - a.startTime); }).forEach(function (ev) {
+      const n = counts.get(ev) || 1, s = spans.get(ev);
+      const others = segments.filter(function (o) { return o !== ev && meets(o, ev); }).map(function (o) { return spans.get(o); });
+      function free(lane) { return !others.some(function (o) { return o.lo <= lane && lane <= o.hi; }); }
+      while (s.hi + 1 < n && free(s.hi + 1)) s.hi++;
+      while (s.lo > 0 && free(s.lo - 1)) s.lo--;
+    });
+    return spans;
   }
 
   function renderGoodBadRing(group, good, bad, show) {
@@ -701,27 +804,33 @@
         g.appendChild(el("path", { d: annularSectorPath(laneInner, laneOuter, r.startAngle, rs), class: "relief-hatch" }));
       });
       const midRadius = (laneInner + laneOuter) / 2;
-      const size = Math.min(MAX_LANE_FONT, laneWidth * LANE_FONT_RATIO, fittedCurvedFont(ev.text, span, midRadius));
-      if (size < MIN_LANE_FONT) return;
-      curvedLabel(g, ev.text, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
+      const shown = labelTr(ev.text);
+      // A thin lane on a small dial lets its label fill more of it (LANE_FONT_RATIO_MAX) to stay readable.
+      const byLane = Math.max(laneWidth * LANE_FONT_RATIO * tallScript(shown), Math.min(minU, laneWidth * LANE_FONT_RATIO_MAX));
+      const size = Math.min(MAX_LANE_FONT, byLane, fittedCurvedFont(shown, span, midRadius));
+      if (size < Math.max(MIN_LANE_FONT, minU)) return;
+      curvedLabel(g, shown, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
     }
-    // Lane geometry for a window: its cluster's lane count sets the width.
-    function laneOf(ev, counts, depth) {
+    // Lane geometry for a window: its cluster's lane count sets the lane width, and the
+    // window takes its own lane plus every neighbouring lane that is free for its whole
+    // length (laneSpans), so the lanes in use reach the ring's walls wherever they can.
+    function laneOf(ev, counts, spans, depth) {
       const n = counts.get(ev) || 1;
-      const width = (depth - LANE_GAP * (n - 1)) / n;
-      return { width: width, offset: ev.lane * (width + LANE_GAP) };
+      const unit = (depth - LANE_GAP * (n - 1)) / n;
+      const s = spans.get(ev);
+      return { width: (s.hi - s.lo + 1) * unit + (s.hi - s.lo) * LANE_GAP, offset: s.lo * (unit + LANE_GAP) };
     }
     if (showGood) {
-      const counts = clusterLaneCounts(good.segments);
+      const counts = clusterLaneCounts(good.segments), spans = laneSpans(good.segments, counts);
       good.segments.forEach(function (ev) {
-        const l = laneOf(ev, counts, goodDepth);
+        const l = laneOf(ev, counts, spans, goodDepth);
         draw(ev, goodBase + l.offset, goodBase + l.offset + l.width);
       });
     }
     if (showBad) {
-      const counts = clusterLaneCounts(bad.segments);
+      const counts = clusterLaneCounts(bad.segments), spans = laneSpans(bad.segments, counts);
       bad.segments.forEach(function (ev) {
-        const l = laneOf(ev, counts, badDepth);
+        const l = laneOf(ev, counts, spans, badDepth);
         draw(ev, badBase - l.offset - l.width, badBase - l.offset);
       });
     }
@@ -739,7 +848,7 @@
         d: annularSectorPath(R.dayNightRingInner, R.dayNightRingOuter, seg.startAngle, span),
         class: "daynight-segment " + (seg.isDay ? "daynight-day" : "daynight-night"),
       });
-      attachTooltip(path, seg.text + "\n" + timeRangeTooltip(seg));
+      attachTooltip(path, labelTr(seg.text) + "\n" + timeRangeTooltip(seg));
       group.appendChild(path);
     });
   }
@@ -757,6 +866,7 @@
   // don't overprint.
   const MARKER_CLASH_DEG = 2.5;
   const MARKER_FONT = 15; // .day-marker-label's font-size in style.css
+  const MARKER_FONT_MAX = 24; // past this the names would run into each other and the centre
   function renderDayMarkers(group, markers) {
     while (group.firstChild) group.removeChild(group.firstChild);
     const sorted = markers.slice().sort(function (a, b) { return a.angle - b.angle; });
@@ -767,7 +877,7 @@
     });
     clusters.forEach(function (cluster) {
       cluster.forEach(function (m, k) {
-        const offset = (k - (cluster.length - 1) / 2) * MARKER_FONT * 1.1;
+        const offset = (k - (cluster.length - 1) / 2) * Math.max(MARKER_FONT, minU) * 1.1;
         drawMarker(group, m, offset);
       });
     });
@@ -779,15 +889,25 @@
     group.appendChild(el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-line" }));
     // Wide invisible twin so the thin line is easy to hover/tap.
     const hit = el("line", { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: "day-marker-hit" });
-    const tip = (m.tooltipTitle || m.text) + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + (m.dateNote || "") + HM_TAG;
+    const tip = labelTr(m.tooltipTitle || m.text) + "\n" + m.ghatiPala + GP_TAG + "\n" + fmtHM(m.time) + (m.dateNote || "") + HM_TAG;
     attachTooltip(hit, tip);
     group.appendChild(hit);
-    const label = markerLabel(m.text, m.angle, offset);
+    // The name, at a readable size; on a dial too small for that the line is left
+    // unnamed (a tap on it still says what it is).
+    const font = Math.max(MARKER_FONT, minU);
+    if (font > MARKER_FONT_MAX) return;
+    const label = markerLabel(labelTr(m.text), m.angle, offset);
+    label.style.fontSize = font + "px";
     group.appendChild(label);
     // Shrink to fit between the line's start and the centre plate.
     const room = R.markerLabel - R.markerLabelInner;
     const length = label.getComputedTextLength ? label.getComputedTextLength() : 0;
-    if (length > room) label.style.fontSize = (MARKER_FONT * room / length).toFixed(1) + "px";
+    if (length > room) {
+      const fitted = font * room / length;
+      // A long name (Candrodaya) may go a little under the minimum rather than vanish.
+      if (fitted < Math.max(8, minU * 0.8)) group.removeChild(label);
+      else label.style.fontSize = fitted.toFixed(1) + "px";
+    }
   }
 
   // `offset` moves the label sideways off its line's axis (positive =
@@ -830,15 +950,28 @@
   const CENTRE_LINE_HEIGHT_DEFAULT = 36;
   // Text may reach a little past the plate's edge (into the empty space
   // before the day/night ring) but no further than this radius.
-  const CENTRE_REACH = 236;
+  const CENTRE_REACH = 250;
+  // No text is written over the hands' hub: the lines are split into a block above it
+  // and a block below it, at the line break nearest the middle, HUB_GAP apart.
+  const HUB_GAP = 44;
   function setCentreText(centreGroup, lines, switchGroup) {
     while (centreGroup.firstChild) centreGroup.removeChild(centreGroup.firstChild);
     const heights = lines.map(function (line) { return CENTRE_LINE_HEIGHT[line.emphasis] || CENTRE_LINE_HEIGHT_DEFAULT; });
     const total = heights.reduce(function (a, b) { return a + b; }, 0);
-    let y = CY + R.centreTextY - total / 2;
+    let above = 0, split = 0; // `split` lines (of height `above`) go over the hub
+    for (let i = 0, cum = 0; i < heights.length; i++) {
+      cum += heights[i];
+      if (Math.abs(cum - total / 2) < Math.abs(above - total / 2)) { above = cum; split = i + 1; }
+    }
+    // A spacer line right at the split is not needed: the hub's gap is the space.
+    if (lines[split] && !lines[split].text) heights[split] = 0;
+    else if (split > 0 && !lines[split - 1].text) { above -= heights[split - 1]; heights[split - 1] = 0; }
+    const below = heights.slice(split).reduce(function (a, b) { return a + b; }, 0);
+    let y = CY + R.centreTextY - HUB_GAP / 2 - above;
     // The switch button sits just below the last line of text.
-    if (switchGroup) switchGroup.setAttribute("transform", "translate(0 " + (y + total + 34).toFixed(1) + ")");
+    if (switchGroup) switchGroup.setAttribute("transform", "translate(0 " + (CY + R.centreTextY + HUB_GAP / 2 + below + 40).toFixed(1) + ")");
     lines.forEach(function (line, i) {
+      if (i === split) y += HUB_GAP;
       const lineY = y + heights[i] / 2;
       y += heights[i];
       if (!line.text) return; // a blank spacer line
@@ -871,6 +1004,12 @@
     });
   }
 
+  // The words on the "switch time convention" button (it says what a tap changes to).
+  function setSwitchLabel(switchGroup, text) {
+    const t = switchGroup.querySelector("text");
+    if (t.textContent !== text) t.textContent = text;
+  }
+
   function clearGroup(group) {
     while (group.firstChild) group.removeChild(group.firstChild);
   }
@@ -879,7 +1018,7 @@
     R, CX, CY,
     LAYER_KEYS,
     clearGroup,
-    setLayerOrder, setSecondaryMode, setLayout,
+    setLayerOrder, setSecondaryMode, setLayout, updateScale, setLabelTransform, setSwitchLabel,
     buildStaticStructure,
     renderOuterRing,
     renderGoodBadRing,
