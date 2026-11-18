@@ -57,7 +57,7 @@
   // table, docs/graha-sphuta-sources.md A2), and their nazhigai count from it.
   const FIXED_SUNRISE_EDGE = { "vakya-tamil": "disc-centre" };
   // The sunrise definition in force: the method's own, else the user's choice.
-  function sunriseEdgeFor(method, chosen) { return FIXED_SUNRISE_EDGE[method] || chosen || "upper-limb"; }
+  function sunriseEdgeFor(method, chosen) { return FIXED_SUNRISE_EDGE[method] || chosen || "disc-centre"; }
 
   // True when Sun and Moon positions come from a formula engine rather than the library,
   // so tithi/karana/month must be found by crossing searches on our own longitudes.

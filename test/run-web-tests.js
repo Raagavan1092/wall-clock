@@ -43,11 +43,30 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     page.on("pageerror", e => errors.push(e.message));
     page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     await page.waitForTimeout(1500);
     ok("smoke: index.html draws the dial with no console errors", errors.length === 0, errors.join("; "));
     ok("smoke: no bridge UI in a plain browser", (await page.$("#alarm-reliable")) === null);
     await page.close();
+  }
+
+  // 2b. A new visitor's defaults: Main view, Good / bad windows off, the sunrise at the disc centre.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
+    await page.waitForTimeout(800);
+    const d = await page.evaluate(() => ({
+      edge: VedicEngine.Settings.load().sunriseEdge, edgeDefault: VedicEngine.Settings.defaults().sunriseEdge,
+      secondary: document.body.classList.contains("secondary-view"),
+      windows: document.getElementById("btn-toggle-windows").getAttribute("aria-checked"),
+      rings: document.getElementById("btn-toggle-rings").getAttribute("aria-checked"),
+      ringHidden: getComputedStyle(document.querySelector("#dial .good-bad-ring")).display,
+    }));
+    ok("new visitor: Main view, Good / bad windows off, outer ring on, sunrise at the disc centre",
+      d.edge === "disc-centre" && d.edgeDefault === "disc-centre" && !d.secondary && d.windows === "false" && d.rings === "true" && d.ringHidden === "none", JSON.stringify(d));
+    await ctx.close();
   }
 
   // 4. Surya Siddhanta engine: sanity against the modern ephemeris (loose bounds that
@@ -59,7 +78,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     const r = await page.evaluate(() => {
       const V = window.VedicEngine, A = window.Astronomy, SS = V.SuryaSiddhanta;
       const AY0 = (85885.53 + 24.2) / 3600;
@@ -138,7 +157,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     const r = await page.evaluate(() => {
       const E = window.VedicEngine;
       const when = new Date(Date.UTC(2026, 5, 15, 6, 0, 0));
@@ -220,7 +239,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("method: the six options are listed and all selectable", r.radios.join(",") === "drik:on,ss:on,ss-ranganatha:on,vakya:on,vakya-tamil:on,ketkar:on" && r.methods === "drik,ss,ss-ranganatha,vakya,vakya-tamil,ketkar" && r.pending === 0, r.radios.join(","));
     ok("method: Tamil vakya uses the disc-centre sunrise; the user's own choice is kept and saved, and applies to the other methods",
       r.fixedEdge.tamilLoaded === "disc-centre/upper-limb" && r.fixedEdge.stored === "upper-limb/false" && r.fixedEdge.vakyaLoaded === "upper-limb" && r.fixedEdge.merged === "disc-centre"
-      && r.fixedEdge.formTamil === "upper-limb-,disc-centre*- note" && r.fixedEdge.formDrik === "upper-limb*,disc-centre", JSON.stringify(r.fixedEdge));
+      && r.fixedEdge.formTamil === "upper-limb-,disc-centre*- note" && r.fixedEdge.formDrik === "upper-limb,disc-centre*", JSON.stringify(r.fixedEdge));
     ok("method: each text-based choice is saved and loaded back", r.saved.join(",") === "ss-ranganatha,vakya,vakya-tamil,ketkar", r.saved.join(","));
     Object.keys(r.others).forEach(m => {
       const o = r.others[m], lim = m === "ketkar" ? 0.5 : 14;
@@ -241,7 +260,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     const r = await page.evaluate(() => {
       const V = window.VedicEngine, A = window.Astronomy, SS = V.SuryaSiddhanta, VK = V.Vakya, K = V.Ketaki;
       const deg = (s, d, m, x) => s * 30 + d + m / 60 + (x || 0) / 3600;
@@ -420,7 +439,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     const fx = JSON.parse(fs.readFileSync(path.join(root, "test/fixtures/vakya-tamil-thanjavur-2026.json"), "utf8"));
     const r = await page.evaluate(fx => {
       const V = window.VedicEngine, S = V.Sidereal, Su = V.Sunrise, loc = fx.location, IST = 5.5 * 3600000;
@@ -488,7 +507,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       };
     });
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     await page.waitForFunction(() => window.__calls.sync.length >= 1, null, { timeout: 15000 });
     ok("bridge: syncs once on open even with no alarms", await page.evaluate(() => window.__calls.sync[0].rings.length === 0 && window.__calls.sync[0].alarmCount === 0));
     ok("bridge: no alarm note; checklist button, Display section and updates last", await page.evaluate(() => !!document.getElementById("alarm-reliable") && !document.querySelector("#alarm-section .settings-note") &&
@@ -635,7 +654,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("settings: Save keeps the chosen location", await page.evaluate(() => Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 13.4) < 1e-6));
 
     await page.reload();
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     await page.waitForTimeout(500);
     ok("second visit: no prompt, stays unlocked, menu and edit mode start closed", await page.evaluate(() =>
       document.getElementById("loc-dialog").classList.contains("hidden") && !document.getElementById("stage").hasAttribute("inert") && document.getElementById("loc-menu").hidden && !document.body.classList.contains("edit-mode")));
@@ -689,7 +708,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       Math.abs(+document.getElementById("loc-lat").value - 25.26) < 0.2 && Math.abs(+document.getElementById("loc-lon").value - 55.3) < 0.2 && +document.getElementById("loc-elev").value < 100 &&
       /Dubai, United Arab Emirates/.test(document.getElementById("loc-current-name").textContent)));
     await page.click("#loc-apply");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     await page.waitForTimeout(500);
     ok("choose abroad: applied; the top bar names Dubai and the default is saved with its full name", await page.evaluate(() =>
       document.getElementById("loc-dialog").classList.contains("hidden") && document.getElementById("loc-toggle-name").textContent === "Dubai" &&
@@ -770,7 +789,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.waitForTimeout(300);
     ok("a recent place brings its zone back", await page.evaluate(() => VedicEngine.Zone.id() === "Asia/Dubai"));
     await page.reload();
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     ok("the zone is kept over a reload", await page.evaluate(() => VedicEngine.Zone.id() === "Asia/Dubai"));
     // a recent place saved before zones existed gets its zone from the place list
     await page.evaluate(() => localStorage.setItem("vedicWallClock.recentLocations.v1", JSON.stringify([{ name: "Tokyo", latitude: 35.6895, longitude: 139.6917, elevation: 40 }])));
@@ -810,6 +829,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       if (localStorage.getItem("vedicWallClock.settings.v1")) return;
       localStorage.setItem("vedicWallClock.defaultLocation.v1", JSON.stringify(loc));
       localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify(Object.assign({ location: loc }, extra || {})));
+      localStorage.setItem("vedicWallClock.showWindows", "1"); // the Good / bad windows start off for a new visitor; these tests look at them
     };
     const at = "/index.html?t=2026-11-13T19:25:00%2B05:30";
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -819,7 +839,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     await page.addInitScript(seed);
     await page.goto(base + at);
-    await page.waitForSelector("#dial text", { timeout: 20000 });
+    await page.waitForSelector("#dial text", { state: "attached", timeout: 20000 });
     await page.waitForTimeout(600);
 
     // Every piece of text on the dial is at least about 9px tall on screen (the small
@@ -856,7 +876,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const panel = () => page.evaluate(() => document.getElementById("today-panel").innerText);
     let text = await panel();
     ok("Today panel: date, vāra, sunrise and sunset", /13 Nov 2026/.test(text) && /Śukravāra/.test(text) && /Sunrise 06:\d\d · Sunset 17:\d\d/.test(text), text.slice(0, 80));
-    ok("Today panel: tithi, nakṣatra, yoga, karaṇa with their end times, and the māsa", /Caturthī \(śukla\)\s+till 20:43/.test(text) && /Pūrva Āṣāḍhā\s+till \d\d:\d\d/.test(text) && /Yoga\s+\S+\s+till/.test(text) && /Viṣṭi\s+till 20:43/.test(text) && /Māsa\s+Kārttika/.test(text));
+    ok("Today panel: tithi, nakṣatra, yoga, karaṇa with their end times, and both māsas", /Caturthī \(śukla\)\s+till 20:43/.test(text) && /Pūrva Āṣāḍhā\s+till \d\d:\d\d/.test(text) && /Yoga\s+\S+\s+till/.test(text) && /Viṣṭi\s+till 20:43/.test(text) && /Chāndra māsa\s+Kārttika \(amānta\)/.test(text) && /Saura māsa\s+Tulā/.test(text));
     ok("Today panel: the windows running now and the next one", /Bhadrā\s+till 20:43/.test(text) && /Pradoṣa\s+till \d\d:\d\d/.test(text) && /Next bad: \S+\s+at \d\d:\d\d/.test(text));
     ok("Today panel: the outer ring's division and the next", /Tithi · Caturthī \(śukla\)\s+next Pañcamī \(śukla\) at 20:43/.test(text));
     ok("Today panel: sits under the clock in portrait", await page.evaluate(() => document.getElementById("today-panel").getBoundingClientRect().top >= document.getElementById("dial").getBoundingClientRect().bottom - 1));
@@ -943,7 +963,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const wp = await wide.newPage();
     await wp.addInitScript(seed);
     await wp.goto(base + at);
-    await wp.waitForSelector("#dial text", { timeout: 20000 });
+    await wp.waitForSelector("#dial text", { state: "attached", timeout: 20000 });
     await wp.waitForTimeout(600);
     ok("desktop: the Today panel is beside the clock, under the buttons, and they do not overlap", await wp.evaluate(() => {
       const p = document.getElementById("today-panel").getBoundingClientRect(), d = document.getElementById("dial").getBoundingClientRect(), c = document.getElementById("top-controls").getBoundingClientRect();
@@ -970,7 +990,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       if (!localStorage.getItem("vedicWallClock.settings.v1")) localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify({ location: { latitude: 13.08, longitude: 80.27, elevation: 0, name: "Chennai" } }));
     });
     await page.goto(base + "/index.html");
-    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForSelector("#dial *", { state: "attached", timeout: 20000 });
     await page.waitForTimeout(800);
     const pure = await page.evaluate(() => {
       const Y = VedicEngine.MCYogas;

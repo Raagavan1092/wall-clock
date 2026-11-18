@@ -22,7 +22,7 @@
   "sunriseDefinition": {
     "status": "standard",
     "note": "Two valid definitions exist (see js/engine/sunrise.js); this is a user-facing setting, not a disagreement to resolve.",
-    "default": "upper-limb",
+    "default": "disc-centre",
     "options": {
       "upper-limb": "Sun's upper limb crosses the horizon, corrected for atmospheric refraction (civil/visual sunrise; matches drikpanchang.com and most almanacs).",
       "disc-centre": "Geometric centre of the Sun's disc crosses the horizon, no refraction (classical siddhanta-style definition)."

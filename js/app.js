@@ -117,10 +117,10 @@
   // The "Outer ring" / "Good / bad" switches in the Today panel: show or hide the switchable rings and the
   // Good / Bad windows in the main view. Viewing preferences, remembered.
   const RINGS_KEY = "vedicWallClock.showRings", WINDOWS_KEY = "vedicWallClock.showWindows";
-  let ringsOn = true, windowsOn = true;
+  let ringsOn = true, windowsOn = false; // the Good / bad windows start off; a saved choice wins
   try {
     if (localStorage.getItem(RINGS_KEY) === "0") ringsOn = false;
-    if (localStorage.getItem(WINDOWS_KEY) === "0") windowsOn = false;
+    if (localStorage.getItem(WINDOWS_KEY) === "1") windowsOn = true;
   } catch (e) { /* storage unavailable */ }
   let lastLayoutKey = null;
 
@@ -243,6 +243,9 @@
     const tithi = currentIn(snapshot.tithiSequence, held), nak = currentIn(snapshot.nakshatraSequence, held);
     const yoga = currentIn(snapshot.yogaSequence, now), karana = currentIn(snapshot.karanaSequence, now);
     const karanaName = karana.key.indexOf("movable:") === 0 ? data.karana.movable[Number(karana.key.split(":")[1])] : data.karana.fixed[karana.key];
+    // The saura (solar) month: the sidereal rashi the Sun is in, from one saṅkrānti to the next.
+    const sauraRashi = Math.floor(E.Util.normDeg(E.Sidereal.longitude("sun", held, settings.ayanamsa, settings.method)) / 30);
+    const sankranti = snapshot.dayEvents && snapshot.dayEvents.sankranti;
     const model = {
       date: now.toLocaleDateString("en-GB", { timeZone: E.Zone.intl(), day: "numeric", month: "short", year: "numeric" }),
       vara: N(varaName),
@@ -253,7 +256,8 @@
         { k: N("Nakṣatra"), v: N(data.nakshatra.names[nak.index]), till: till(nak) },
         { k: N("Yoga"), v: N(data.yoga.names[yoga.index]), till: till(yoga) },
         { k: N("Karaṇa"), v: N(karanaName), till: till(karana) },
-        { k: N("Māsa"), v: N(data.amantaMasa.names[tithi.amantaMasaRashiIndex]), till: "" },
+        { k: N("Chāndra māsa"), v: N(data.amantaMasa.names[tithi.amantaMasaRashiIndex]) + " (amānta)", till: "" },
+        { k: N("Saura māsa"), v: N(data.rashi.names[sauraRashi]), till: sankranti && sankranti.time.getTime() > held.getTime() ? "till " + fmtTimeD(sankranti.time, snapshot) : "" },
       ],
       nowTitle: secondaryView ? "SECONDARY YOGAS NOW" : "GOOD AND BAD TIMES NOW",
       now: [],
@@ -776,7 +780,7 @@
 
     // Sunrise definition: the user's own choice, unless the chosen method fixes it (Tamil
     // vakya: disc centre), in which case that is shown ticked and greyed out, with a note.
-    let sunriseChoice = "upper-limb";
+    let sunriseChoice = "disc-centre";
     function syncSunriseRadios() {
       const method = (document.querySelector('input[name="calcMethod"]:checked') || {}).value || "drik";
       const fixed = E.Sidereal.FIXED_SUNRISE_EDGE[method];

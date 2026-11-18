@@ -126,7 +126,7 @@
     }
     if (!saved) return d;
     const method = VedicEngine.Sidereal.METHODS.indexOf(saved.method) !== -1 ? saved.method : d.method;
-    const edgeChoice = saved.sunriseEdge === "disc-centre" ? "disc-centre" : "upper-limb";
+    const edgeChoice = saved.sunriseEdge === "upper-limb" ? "upper-limb" : d.sunriseEdgeChoice;
     return {
       // A saved place without a zone (saved before zones existed) was shown in IST; keep it so.
       location: Object.assign({}, d.location, saved.location, { timezone: VedicEngine.Zone.normalize(saved.location && saved.location.timezone) }),

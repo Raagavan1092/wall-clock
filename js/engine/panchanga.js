@@ -16,7 +16,7 @@
       timezone: "Asia/Kolkata", // IANA id of the place's zone: the weekday (vāra) is that of the local date at sunrise
     },
     ayanamsa: "lahiri",
-    sunriseEdge: "upper-limb", // "upper-limb" (default) or "disc-centre"
+    sunriseEdge: "disc-centre", // "disc-centre" (default) or "upper-limb"
     // Where the Sun and Moon positions come from: "drik" (modern ephemeris, default) or "ss"
     // (plain Surya Siddhanta). Three more are planned; see Sidereal.METHODS in sidereal.js.
     method: "drik",

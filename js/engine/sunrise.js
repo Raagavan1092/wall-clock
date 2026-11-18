@@ -2,11 +2,11 @@
 // swappable choice rather than a library default.
 //
 // Two definitions (CONTESTED: texts and software disagree on which is "true sunrise"):
-//  - "upper-limb" (default): the Sun's topmost visible edge crosses the horizon,
+//  - "upper-limb": the Sun's topmost visible edge crosses the horizon,
 //    corrected for atmospheric refraction. This is the civil/visual definition
 //    used by most panchanga websites (including drikpanchang.com) and almanacs.
 //    astronomy-engine's own SearchRiseSet already implements exactly this.
-//  - "disc-centre": the geometric centre of the Sun's disc crosses the horizon,
+//  - "disc-centre" (the app's default): the geometric centre of the Sun's disc crosses the horizon,
 //    with NO refraction correction. This matches the geometric definitions used
 //    in classical siddhanta-style texts, which predate any refraction model.
 //    astronomy-engine's SearchAltitude(altitude=0) does not apply refraction
