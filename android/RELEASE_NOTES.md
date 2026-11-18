@@ -2,6 +2,13 @@
 
 Each release's text is the section under `## <version>` matching `appVersion` in `app/build.gradle.kts`; CI puts it in the GitHub Release. Add a new section (newest first) whenever you bump the version.
 
+## 1.2.2
+
+Times follow the place the clock is set to. Choosing a city abroad (every capital and many major cities were added to the location list) shows its local time everywhere, including what the app writes itself.
+
+- **Local time zone:** the "Rang at" note, the widgets, the ring screen and the test alarm show the place's own time instead of IST. Places in India are unchanged.
+- **Alarms:** a clock-time alarm keeps the zone it was set in, so changing the clock's place does not move it. Alarms saved before this stay on IST.
+
 ## 1.2.1
 
 Adds a 2x2 Panchanga widget (ghaṭī and pala, time, tithi and nakṣatra with their end times) beside the compact clock widget. Tapping a ring segment now shows a small card that always stays on screen.

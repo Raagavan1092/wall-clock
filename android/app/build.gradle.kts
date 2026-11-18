@@ -8,7 +8,7 @@ plugins {
 // CI numbers builds with the workflow run; locally it is 1.
 val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
 // Marketing version shown in Settings / App info. Bump it with each release, and add its notes to RELEASE_NOTES.md.
-val appVersion = "1.2.1"
+val appVersion = "1.2.2"
 
 android {
     namespace = "com.raagavan.vedicclock"
