@@ -643,6 +643,74 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await ctx.close();
   }
 
+  // 4b. Places abroad: every capital, big cities, search, and choosing one in the dialog
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+    await page.goto(base + "/index.html");
+    await page.waitForSelector("#loc-dialog:not(.hidden)", { timeout: 20000 });
+    const data = await page.evaluate(() => {
+      const P = VedicEngine.IndiaPlaces, W = VedicEngine.WorldPlacesData.cities, abroad = P.PLACES.filter(p => p.kind === "city");
+      const names = n => W.some(c => c[0] === n);
+      const coords = new Set(P.PLACES.map(p => p.latitude + "," + p.longitude));
+      return {
+        n: abroad.length, caps: W.filter(c => c[6]).length,
+        capitals: ["Washington, D.C.", "London", "Paris", "Berlin", "Moscow", "Beijing", "Tokyo", "Canberra", "Ottawa", "Brasília", "Cairo", "Abu Dhabi", "Doha", "Kathmandu", "Colombo", "Dhaka", "Islamabad", "Port Louis", "Pretoria", "Nairobi", "Suva", "Wellington", "Naypyidaw", "Kyiv"].filter(n => !names(n)),
+        diaspora: ["Dubai", "Singapore", "Sunnyvale", "Edison", "Toronto", "Sydney", "Auckland", "Durban", "Leicester", "Kuala Lumpur", "Muscat", "Jeddah"].filter(n => !names(n)),
+        big: ["New York", "Los Angeles", "Chicago", "São Paulo", "Mexico City", "Munich", "Milan", "Barcelona", "Istanbul", "Saint Petersburg"].filter(n => !names(n)),
+        bad: W.filter(c => !(isFinite(c[3]) && Math.abs(c[3]) <= 90 && isFinite(c[4]) && Math.abs(c[4]) <= 180 && isFinite(c[5]) && c[5] >= 0 && c[5] < 5000)).map(c => c[0]),
+        sameCoords: coords.size !== P.PLACES.length,
+        top: q => P.search(q, 3).map(p => p.title),
+      };
+    });
+    ok("places abroad: a place list of cities is loaded", data.n > 500, String(data.n));
+    ok("places abroad: every country's capital is there (197 states + 11 second seats)", data.caps === 208, String(data.caps));
+    ok("places abroad: spot-checked capitals, diaspora cities and big cities are all listed", !data.capitals.length && !data.diaspora.length && !data.big.length, JSON.stringify([data.capitals, data.diaspora, data.big]));
+    ok("places abroad: coordinates in range, elevation 0 or more, no two places on the same point", !data.bad.length && !data.sameCoords, data.bad.join());
+    const top = await page.evaluate(() => ({
+      dubai: VedicEngine.IndiaPlaces.search("dubai", 1)[0].title, ny: VedicEngine.IndiaPlaces.search("new york", 1)[0].title, nyc: VedicEngine.IndiaPlaces.search("nyc", 1)[0].title,
+      koln: VedicEngine.IndiaPlaces.search("koln", 1)[0].title, uae: VedicEngine.IndiaPlaces.search("uae", 9).every(p => p.country === "United Arab Emirates"),
+      dublin: VedicEngine.IndiaPlaces.search("dublin", 3).map(p => p.country).join(), london: VedicEngine.IndiaPlaces.find("London").country,
+      hyd: VedicEngine.IndiaPlaces.search("hyderabad", 3).map(p => p.kind).join(), madras: VedicEngine.IndiaPlaces.search("madras", 1)[0].title,
+    }));
+    ok("search abroad: 'dubai', 'new york', 'nyc' (alias), 'koln' (spelling) find them first", top.dubai === "Dubai, United Arab Emirates" && top.ny === "New York, United States" && top.nyc === "New York, United States" && top.koln === "Cologne, Germany", JSON.stringify(top));
+    ok("search abroad: a country name or short form ('uae') finds its cities", top.uae);
+    ok("search abroad: the same name in two places lists the capital first; a bare name means the capital", top.dublin === "Ireland,United States" && top.london === "United Kingdom", JSON.stringify(top));
+    ok("search abroad: India's places still come first and a district is not displaced", top.hyd === "district" && top.madras === "Chennai (district)", JSON.stringify(top));
+
+    // choose Dubai from the list and apply: the first place becomes the default; the name and sunrise follow
+    await page.fill("#loc-search", "dubai");
+    ok("search abroad: the list shows 'Capital/City' and the country", await page.evaluate(() => /City · United Arab Emirates/.test(document.querySelector("#loc-results li[data-i='0']").textContent)));
+    await page.keyboard.press("Enter");
+    ok("choose abroad: Dubai fills latitude 25.2, longitude 55.3 and a low elevation", await page.evaluate(() =>
+      Math.abs(+document.getElementById("loc-lat").value - 25.26) < 0.2 && Math.abs(+document.getElementById("loc-lon").value - 55.3) < 0.2 && +document.getElementById("loc-elev").value < 100 &&
+      /Dubai, United Arab Emirates/.test(document.getElementById("loc-current-name").textContent)));
+    await page.click("#loc-apply");
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    await page.waitForTimeout(500);
+    ok("choose abroad: applied; the top bar names Dubai and the default is saved with its full name", await page.evaluate(() =>
+      document.getElementById("loc-dialog").classList.contains("hidden") && document.getElementById("loc-toggle-name").textContent === "Dubai" &&
+      JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name === "Dubai, United Arab Emirates" &&
+      Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.longitude - 55.3) < 0.2));
+    ok("choose abroad: the clock draws the dial for Dubai", await page.evaluate(() => document.querySelectorAll("#dial *").length > 50));
+
+    // a name two cities share: picking Dublin, California must not turn into Dublin, Ireland when the box loses focus
+    await page.click("#loc-toggle");
+    await page.click("#loc-change");
+    await page.fill("#loc-search", "dublin");
+    await page.locator("#loc-results li", { hasText: "California" }).first().dispatchEvent("mousedown");
+    await page.click("#loc-cancel", { trial: true });
+    await page.evaluate(() => document.getElementById("loc-search").blur());
+    ok("choose abroad: Dublin, California stays Dublin, California after the search box blurs", await page.evaluate(() =>
+      Math.abs(+document.getElementById("loc-lat").value - 37.7) < 0.3 && Math.abs(+document.getElementById("loc-lon").value + 121.9) < 0.3), await page.evaluate(() => document.getElementById("loc-lat").value));
+    await page.click("#loc-cancel");
+    ok("places abroad: no page errors", errors.length === 0, errors.join("; "));
+    await ctx.close();
+  }
+
   // 7. The clock screen: a readable dial on a phone, the Today panel, the layer switches,
   //    the tap sheet, the help dialog, the event chips and the script for names
   {

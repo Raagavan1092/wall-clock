@@ -25,9 +25,7 @@
   // { name, sub } for a coordinate: a known place, the saved default, or a custom point.
   function describe(lat, lon) {
     const p = placeAt(lat, lon);
-    if (p) {
-      return { name: p.kind === "district" ? p.name + " (district)" : p.name, short: p.name, sub: (p.kind === "town" && p.district ? p.district + " district, " : "") + p.state };
-    }
+    if (p) return { name: p.title, short: p.short, sub: p.where };
     const d = E.Settings.defaultLocation();
     if (near(d.latitude, lat) && near(d.longitude, lon)) return { name: d.name, short: d.name, sub: fmtCoords(lat, lon) };
     return { name: "Custom location", short: "Custom location", sub: fmtCoords(lat, lon) };
@@ -206,7 +204,8 @@
         name.textContent = p.name;
         const sub = document.createElement("span");
         sub.className = "pr-sub";
-        sub.textContent = (p.kind === "district" ? "District" : p.district ? "Town in " + p.district + " district" : "Town") + " · " + p.state;
+        sub.textContent = p.kind === "city" ? (p.capital ? "Capital" : "City") + (p.region ? " in " + p.region : "") + " · " + p.country
+          : (p.kind === "district" ? "District" : p.district ? "Town in " + p.district + " district" : "Town") + " · " + p.state;
         main.appendChild(name);
         main.appendChild(sub);
         const meta = document.createElement("span");
@@ -228,7 +227,8 @@
       lonIn.value = p.longitude;
       elevIn.value = p.elevation;
       chosenName = null;
-      search.value = p.name;
+      // A city abroad is filled in with its full label: its bare name may belong to another city too (Dublin), and the blur lookup must find this one.
+      search.value = p.kind === "city" ? p.label : p.name;
       hideResults();
       setNote("");
       refresh();
@@ -291,7 +291,7 @@
       if (!isFinite(lon) || lon < -180 || lon > 180) { lonIn.focus(); return null; }
       if (!isFinite(elev) || elev < 0) { elevIn.focus(); return null; }
       const p = placeAt(lat, lon);
-      const name = p ? (p.kind === "district" ? p.name + " (district)" : p.name) : chosenName || fmtCoords(lat, lon);
+      const name = p ? p.title : chosenName || fmtCoords(lat, lon);
       return { name: name, latitude: lat, longitude: lon, elevation: elev };
     }
 
@@ -366,7 +366,7 @@
       applyBtn.textContent = locked ? "Start" : "Apply";
       if (locked) {
         latIn.value = lonIn.value = elevIn.value = "";
-        setNote("Sunrise, and with it every time on this clock, depends on where you are. Search for your town or district, or use this device's location. You can change it later from the place name at the top.");
+        setNote("Sunrise, and with it every time on this clock, depends on where you are. Search for your town, district or city, or use this device's location. You can change it later from the place name at the top.");
       } else {
         latIn.value = loc.latitude;
         lonIn.value = loc.longitude;

@@ -34,6 +34,7 @@
     "js/render/dial.js",
     "js/settings.js",
     "js/india-places-data.js",
+    "js/world-places-data.js",
     "js/india-places.js",
     "js/date-picker.js",
     "js/location-ui.js",
