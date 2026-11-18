@@ -58,6 +58,25 @@ object Store {
         write(file, Rang.toJson(Rang.ack(Rang.parseList(file.readText()), upTo)))
     }
 
+    // ---- the clock's time zone ---------------------------------------------------------
+
+    private const val PREF_ZONE = "clock_zone"
+
+    /**
+     * The time zone of the place the clock is set to (the page says so with `setTimeZone`), for the times
+     * the app writes itself: the "rang at" notice, the widgets, the ring screen. IST until the page says otherwise.
+     */
+    fun zone(ctx: Context): java.util.TimeZone {
+        val id = prefs(ctx).getString(PREF_ZONE, null)
+        val zone = if (id.isNullOrEmpty()) null else java.util.TimeZone.getTimeZone(id)
+        // getTimeZone answers GMT for an id it does not know: keep IST then.
+        return if (zone == null || (zone.id == "GMT" && id != "GMT")) java.util.TimeZone.getTimeZone("Asia/Kolkata") else zone
+    }
+
+    fun setZone(ctx: Context, id: String) {
+        prefs(ctx).edit().putString(PREF_ZONE, id).apply()
+    }
+
     // ---- the person's own alarm track -------------------------------------------------
 
     fun trackFile(ctx: Context): File = File(dir(ctx), "track.bin")

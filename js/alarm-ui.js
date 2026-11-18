@@ -52,22 +52,26 @@
     return svg;
   }
 
-  // Times are always shown in IST, like the rest of the clock.
-  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
-  const whenFormat = new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  });
-  function istDayNumber(ms) { return Math.floor((ms + IST_OFFSET_MS) / 86400000); }
+  // Times are shown in the clock's time zone (the place's own: IST in India), like the rest of the clock.
+  let whenFormat = null, whenZone = null;
+  function whenFmt() {
+    const tz = VedicEngine.Zone.intl();
+    if (whenZone !== tz) {
+      whenZone = tz;
+      whenFormat = new Intl.DateTimeFormat("en-IN", { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    }
+    return whenFormat;
+  }
   function fmtHM(ms) {
     const p = {};
-    whenFormat.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
+    whenFmt().formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
     return p.hour + ":" + p.minute;
   }
   // "Today · 15:12", "Tomorrow · 06:12", "Thu 5 Nov · 15:12".
   function fmtWhen(ms, now) {
     const p = {};
-    whenFormat.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
-    const diff = istDayNumber(ms) - istDayNumber(now);
+    whenFmt().formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
+    const diff = VedicEngine.Zone.dayNumber(ms) - VedicEngine.Zone.dayNumber(now);
     const day = diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : diff === -1 ? "Yesterday" : p.weekday + " " + p.day + " " + p.month;
     return day + " · " + p.hour + ":" + p.minute;
   }
@@ -408,15 +412,17 @@
       notify: editing ? editing.notify : false,
       group: editing && editing.events.length ? Alarms.catalogItem(editing.events[0]).group : groups[0].id,
       query: "",
-      // A specific time instead of an event: IST clock time, or ghaṭī + pala after sunrise.
+      // A specific time instead of an event: a clock time (in the clock's zone), or ghaṭī + pala after sunrise.
       customOn: !!(editing && editing.custom),
       cwhen: editing && editing.custom && editing.custom.kind === "every" ? "next" : "time", // Time | Next
       cunit: editing && editing.custom && editing.custom.kind === "ghati" ? "gp" : "hm", // Hr·Min | Ghaṭī·Pala, for both
       nrepeat: editing && editing.custom && editing.custom.kind === "every" ? "always" : "once",
-      hour: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.hour : new Date(Date.now() + 19800000 + 3600000).getUTCHours(),
+      hour: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.hour : VedicEngine.Zone.parts(Date.now() + 3600000).hour,
       minute: editing && editing.custom && editing.custom.kind === "clock" ? editing.custom.minute : 0,
       // New alarms start on today's date (clear it for "every day").
-      date: editing ? (editing.custom && editing.custom.date ? editing.custom.date : "") : new Date(Date.now() + 19800000).toISOString().slice(0, 10),
+      date: editing ? (editing.custom && editing.custom.date ? editing.custom.date : "") : VedicEngine.Zone.today(),
+      // The zone the alarm's clock time (and date) is in: the clock's when it is made, kept as it was when it is edited.
+      tz: editing && editing.custom && editing.custom.tz ? editing.custom.tz : VedicEngine.Zone.id(),
       ghati: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.ghati : 0,
       pala: editing && editing.custom && editing.custom.kind === "ghati" ? editing.custom.pala : 0,
       nextH: editing && editing.custom && editing.custom.kind === "every" ? Math.floor(editing.custom.intervalMs / 3600000) : 0,
@@ -545,14 +551,13 @@
     function customOf() {
       if (ckind() === "next") {
         if (state.nrepeat === "always") return { kind: "every", intervalMs: nextMs(), anchor: Date.now(), date: null };
-        // One-off: a clock alarm this long from now (IST), rounded up to the minute.
-        const t = Math.ceil((Date.now() + nextMs()) / 60000) * 60000 + 19800000;
-        const d = new Date(t);
-        return { kind: "clock", hour: d.getUTCHours(), minute: d.getUTCMinutes(), date: d.toISOString().slice(0, 10) };
+        // One-off: a clock alarm this long from now (in the clock's zone), rounded up to the minute.
+        const t = Math.ceil((Date.now() + nextMs()) / 60000) * 60000, p = VedicEngine.Zone.parts(t);
+        return { kind: "clock", hour: p.hour, minute: p.minute, date: VedicEngine.Zone.dateString(t), tz: VedicEngine.Zone.id() };
       }
       return ckind() === "clock"
-        ? { kind: "clock", hour: state.hour, minute: state.minute, date: state.date || null }
-        : { kind: "ghati", ghati: state.ghati, pala: state.pala, date: state.date || null };
+        ? { kind: "clock", hour: state.hour, minute: state.minute, date: state.date || null, tz: state.tz }
+        : { kind: "ghati", ghati: state.ghati, pala: state.pala, date: state.date || null, tz: state.tz };
     }
     function whole(v, max) { return typeof v === "number" && isFinite(v) && v >= 0 && v <= max && Math.floor(v) === v; }
     function customValid() {
@@ -793,7 +798,7 @@
       customHint.textContent = nx
         ? (state.nrepeat === "always" ? "Rings every " + Alarms.customText({ kind: "every", intervalMs: customValid() ? nextMs() : 3600000 }).slice(6) + " from now, until you turn it off." : "Rings once, this long from now.")
         : !gp
-        ? "24-hour clock, Indian Standard Time. Rings at this time " + (state.date ? "on that date." : "every day.")
+        ? "24-hour clock, " + (state.tz === "Asia/Kolkata" ? "Indian Standard Time" : "local time (" + VedicEngine.Zone.describe(Date.now(), state.tz) + ")") + ". Rings at this time " + (state.date ? "on that date." : "every day.")
         : "Counted from that day's sunrise (a ghaṭī is 24 min, a pala 24 s). Rings at this point of " + (state.date ? "the Vedic day that begins on that date." : "every Vedic day.");
       customPane.classList.toggle("invalid", !customValid());
       dateInput.textContent = state.date ? new Date(state.date + "T00:00:00Z").toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "Any day";
@@ -831,7 +836,7 @@
             previewEl.appendChild(h("div", { class: "al-preview-main" },
               icon("bell"),
               h("div", {},
-                h("strong", { text: "Rings " + fmtWhen(found[0].fire, now) + " IST" }),
+                h("strong", { text: "Rings " + fmtWhen(found[0].fire, now) + " " + VedicEngine.Zone.abbr(found[0].fire) }),
                 h("span", { text: "in " + span(found[0].fire - now) + " · " + found[0].detail }))));
             if (found.length > 1) {
               previewEl.appendChild(h("p", { class: "al-preview-then" }, "Then " + found.slice(1).map(function (f) { return fmtWhen(f.fire, now); }).join("  ·  ")));
@@ -872,7 +877,7 @@
           previewEl.appendChild(h("div", { class: "al-preview-main" },
             icon("bell"),
             h("div", {},
-              h("strong", { text: "Rings " + fmtWhen(first.fire, now) + " IST" }),
+              h("strong", { text: "Rings " + fmtWhen(first.fire, now) + " " + VedicEngine.Zone.abbr(first.fire) }),
               h("span", { text: "in " + span(first.fire - now) + " · " + (first.detail || item.label) + " " + what + " at " + fmtHM(eventTime) + Alarms.dateNote(eventTime) }))));
           if (found.length > 1) {
             previewEl.appendChild(h("p", { class: "al-preview-then" }, "Then " + found.slice(1).map(function (f) { return fmtWhen(f.fire, now); }).join("  ·  ")));
@@ -897,7 +902,7 @@
     amountInput.addEventListener("blur", function () { amountInput.value = isFinite(state.offsetValue) ? state.offsetValue : ""; });
     dateInput.addEventListener("click", function () {
       VedicEngine.DatePicker.open({
-        anchor: dateInput, value: state.date || null, title: "Alarm date", min: VedicEngine.DatePicker.todayIST(),
+        anchor: dateInput, value: state.date || null, title: "Alarm date", min: VedicEngine.Zone.dateString(Date.now(), state.tz),
         onPick: function (v) { state.date = v; renderWhen(); renderCustom(); renderFoot(); schedulePreview(); },
       });
     });

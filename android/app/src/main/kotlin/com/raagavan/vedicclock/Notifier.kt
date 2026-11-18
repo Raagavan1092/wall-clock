@@ -11,7 +11,6 @@ import android.media.RingtoneManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.TimeZone
 
 object Notifier {
     const val CHANNEL_RING = "ring"
@@ -20,8 +19,6 @@ object Notifier {
     const val ID_RING = 1001
     const val ID_NOTICE = 1002
     const val ID_HORIZON = 1003
-
-    private val IST: TimeZone = TimeZone.getTimeZone("Asia/Kolkata")
 
     fun manager(ctx: Context) = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -61,7 +58,11 @@ object Notifier {
         ctx, 11, Intent(ctx, RingService::class.java).setAction(RingService.ACTION_DISMISS), flags(),
     )
 
-    fun timeText(ms: Long): String = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = IST }.format(Date(ms))
+    /** HH:mm in the clock's time zone (the place's own; IST in India). */
+    fun timeText(ctx: Context, ms: Long): String {
+        val zone = Store.zone(ctx)
+        return SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = zone }.format(Date(ms))
+    }
 
     private fun body(ring: Ring): String =
         ring.items.joinToString("\n") { it.label + " - " + it.line }.ifEmpty { ring.title }
@@ -94,7 +95,7 @@ object Notifier {
         val n = Notification.Builder(ctx, CHANNEL_INFO)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
-            .setContentText("Rang at " + timeText(System.currentTimeMillis()))
+            .setContentText("Rang at " + timeText(ctx, System.currentTimeMillis()))
             .setStyle(Notification.BigTextStyle().bigText(body(ring)))
             .setCategory(Notification.CATEGORY_STATUS)
             .setAutoCancel(true)
@@ -110,7 +111,8 @@ object Notifier {
         val nm = manager(ctx)
         if (left == null) { nm.cancel(ID_HORIZON); return }
         ensureChannels(ctx)
-        val until = SimpleDateFormat("MMM d", Locale.US).apply { timeZone = IST }.format(Date(s.coveredUntilMs))
+        val zone = Store.zone(ctx)
+        val until = SimpleDateFormat("MMM d", Locale.US).apply { timeZone = zone }.format(Date(s.coveredUntilMs))
         val n = Notification.Builder(ctx, CHANNEL_INFO)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Alarms are scheduled until $until")

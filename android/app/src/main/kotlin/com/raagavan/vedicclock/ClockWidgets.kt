@@ -41,7 +41,8 @@ object ClockWidgets {
     private const val GHATI_MS = 24 * 60_000L
     private const val TAG = "VedicWidgets"
 
-    private val IST: TimeZone = TimeZone.getTimeZone("Asia/Kolkata")
+    /** The zone the times are written in: the clock's place's (set from the page), read afresh on each update. */
+    @Volatile private var zone: TimeZone = TimeZone.getTimeZone("Asia/Kolkata")
 
     /** {sunrises:[ms...], ...}: the page also sends tithis/nakshatras, which the face does not use. */
     fun setStatus(ctx: Context, json: String) {
@@ -52,6 +53,7 @@ object ClockWidgets {
 
     fun updateAll(ctx: Context, now: Long = System.currentTimeMillis()) {
         try {
+            zone = Store.zone(ctx)
             val mgr = AppWidgetManager.getInstance(ctx)
             val status = Store.prefs(ctx).getString(PREF_STATUS, null)?.let { runCatching { JSONObject(it) }.getOrNull() }
             val ids = mgr.getAppWidgetIds(ComponentName(ctx, ClockFaceWidget::class.java))
@@ -109,11 +111,11 @@ object ClockWidgets {
         return "$title: ${c.first}\ntill ${whenText(c.second, now)}"
     }
 
-    /** The end time: just HH:mm when it is today (IST), else "HH:mm, d MMM". */
+    /** The end time: just HH:mm when it is today (in the clock's zone), else "HH:mm, d MMM". */
     private fun whenText(ms: Long, now: Long): String {
-        val day = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = IST }
+        val day = SimpleDateFormat("yyyyMMdd", Locale.US).apply { timeZone = zone }
         return if (day.format(Date(ms)) == day.format(Date(now))) hhmm(ms)
-        else hhmm(ms) + ", " + SimpleDateFormat("d MMM", Locale.US).apply { timeZone = IST }.format(Date(ms))
+        else hhmm(ms) + ", " + SimpleDateFormat("d MMM", Locale.US).apply { timeZone = zone }.format(Date(ms))
     }
 
     /** What holds now, when it ends and the next one's name; null when there is no data or it has all passed. */
@@ -127,7 +129,7 @@ object ClockWidgets {
         return null
     }
 
-    private fun hhmm(ms: Long) = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = IST }.format(Date(ms))
+    private fun hhmm(ms: Long) = SimpleDateFormat("HH:mm", Locale.US).apply { timeZone = zone }.format(Date(ms))
 
     /** Milliseconds since the latest sunrise that has passed; null when unknown (no data, or too long since the last one). */
     internal fun sinceSunrise(s: JSONObject?, now: Long): Long? {
@@ -160,7 +162,7 @@ object ClockWidgets {
 
     /**
      * The widget picture. Wide (at least 1.4x as wide as tall): the dial at the left, and at the right
-     * the ghati, the pala and the IST time. Otherwise the dial fills the picture with the writing in its middle.
+     * the ghati, the pala and the time. Otherwise the dial fills the picture with the writing in its middle.
      * [since] is null when unknown: no hands, "Open the app".
      */
     internal fun drawFace(w: Int, h: Int, since: Long?, time: String): Bitmap {

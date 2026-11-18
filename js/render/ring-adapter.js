@@ -59,15 +59,13 @@
     return String(g.ghati).padStart(2, "0") + ":" + String(g.pala).padStart(2, "0");
   }
 
-  // " (Nov 3)" for a time that falls on a later calendar date (IST) than the
-  // Vedic day being shown - i.e. after midnight, before the next sunrise - so
-  // "till 02:10" is not mistaken for tonight's earlier hours. "" otherwise.
-  const IST_MS = 5.5 * 3600 * 1000;
-  const DAY_MS = 86400000;
+  // " (Nov 3)" for a time that falls on a later calendar date (local, in the clock's
+  // zone) than the Vedic day being shown - i.e. after midnight, before the next
+  // sunrise - so "till 02:10" is not mistaken for tonight's earlier hours. "" otherwise.
   function dateNote(date, anchors) {
-    const dayOf = function (d) { return Math.floor((d.getTime() + IST_MS) / DAY_MS); };
+    const dayOf = function (d) { return VedicEngine.Zone.dayNumber(d.getTime()); };
     if (dayOf(date) === dayOf(anchors.governingSunrise)) return "";
-    return " (" + date.toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" }) + ")";
+    return " (" + date.toLocaleDateString("en-US", { timeZone: VedicEngine.Zone.intl(), month: "short", day: "numeric" }) + ")";
   }
 
   // Fills in startAngle/endAngle for any segment that doesn't already have
@@ -493,22 +491,24 @@
     });
   }
 
-  // Marks for the hour-mode scale (the "Switch time" view): the 24 whole IST
-  // clock hours, each at its true angle on the same sunrise-anchored scale
+  // Marks for the hour-mode scale (the "Switch time" view): the 24 whole
+  // clock hours (the place's own time), each at its true angle on the same sunrise-anchored scale
   // every ring uses (fixed-rate: 60 ghati = 24h, so no ring has to move),
   // plus the sunrise time itself, which always sits at the top.
-  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
   const HOUR_MS = 3600 * 1000;
   function buildHourScale(snapshot) {
     const anchors = snapshot.anchors;
     const sunrise = anchors.governingSunrise;
-    const firstHour = Math.ceil((sunrise.getTime() + IST_OFFSET_MS) / HOUR_MS) * HOUR_MS - IST_OFFSET_MS;
+    // The zone's offset at sunrise holds for the day's marks (on the one day a year the clocks change
+    // the hours after the change are an hour out on the scale, which is drawn at a fixed 15 deg an hour).
+    const off = VedicEngine.Zone.offsetMs(sunrise.getTime());
+    const firstHour = Math.ceil((sunrise.getTime() + off) / HOUR_MS) * HOUR_MS - off;
     const hours = [];
     for (let i = 0; i < 24; i++) {
       const t = new Date(firstHour + i * HOUR_MS);
-      hours.push({ angle: angleOf(t, anchors), hour: (Math.round((t.getTime() + IST_OFFSET_MS) / HOUR_MS)) % 24 });
+      hours.push({ angle: angleOf(t, anchors), hour: (Math.round((t.getTime() + off) / HOUR_MS)) % 24 });
     }
-    const sunriseLabel = sunrise.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
+    const sunriseLabel = sunrise.toLocaleTimeString("en-IN", { timeZone: VedicEngine.Zone.intl(), hour12: false, hour: "2-digit", minute: "2-digit" });
     return { hours: hours, sunriseLabel: sunriseLabel };
   }
 

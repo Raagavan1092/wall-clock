@@ -45,11 +45,8 @@
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || "");
     return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null;
   }
-  // Today's date in IST, the clock's time zone.
-  function todayIST() {
-    const t = new Date(Date.now() + 5.5 * 3600000);
-    return fmt(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
-  }
+  // Today's date in the clock's time zone.
+  function zoneToday() { return VedicEngine.Zone.today(); }
   function el(tag, cls, text) {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -88,7 +85,7 @@
       if (nav) { shift(+nav.dataset.step); return; }
       const day = e.target.closest(".dp-day");
       if (day && !day.disabled) { pick(day.dataset.value); return; }
-      if (e.target.closest(".dp-today")) { const t = parse(todayIST()); state.y = t.y; state.m = t.m; state.focus = todayIST(); render(); return; }
+      if (e.target.closest(".dp-today")) { const t = parse(zoneToday()); state.y = t.y; state.m = t.m; state.focus = zoneToday(); render(); return; }
       if (e.target.closest(".dp-cancel")) cancel();
     });
     root.addEventListener("keydown", function (e) {
@@ -121,7 +118,7 @@
     const first = new Date(Date.UTC(state.y, state.m, 1)).getUTCDay();
     const count = new Date(Date.UTC(state.y, state.m + 1, 0)).getUTCDate();
     for (let i = 0; i < first; i++) grid.appendChild(el("div", "dp-blank"));
-    const today = todayIST();
+    const today = zoneToday();
     let focusBtn = null;
     for (let d = 1; d <= count; d++) {
       const v = fmt(state.y, state.m, d);
@@ -156,7 +153,7 @@
   function open(opts) {
     if (!root) build();
     if (state) cancel();
-    const start = parse(opts.value) || (opts.marked && parse(opts.marked[0])) || parse(todayIST());
+    const start = parse(opts.value) || (opts.marked && parse(opts.marked[0])) || parse(zoneToday());
     state = {
       y: start.y, m: start.m, value: opts.value || null, focus: opts.value || null,
       title: opts.title || "Pick a date", min: opts.min || null, max: opts.max || null, marked: opts.marked || null,
@@ -168,5 +165,5 @@
     render();
   }
 
-  VedicEngine.DatePicker = { open: open, todayIST: todayIST, isOpen: function () { return !!state; } };
+  VedicEngine.DatePicker = { open: open, today: zoneToday, isOpen: function () { return !!state; } };
 })(typeof window !== "undefined" ? window : globalThis);

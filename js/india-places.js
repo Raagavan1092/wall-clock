@@ -55,25 +55,26 @@
     return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
   }
 
+  const IST_ZONE = "Asia/Kolkata";
   const PLACES = [];
   DATA.towns.forEach(function (t) {
     // [name, district, state, lat, lon, elevation]
-    PLACES.push({ name: t[0], state: t[2], district: t[1], kind: "town", latitude: t[3], longitude: t[4], elevation: t[5],
+    PLACES.push({ name: t[0], state: t[2], district: t[1], kind: "town", latitude: t[3], longitude: t[4], elevation: t[5], timezone: IST_ZONE,
       label: t[0] + (t[1] ? ", " + t[1] + " district" : "") + ", " + t[2] });
   });
   DATA.districts.forEach(function (st) {
     st[1].forEach(function (d) {
       // [name, lat, lon, elevation]
-      PLACES.push({ name: d[0], state: st[0], district: d[0], kind: "district", latitude: d[1], longitude: d[2], elevation: d[3],
+      PLACES.push({ name: d[0], state: st[0], district: d[0], kind: "district", latitude: d[1], longitude: d[2], elevation: d[3], timezone: IST_ZONE,
         label: d[0] + " (district), " + st[0] });
     });
   });
-  // [name, country, state/province or "", lat, lon, elevation, 1 if a capital, optional other spellings]
+  // [name, country, state/province or "", lat, lon, elevation, 1 if a capital, index into WORLD.zones, optional other spellings]
   // Capitals first, so a bare name typed for two cities (London) means the capital.
   WORLD.cities.slice().sort(function (a, b) { return b[6] - a[6]; }).forEach(function (c) {
     const title = c[0] === c[1] ? c[0] : c[0] + ", " + c[1];
-    PLACES.push({ name: c[0], state: c[1], country: c[1], region: c[2], district: "", kind: "city", capital: !!c[6], latitude: c[3], longitude: c[4], elevation: c[5],
-      title: title, label: c[0] === c[1] ? c[0] : c[0] + ", " + (c[2] ? c[2] + ", " : "") + c[1], extra: c[7] || [] });
+    PLACES.push({ name: c[0], state: c[1], country: c[1], region: c[2], district: "", kind: "city", capital: !!c[6], latitude: c[3], longitude: c[4], elevation: c[5], timezone: WORLD.zones[c[7]] || IST_ZONE,
+      title: title, label: c[0] === c[1] ? c[0] : c[0] + ", " + (c[2] ? c[2] + ", " : "") + c[1], extra: c[8] || [] });
   });
   // The name the top bar shows: the bare name, with the country when another place has the same name.
   const NAME_COUNT = {};
@@ -171,5 +172,16 @@
       PLACES.filter(function (p) { return plain(p.name) === t; })[0] || null;
   }
 
-  VedicEngine.IndiaPlaces = { PLACES: PLACES, find: find, search: search, fold: fold };
+  // The IANA time zone for a point: the listed place there, else the nearest listed place's.
+  function timezoneAt(lat, lon) {
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    let best = null, bd = Infinity;
+    PLACES.forEach(function (p) {
+      const dx = (p.longitude - lon) * cosLat, dy = p.latitude - lat, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = p; }
+    });
+    return best ? best.timezone : IST_ZONE;
+  }
+
+  VedicEngine.IndiaPlaces = { PLACES: PLACES, find: find, search: search, fold: fold, timezoneAt: timezoneAt };
 })(typeof window !== "undefined" ? window : globalThis);

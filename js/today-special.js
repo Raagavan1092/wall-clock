@@ -57,7 +57,7 @@
       console.error("Today Details failed:", err);
       sections = [{ title: "Could not work out today's details", sub: "", items: [String(err && err.message || err)] }];
     }
-    const day = snapshot.anchors.governingSunrise.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const day = snapshot.anchors.governingSunrise.toLocaleDateString("en-IN", { timeZone: VedicEngine.Zone.intl(), weekday: "long", day: "numeric", month: "long", year: "numeric" });
     const intro = document.createElement("p");
     intro.className = "ld-note";
     intro.textContent = "Sunrise to sunrise from " + day + ". From Muhūrta Cintāmaṇi, Prakaraṇas 1–2; each line carries its verse number. Open a section for the full reference.";

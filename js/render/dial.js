@@ -61,9 +61,9 @@
     return span < 1 && longerThanHalfDay ? 360 : span;
   }
 
-  // Hour:minute, IST, for hover-tooltip time ranges on every ring segment.
+  // Hour:minute (in the clock's zone) for hover-tooltip time ranges on every ring segment.
   function fmtHM(date) {
-    return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("en-IN", { timeZone: VedicEngine.Zone.intl(), hour12: false, hour: "2-digit", minute: "2-digit" });
   }
 
   // Every ring segment's tooltip shows BOTH the Vedic reading (ghati/pala,
@@ -444,7 +444,7 @@
     }
   }
 
-  // Hour-mode scale: 24 divisions, one per IST clock hour, each at its true
+  // Hour-mode scale: 24 divisions, one per clock hour, each at its true
   // angle on the same sunrise-anchored scale (15 deg per hour, since 60
   // ghati = 24h), so no ring has to move. The top is sunrise, labelled with
   // its time; hour numerals too close to it to fit are left as ticks only.

@@ -13,7 +13,7 @@
       latitude: 13.4200,
       longitude: 75.2500,
       elevation: 672, // meters; see plan notes - verified against public sources, editable in settings
-      utcOffsetMinutes: 330, // IST, no DST
+      timezone: "Asia/Kolkata", // IANA id of the place's zone: the weekday (vāra) is that of the local date at sunrise
     },
     ayanamsa: "lahiri",
     sunriseEdge: "upper-limb", // "upper-limb" (default) or "disc-centre"
@@ -64,7 +64,7 @@
 
     const anchors = { previousSunset, governingSunrise, sunsetToday, nextSunrise };
     const ghati = Ghati.current(date, anchors);
-    const varaIndex = Util.weekdayAtOffset(governingSunrise, location.utcOffsetMinutes);
+    const varaIndex = VedicEngine.Zone.weekday(governingSunrise.getTime(), VedicEngine.Zone.normalize(location.timezone));
 
     const method = settings.method;
     const tithi = Tithi.current(date, method);

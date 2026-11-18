@@ -18,6 +18,7 @@
 
 <script src="../js/vendor/astronomy.browser.js"></script>
 <script src="../js/engine/util.js"></script>
+<script src="../js/engine/zone.js"></script>
 <script src="../js/engine/ayanamsa.js"></script>
 <script src="../js/engine/sunrise.js"></script>
 <script src="../js/engine/sidereal.js"></script>
@@ -190,6 +191,26 @@
   check("custom alarm lists with its wording", nc.title === "wake" && nc.triggerText === "At 06:30 IST" && nc.events.length === 0);
   A.tick(nc.next.fireAt + 1000);
   check("custom alarm rings and 'once' is deleted", rings.some(r => r.alarm.id === ac.id && r.items[0].label === "06:30 IST") && !listed().some(a => a.id === ac.id));
+
+  // custom clock times keep the zone they were set in (the clock's place at the time); an alarm without one is IST
+  {
+    const NY = "America/New_York", Z = E.Zone;
+    const wallNY = x => new Date(x + Z.offsetMs(x, NY)).toISOString().slice(11, 16);
+    const ny = await A.preview({ custom: { kind: "clock", hour: 6, minute: 30, tz: NY }, repeat: "always" }, 3);
+    check("custom clock time in New York: rings at 06:30 New York time, every day", ny.length === 3 && ny.every(x => wallNY(x.fire) === "06:30"), ny.map(x => new Date(x.fire).toISOString()).join(", "));
+    const legacy = await A.preview({ custom: { kind: "clock", hour: 6, minute: 30 }, repeat: "always" }, 1);
+    check("a custom clock alarm with no zone (saved before zones) is still IST", legacy.length === 1 && (legacy[0].fire + IST) % (24 * 60 * MIN) === 6.5 * 60 * MIN);
+    const nyd = await A.preview({ custom: { kind: "clock", hour: 6, minute: 30, tz: NY, date: "2027-03-14" }, repeat: "always" }, 2);
+    check("a dated New York alarm on the night the clocks go forward rings at 06:30 EDT (10:30 UTC)", nyd.length === 1 && new Date(nyd[0].fire).toISOString() === "2027-03-14T10:30:00.000Z", nyd.map(x => new Date(x.fire).toISOString()).join(","));
+    const nyDay = await A.preview({ custom: { kind: "clock", hour: 6, minute: 30, tz: NY, date: "2027-11-07" }, repeat: "always" }, 2);
+    check("... and on the night they go back, 06:30 EST (11:30 UTC)", nyDay.length === 1 && new Date(nyDay[0].fire).toISOString() === "2027-11-07T11:30:00.000Z", nyDay.map(x => new Date(x.fire).toISOString()).join(","));
+    const an = A.add({ custom: { kind: "clock", hour: 6, minute: 30, tz: NY }, repeat: "once" });
+    const al = A.add({ custom: { kind: "clock", hour: 6, minute: 30, tz: "Asia/Dubai" }, repeat: "once" });
+    await until(() => listed().find(a => a.id === an.id).next && listed().find(a => a.id === al.id).next);
+    check("the wording names the zone the alarm was set in", /^At 06:30 (EST|EDT)$/.test(listed().find(a => a.id === an.id).triggerText) && listed().find(a => a.id === al.id).triggerText === "At 06:30 UTC+4", listed().find(a => a.id === an.id).triggerText + " / " + listed().find(a => a.id === al.id).triggerText);
+    check("an unknown zone name falls back to IST", (await A.preview({ custom: { kind: "clock", hour: 6, minute: 30, tz: "Not/AZone" } , repeat: "always" }, 1))[0].fire % (24 * 60 * MIN) === (6.5 * 60 * MIN - IST + 24 * 60 * MIN) % (24 * 60 * MIN));
+    A.remove(an.id); A.remove(al.id);
+  }
 
   // persistence + toggles
   const stored = JSON.parse(localStorage.getItem(KEY));

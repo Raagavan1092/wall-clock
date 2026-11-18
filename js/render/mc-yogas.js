@@ -160,7 +160,7 @@
     }
     return [out];
   }
-  function hhmm(d) { return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }); }
+  function hhmm(d) { return d.toLocaleTimeString("en-IN", { timeZone: VedicEngine.Zone.intl(), hour12: false, hour: "2-digit", minute: "2-digit" }); }
   // Descriptive mode off: the tooltip is the yoga's name alone, so the tip
   // drops the description, causes, commentators and verses. A bad yoga that
   // is relaxed keeps one line saying when, without the reasons; parts
@@ -591,7 +591,7 @@
     // An item is a string, or { text, mark } ("bad" | "good" | "mid") when it
     // is out of the ordinary: marked items are repeated in the lead section.
     const B = function (t) { return { text: t, mark: "bad" }; };
-    const fmt = function (d) { return d.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }) + VedicEngine.RingAdapter.dateNote(d, snapshot.anchors); };
+    const fmt = function (d) { return d.toLocaleTimeString("en-IN", { timeZone: VedicEngine.Zone.intl(), hour12: false, hour: "2-digit", minute: "2-digit" }) + VedicEngine.RingAdapter.dateNote(d, snapshot.anchors); };
     const range = function (a, b) { return fmt(a) + "–" + fmt(b); };
 
     // ---- Tithi ----
@@ -902,7 +902,7 @@
       const todayNaks = snapshot.nakshatraSequence.map(function (n) { return n.index; });
       ecl.forEach(function (e) {
         const days = (ms(e.time) - ms(date)) / DAY;
-        const when = e.time.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" });
+        const when = e.time.toLocaleDateString("en-IN", { timeZone: VedicEngine.Zone.intl(), day: "numeric", month: "short" });
         if (Math.abs(days) <= 3.5) flag("A " + e.what + " eclipse on " + when + ": avoid auspicious work for 3 days before and after (1.32). Japa and homa are not affected.");
         const monthsBar = e.frac >= 0.99 ? 6 : e.frac >= 0.5 ? 3 : 1;
         if (days < 0 && -days <= monthsBar * 30.4 && todayNaks.indexOf(e.nak) !== -1) {

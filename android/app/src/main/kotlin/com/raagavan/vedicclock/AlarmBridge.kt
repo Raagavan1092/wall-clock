@@ -53,6 +53,13 @@ class AlarmBridge(private val ctx: Context) {
         ctx.startActivity(Intent(ctx, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
+    /** The IANA time zone of the place the clock is set to, e.g. "Asia/Kolkata", for the times the app writes itself. */
+    @JavascriptInterface
+    fun setTimeZone(id: String) {
+        Store.setZone(ctx, id)
+        ClockWidgets.updateAll(ctx)
+    }
+
     /** The next days of tithi, nakshatra and sunrises, for the widgets (see ClockWidgets). */
     @JavascriptInterface
     fun setWidgetData(json: String) {

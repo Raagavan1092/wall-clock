@@ -6,7 +6,7 @@
 
   const VedicEngine = global.VedicEngine = global.VedicEngine || {};
   const E = VedicEngine;
-  const DAY = 86400000, GH = 24 * 60000, IST = 5.5 * 3600000;
+  const DAY = 86400000, GH = 24 * 60000;
   const MIN_LEN = GH; // a window shorter than one ghaṭī is not offered
   const MAX_DAYS = 730, MAX_RESULTS = 5;
 
@@ -365,9 +365,11 @@
   }
 
   // ---------------------------------------------------------------------------
-  function fmtTime(t) { return new Date(t).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }); }
-  function fmtDate(t) { return new Date(t).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", year: "numeric" }); }
-  function istDayStart(t) { return Math.floor((t + IST) / DAY) * DAY - IST; }
+  function fmtTime(t) { return new Date(t).toLocaleTimeString("en-IN", { timeZone: E.Zone.intl(), hour12: false, hour: "2-digit", minute: "2-digit" }); }
+  function fmtDate(t) { return new Date(t).toLocaleDateString("en-IN", { timeZone: E.Zone.intl(), weekday: "short", day: "numeric", month: "short", year: "numeric" }); }
+  // Local midnight (in the clock's zone) starting the day `t` is in, and the one after it.
+  function localDayStart(t) { return E.Zone.dayStart(E.Zone.dayNumber(t)); }
+  function nextDayStart(t) { return E.Zone.dayStart(E.Zone.dayNumber(t) + 1); }
 
   // Searches [fromMs, toMs]; calls onProgress(dayMs) and resolves with
   // { results: [{ day, windows }], rejects: { reason: count }, days }.
@@ -376,7 +378,7 @@
     if (ev.sankranti) return { results: sankrantiWindows(fromMs, toMs, s, data), rejects: {}, days: 0 };
     const cache = buildCaches(fromMs, toMs, s);
     const results = [], rejects = {};
-    let day = istDayStart(fromMs), n = 0;
+    let day = localDayStart(fromMs), n = 0;
     while (day <= toMs && n < MAX_DAYS && results.length < MAX_RESULTS) {
       if (isCancelled && isCancelled()) return null;
       const snap = E.Panchanga.compute(new Date(day + 12 * 3600000), s);
@@ -389,7 +391,7 @@
         else rejects["outside the range"] = (rejects["outside the range"] || 0) + 1;
       }
       n++;
-      day += DAY;
+      day = nextDayStart(day);
       if (onProgress) onProgress(day, results.length);
       await new Promise(function (res) { setTimeout(res, 0); });
     }
@@ -408,7 +410,7 @@
   }
   function fold(s) { return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
   function dateLabel(v) { return v ? new Date(v + "T00:00:00Z").toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : "pick a date"; }
-  function dateMs(v) { return Date.UTC(+v.slice(0, 4), +v.slice(5, 7) - 1, +v.slice(8, 10)) - IST; }
+  function dateMs(v) { return E.Zone.startOfDate(v); }
 
   function renderList() {
     const q = fold($("mf-search").value.trim());
@@ -451,11 +453,11 @@
   }
 
   function rangeMs() {
-    const today = istDayStart(Date.now());
+    const today = localDayStart(Date.now());
     if (mode === "after") return { from: Math.max(Date.now(), dateA ? dateMs(dateA) : 0), to: (dateA ? dateMs(dateA) : today) + 365 * DAY };
-    if (mode === "before") return { from: Date.now(), to: (dateA ? dateMs(dateA) : today) + DAY };
+    if (mode === "before") return { from: Date.now(), to: nextDayStart(dateA ? dateMs(dateA) : today) };
     if (!dateA || !dateB) return null;
-    return { from: dateMs(dateA), to: dateMs(dateB) + DAY };
+    return { from: dateMs(dateA), to: nextDayStart(dateMs(dateB)) };
   }
 
   async function run() {
@@ -566,7 +568,7 @@
     ctx = c;
     $("btn-next-muhurta").addEventListener("click", function () {
       $("mf-dialog").classList.remove("hidden");
-      if (!dateA) dateA = E.DatePicker.todayIST();
+      if (!dateA) dateA = E.Zone.today();
       renderRange(); renderList();
       if (!$("mf-suggest").firstChild) renderSuggest();
       // No autofocus on the search box (it would pop the keyboard on phones):
@@ -600,7 +602,7 @@
       const b = e.target.closest("button");
       if (!b) return;
       mode = b.dataset.mode;
-      if (mode === "between") { dateA = null; dateB = null; renderRange(); pickDates(); } else { if (!dateA) dateA = E.DatePicker.todayIST(); renderRange(); }
+      if (mode === "between") { dateA = null; dateB = null; renderRange(); pickDates(); } else { if (!dateA) dateA = E.Zone.today(); renderRange(); }
     });
     $("mf-date").addEventListener("click", pickDates);
     $("mf-find").addEventListener("click", run);
@@ -610,7 +612,7 @@
       renderList(); openList(false); syncClear(); syncSuggest();
     });
     $("mf-clear").addEventListener("click", function () {
-      runId++; chosen = null; mode = "after"; dateA = E.DatePicker.todayIST(); dateB = null;
+      runId++; chosen = null; mode = "after"; dateA = E.Zone.today(); dateB = null;
       $("mf-search").value = ""; $("mf-ref").textContent = ""; $("mf-results").textContent = ""; $("mf-find").disabled = false;
       renderRange(); renderList(); openList(false); syncClear(); syncSuggest();
     });

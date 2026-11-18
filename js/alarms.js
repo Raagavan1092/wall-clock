@@ -37,7 +37,6 @@
 
   const CUSTOM_ID = "custom";
   const GHATI_MS = 24 * MIN_MS, PALA_MS = GHATI_MS / 60; // a pala is 1/60 of a ghaṭī (24 s)
-  const IST_MS = 5.5 * 60 * MIN_MS;
 
   let ctx = null; // { getSettings(), getData() }
   let storageKey = STORAGE_KEY;
@@ -196,8 +195,9 @@
     }
   }
 
-  // A custom-time alarm rings every day at a fixed IST clock time, or at a
-  // ghaṭī + pala after that Vedic day's sunrise. Resolves like findFires.
+  // A custom-time alarm rings every day at a fixed clock time in its own time zone (the one
+  // the clock was in when it was set), or at a ghaṭī + pala after that Vedic day's sunrise.
+  // Resolves like findFires.
   async function findCustomFires(c, afterMs, count) {
     const out = [];
     const detail = customText(c);
@@ -207,11 +207,12 @@
       for (let k = Math.max(1, Math.floor((afterMs - c.anchor) / c.intervalMs) + 1); out.length < count; k++) add(c.anchor + k * c.intervalMs);
       return out;
     }
+    const Z = VedicEngine.Zone, tz = Z.normalize(c.tz);
     if (c.date) {
-      // One chosen IST date: the clock time on it, or the ghaṭī·pala of the Vedic day that sunrises on it.
-      const dayStart = Date.parse(c.date + "T00:00:00Z") - IST_MS;
+      // One chosen local date: the clock time on it, or the ghaṭī·pala of the Vedic day that sunrises on it.
+      const dayStart = Z.startOfDate(c.date, tz), dayEnd = Z.dayStart(Z.dayOfString(c.date) + 1, tz);
       if (c.kind === "clock") {
-        const fire = dayStart + (c.hour * 60 + c.minute) * MIN_MS;
+        const fire = Z.onDate(c.date, c.hour, c.minute, tz);
         if (fire > afterMs) add(fire);
         return out;
       }
@@ -219,22 +220,22 @@
         const gen = index.gen;
         ensureStart(afterMs);
         const days = index.days.slice();
-        const hit = days.filter(function (day) { return day.sunrise >= dayStart && day.sunrise < dayStart + DAY_MS; })[0];
+        const hit = days.filter(function (day) { return day.sunrise >= dayStart && day.sunrise < dayEnd; })[0];
         const last = days[days.length - 1];
         if (hit) {
           const fire = hit.sunrise + c.ghati * GHATI_MS + c.pala * PALA_MS;
           if (fire > afterMs) add(fire);
           return out;
         }
-        if (last.sunrise >= dayStart + DAY_MS || dayStart - afterMs > MAX_SCAN_MS) return out;
+        if (last.sunrise >= dayEnd || dayStart - afterMs > MAX_SCAN_MS) return out;
         await extend();
         if (gen !== index.gen) syncSettings();
       }
     }
     if (c.kind === "clock") {
-      const first = Math.floor((afterMs + IST_MS) / DAY_MS) - 1;
+      const first = Z.dayNumber(afterMs, tz) - 1;
       for (let d = first; out.length < count && d < first + 80; d++) {
-        const fire = d * DAY_MS - IST_MS + (c.hour * 60 + c.minute) * MIN_MS;
+        const fire = Z.fromWall(d * DAY_MS + (c.hour * 60 + c.minute) * MIN_MS, tz);
         if (fire > afterMs) add(fire);
       }
       return out;
@@ -257,16 +258,19 @@
   }
 
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
-  // "06:30 IST" or "Ghaṭī 12 · Pala 30 after sunrise".
+  // "06:30 IST" (the zone the alarm was set in) or "Ghaṭī 12 · Pala 30 after sunrise".
   function customText(c) {
     if (c.kind === "every") {
       const sec = Math.round(c.intervalMs / 1000), hh = Math.floor(sec / 3600), mm = Math.floor(sec % 3600 / 60), ss = sec % 60;
       return "Every " + [hh ? hh + " h" : "", mm ? mm + " min" : "", ss ? ss + " s" : ""].filter(Boolean).join(" ");
     }
-    const t = c.kind === "clock" ? pad2(c.hour) + ":" + pad2(c.minute) + " IST" : "Ghaṭī " + c.ghati + " · Pala " + c.pala + " after sunrise";
+    const t = c.kind === "clock" ? pad2(c.hour) + ":" + pad2(c.minute) + " " + VedicEngine.Zone.abbr(Date.now(), zoneOf(c)) : "Ghaṭī " + c.ghati + " · Pala " + c.pala + " after sunrise";
     if (!c.date) return t;
     return t + " · " + new Date(c.date + "T00:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
   }
+
+  // The zone a custom alarm's clock time (or date) is in. An alarm saved before zones existed has none: it was IST.
+  function zoneOf(c) { return VedicEngine.Zone.normalize(c.tz); }
 
   function normalizeCustom(c) {
     if (!c || typeof c !== "object") return null;
@@ -274,7 +278,7 @@
     const date = typeof c.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(c.date) && isFinite(Date.parse(c.date + "T00:00:00Z")) ? c.date : null;
     if (c.kind === "clock") {
       const hour = whole(c.hour, 23), minute = whole(c.minute, 59);
-      return hour == null || minute == null ? null : { kind: "clock", hour: hour, minute: minute, date: date };
+      return hour == null || minute == null ? null : { kind: "clock", hour: hour, minute: minute, date: date, tz: zoneOf(c) };
     }
     if (c.kind === "every") {
       const iv = Math.round(Number(c.intervalMs));
@@ -283,7 +287,7 @@
     }
     if (c.kind === "ghati") {
       const ghati = whole(c.ghati, 59), pala = whole(c.pala, 59);
-      return ghati == null || pala == null ? null : { kind: "ghati", ghati: ghati, pala: pala, date: date };
+      return ghati == null || pala == null ? null : { kind: "ghati", ghati: ghati, pala: pala, date: date, tz: zoneOf(c) };
     }
     return null;
   }
@@ -569,16 +573,15 @@
   // ---- wording ------------------------------------------------------------
 
   // " (Nov 3)" for a time after midnight and before that morning's sunrise
-  // (IST) - still part of the previous Vedic day, so a bare "02:10" would read
+  // (in the clock's zone) - still part of the previous Vedic day, so a bare "02:10" would read
   // as the wrong date. "" for every other time. Same rule as the dial's
   // tooltips and centre readout (RingAdapter.dateNote).
   function dateNote(ms) {
-    const IST_MS = 5.5 * 3600 * 1000;
-    const dayOf = function (t) { return Math.floor((t + IST_MS) / DAY_MS); };
+    const dayOf = function (t) { return VedicEngine.Zone.dayNumber(t); };
     const s = ctx.getSettings();
     const sunrise = VedicEngine.Sunrise.sunriseAtOrBefore(s.location, new Date(ms), s.sunriseEdge);
     if (!sunrise || dayOf(sunrise.getTime()) === dayOf(ms)) return "";
-    return " (" + new Date(ms).toLocaleDateString("en-US", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" }) + ")";
+    return " (" + new Date(ms).toLocaleDateString("en-US", { timeZone: VedicEngine.Zone.intl(), month: "short", day: "numeric" }) + ")";
   }
 
   function allInstants(ids) {

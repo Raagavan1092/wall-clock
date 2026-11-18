@@ -33,6 +33,18 @@
     try { return fn(); } catch (e) { console.warn("AndroidBridge:", e); return fallback; }
   }
 
+  // ---- the clock's time zone -----------------------------------------------------
+
+  // The app writes some times itself (the "rang at" notice, the widgets, the ring screen): it is told the
+  // zone of the place the clock is set to, whenever that changes. Older installs have no such call.
+  let sentZone = null;
+  function pushZone() {
+    const id = VedicEngine.Zone.id();
+    if (id === sentZone || typeof Native.setTimeZone !== "function") return;
+    sentZone = id;
+    safe(function () { Native.setTimeZone(id); });
+  }
+
   // ---- alarms the app rang while we were away ---------------------------------
 
   function applyRang() {
@@ -103,6 +115,7 @@
     if (busy) { again = true; return; }
     busy = true;
     try {
+      pushZone();
       applyRang();
       const sig = signature();
       if (force || sig !== lastSig) {
@@ -252,7 +265,7 @@
 
   // Called once by the page: at start, every minute (cheap unless something expired) and on return.
   function startWidgets(ctx) {
-    function go() { safe(function () { pushWidgets(ctx); }); }
+    function go() { safe(function () { pushZone(); pushWidgets(ctx); }); }
     go();
     setInterval(go, 60 * 1000);
     document.addEventListener("visibilitychange", function () { if (!document.hidden) go(); });

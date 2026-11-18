@@ -28,7 +28,6 @@ import android.widget.Toast
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.TimeZone
 
 /**
  * "Make alarms reliable": every permission and phone setting that decides whether an alarm rings
@@ -63,7 +62,8 @@ class SetupActivity : Activity() {
         col.addView(label("Press the button, then lock your phone and put it down. It should ring loudly in about a minute, over the lock screen. Then restart the phone and try once more, and once with Do Not Disturb on.", 14f, CENTRE, top = 4))
         col.addView(button("Test alarm in 1 minute") {
             val at = AlarmScheduler.scheduleTest(this)
-            val text = "Test alarm set for " + SimpleDateFormat("HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("Asia/Kolkata") }.format(Date(at)) + " - lock the phone now."
+            val zone = Store.zone(this)
+            val text = "Test alarm set for " + SimpleDateFormat("HH:mm:ss", Locale.US).apply { timeZone = zone }.format(Date(at)) + " - lock the phone now."
             testStatus.text = text
             Toast.makeText(this, text, Toast.LENGTH_LONG).show()
         }, matchWidth().apply { topMargin = dp(10) })

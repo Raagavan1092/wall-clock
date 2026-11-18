@@ -99,7 +99,7 @@ class RingActivity : Activity() {
         content.addView(text("ALARM", 13f, MUTED, bold = true, top = 4).apply { letterSpacing = 0.3f })
         content.addView(TextClock(this).apply {
             format12Hour = "HH:mm"; format24Hour = "HH:mm"
-            timeZone = "Asia/Kolkata"
+            timeZone = Store.zone(this@RingActivity).id
             textSize = 54f; setTextColor(CENTRE); gravity = Gravity.CENTER
             setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL))
         })

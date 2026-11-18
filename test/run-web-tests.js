@@ -697,6 +697,97 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.longitude - 55.3) < 0.2));
     ok("choose abroad: the clock draws the dial for Dubai", await page.evaluate(() => document.querySelectorAll("#dial *").length > 50));
 
+    // time zones: the clock follows the place; the dialog's Time zone field follows the selection
+    {
+      const z = await page.evaluate(() => {
+        const Z = VedicEngine.Zone, d = Date.UTC(2026, 10, 18, 10, 0), j = Date.UTC(2026, 6, 18, 10, 0);
+        const ny = "America/New_York", ny1 = Z.dayOfString("2026-11-01"), ny2 = Z.dayOfString("2026-03-08");
+        return {
+          offs: [Z.offsetMs(d, "Asia/Kolkata"), Z.offsetMs(d, ny), Z.offsetMs(j, ny), Z.offsetMs(d, "Asia/Kathmandu"), Z.offsetMs(j, "Australia/Sydney"), Z.offsetMs(d, "Australia/Lord_Howe")].map(x => x / 60000),
+          nyDays: [(Z.dayStart(ny1 + 1, ny) - Z.dayStart(ny1, ny)) / 3600000, (Z.dayStart(ny2 + 1, ny) - Z.dayStart(ny2, ny)) / 3600000],
+          rt: ["America/New_York", "Asia/Kathmandu", "Australia/Sydney", "Pacific/Auckland"].every(t => { const n = Z.dayNumber(d, t), st = Z.dayStart(n, t); return Z.dayNumber(st, t) === n && Z.dayNumber(st - 1, t) === n - 1; }),
+          text: [Z.describe(d, "Asia/Kolkata"), Z.describe(d, ny), Z.describe(j, ny), Z.describe(d, "Asia/Dubai"), Z.describe(d, "Europe/London")],
+          unknown: Z.normalize("Not/AZone") === "Asia/Kolkata" && Z.normalize(undefined) === "Asia/Kolkata",
+          zonesKnown: VedicEngine.WorldPlacesData.zones.filter(t => Z.normalize(t) !== t),
+        };
+      });
+      ok("zone: offsets by zone and date (IST, New York winter/summer, Nepal +5:45, Sydney, Lord Howe)", JSON.stringify(z.offs) === JSON.stringify([330, -300, -240, 345, 600, 660]), JSON.stringify(z.offs));
+      ok("zone: a day is 25 h long when New York's clocks go back and 23 h when they go forward; day starts round-trip", z.nyDays[0] === 25 && z.nyDays[1] === 23 && z.rt, JSON.stringify(z.nyDays));
+      ok("zone: how a zone is written (IST, EST/EDT, a city for the rest)", JSON.stringify(z.text) === JSON.stringify(["IST · +05:30", "EST · -05:00", "EDT · -04:00", "Dubai · +04:00", "London · +00:00"]), JSON.stringify(z.text));
+      ok("zone: an unknown or missing zone is IST", z.unknown);
+      ok("zone: every zone in the city list is one this browser knows", z.zonesKnown.length === 0, z.zonesKnown.join());
+    }
+    ok("time zone: choosing Dubai set the clock's zone, saved with the place and as the default", await page.evaluate(() =>
+      VedicEngine.Zone.id() === "Asia/Dubai" && JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.timezone === "Asia/Dubai" &&
+      JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).timezone === "Asia/Dubai"));
+    {
+      const t = await page.evaluate(() => {
+        const m = /(\d\d):(\d\d):\d\d/.exec(document.getElementById("dial").textContent), now = new Date();
+        const dubai = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Dubai", hour12: false, hour: "2-digit", minute: "2-digit" }).split(":");
+        const ist = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" }).split(":");
+        const mins = (h, mi) => +h * 60 + +mi;
+        return { shown: m && mins(m[1], m[2]), dubai: mins(...dubai), ist: mins(...ist), panel: document.querySelector("#today-panel").innerText };
+      });
+      ok("time zone: the clock shows Dubai time (not IST) in the centre", t.shown !== null && Math.abs(((t.shown - t.dubai + 1440 + 720) % 1440) - 720) <= 1 && Math.abs(t.shown - t.ist) > 60, JSON.stringify(t));
+      ok("time zone: the Today panel names the zone beside sunrise and sunset", /Sunrise \d\d:\d\d · Sunset \d\d:\d\d · UTC\+4/.test(t.panel), t.panel.split("\n").slice(0, 4).join(" | "));
+    }
+    // the weekday is the local one at the place's sunrise: Auckland's sunrise on 18 Nov 2026 is still 17 Nov in India
+    ok("time zone: vāra is the local weekday at sunrise (Auckland: Wednesday, though it is Tuesday in India then)", await page.evaluate(() => {
+      const when = new Date("2026-11-18T10:00:00Z");
+      const nz = VedicEngine.Panchanga.compute(when, { location: { latitude: -36.85, longitude: 174.76, elevation: 25, timezone: "Pacific/Auckland" } });
+      const ist = VedicEngine.Panchanga.compute(when, { location: { latitude: -36.85, longitude: 174.76, elevation: 25 } });
+      return nz.varaIndex === 3 && ist.varaIndex === 2;
+    }));
+
+    // the dialog's Time zone field follows the selection
+    await page.click("#loc-toggle");
+    await page.click("#loc-change");
+    ok("dialog: opens showing the clock's zone", await page.evaluate(() => document.getElementById("loc-tz").value === "Dubai · +04:00"));
+    await page.fill("#loc-search", "chennai");
+    await page.keyboard.press("Enter");
+    ok("dialog: choosing an Indian place shows IST", await page.evaluate(() => document.getElementById("loc-tz").value === "IST · +05:30"));
+    await page.fill("#loc-search", "london");
+    await page.keyboard.press("Enter");
+    ok("dialog: choosing London shows London's zone", await page.evaluate(() => /^London · \+0[01]:00$/.test(document.getElementById("loc-tz").value) && document.getElementById("loc-tz").title === "Europe/London"));
+    await page.fill("#loc-search", "sydney");
+    await page.keyboard.press("Enter");
+    ok("dialog: choosing Sydney shows Sydney's zone", await page.evaluate(() => /^Sydney · \+1[01]:00$/.test(document.getElementById("loc-tz").value)));
+    await page.evaluate(() => { const la = document.getElementById("loc-lat"), lo = document.getElementById("loc-lon"); la.value = "40.7"; la.dispatchEvent(new Event("input")); lo.value = "-74"; lo.dispatchEvent(new Event("input")); });
+    ok("dialog: typing coordinates takes the zone of the nearest listed place (New York)", await page.evaluate(() => /^E[SD]T · -0[45]:00$/.test(document.getElementById("loc-tz").value)));
+    await page.evaluate(() => { const la = document.getElementById("loc-lat"), lo = document.getElementById("loc-lon"); la.value = "19.07"; la.dispatchEvent(new Event("input")); lo.value = "72.88"; lo.dispatchEvent(new Event("input")); });
+    ok("dialog: coordinates in India give IST", await page.evaluate(() => document.getElementById("loc-tz").value === "IST · +05:30"));
+    await page.click("#loc-reset");
+    ok("dialog: Reset puts the default's zone back", await page.evaluate(() => document.getElementById("loc-tz").value === "Dubai · +04:00"));
+    await page.fill("#loc-search", "new york");
+    await page.keyboard.press("Enter");
+    await page.click("#loc-apply");
+    await page.waitForTimeout(500);
+    ok("dialog: Apply moves the clock to New York's zone; the recent list remembers it", await page.evaluate(() =>
+      VedicEngine.Zone.id() === "America/New_York" && JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.timezone === "America/New_York" &&
+      JSON.parse(localStorage.getItem("vedicWallClock.recentLocations.v1")).some(r => r.timezone === "Asia/Dubai") && /EST|EDT/.test(document.getElementById("loc-toggle").title)));
+    await page.click("#loc-toggle");
+    await page.locator("#loc-recent button", { hasText: "Dubai" }).click();
+    await page.waitForTimeout(300);
+    ok("a recent place brings its zone back", await page.evaluate(() => VedicEngine.Zone.id() === "Asia/Dubai"));
+    await page.reload();
+    await page.waitForSelector("#dial *", { timeout: 20000 });
+    ok("the zone is kept over a reload", await page.evaluate(() => VedicEngine.Zone.id() === "Asia/Dubai"));
+    // a recent place saved before zones existed gets its zone from the place list
+    await page.evaluate(() => localStorage.setItem("vedicWallClock.recentLocations.v1", JSON.stringify([{ name: "Tokyo", latitude: 35.6895, longitude: 139.6917, elevation: 40 }])));
+    await page.click("#loc-toggle");
+    await page.locator("#loc-recent button", { hasText: "Tokyo" }).click();
+    await page.waitForTimeout(300);
+    ok("an old recent place (saved without a zone) is given its place's zone", await page.evaluate(() => VedicEngine.Zone.id() === "Asia/Tokyo"));
+    // settings saved before zones existed were shown in IST and stay so
+    ok("settings saved before zones existed load as IST; an unknown zone name does too", await page.evaluate(() => {
+      const S = VedicEngine.Settings;
+      localStorage.setItem(S.STORAGE_KEY, JSON.stringify({ location: { latitude: 13.08, longitude: 80.27, elevation: 6 } }));
+      localStorage.setItem(S.DEFAULT_LOCATION_KEY, JSON.stringify({ name: "Chennai", latitude: 13.08, longitude: 80.27, elevation: 6 }));
+      const loaded = S.load();
+      localStorage.setItem(S.STORAGE_KEY, JSON.stringify({ location: { latitude: 40.7, longitude: -74, elevation: 6, timezone: "Not/AZone" } }));
+      return loaded.location.timezone === "Asia/Kolkata" && S.defaultLocation().timezone === "Asia/Kolkata" && S.load().location.timezone === "Asia/Kolkata";
+    }));
+
     // a name two cities share: picking Dublin, California must not turn into Dublin, Ireland when the box loses focus
     await page.click("#loc-toggle");
     await page.click("#loc-change");

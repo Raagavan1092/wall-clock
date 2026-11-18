@@ -12,7 +12,8 @@
   const DEFAULT_LOCATION_KEY = "vedicWallClock.defaultLocation.v1";
   const BUILT_IN_DEFAULT_NAME = "Śṛṅgeri";
 
-  // { name, latitude, longitude, elevation } - the user's default location, or the built-in one.
+  // { name, latitude, longitude, elevation, timezone } - the user's default location, or the built-in one.
+  // A default saved before time zones existed has none: it was an Indian place, so IST.
   function defaultLocation() {
     const base = VedicEngine.Panchanga.DEFAULT_SETTINGS.location;
     const builtIn = Object.assign({}, base, { name: BUILT_IN_DEFAULT_NAME });
@@ -22,7 +23,7 @@
         const d = JSON.parse(raw);
         if (d && isFinite(d.latitude) && Math.abs(d.latitude) <= 90 && isFinite(d.longitude) && Math.abs(d.longitude) <= 180 &&
             isFinite(d.elevation) && d.elevation >= 0) {
-          return { name: String(d.name || "").slice(0, 80) || "your default", latitude: +d.latitude, longitude: +d.longitude, elevation: +d.elevation };
+          return { name: String(d.name || "").slice(0, 80) || "your default", latitude: +d.latitude, longitude: +d.longitude, elevation: +d.elevation, timezone: VedicEngine.Zone.normalize(d.timezone) };
         }
       }
     } catch (e) {
@@ -44,7 +45,7 @@
 
   function setDefaultLocation(loc) {
     try {
-      localStorage.setItem(DEFAULT_LOCATION_KEY, JSON.stringify({ name: loc.name, latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation }));
+      localStorage.setItem(DEFAULT_LOCATION_KEY, JSON.stringify({ name: loc.name, latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation, timezone: VedicEngine.Zone.normalize(loc.timezone) }));
       return true;
     } catch (e) {
       console.warn("Settings: failed to write the default location.", e);
@@ -55,7 +56,7 @@
   function defaults() {
     const base = VedicEngine.Panchanga.DEFAULT_SETTINGS;
     return {
-      location: (function () { const d = defaultLocation(); return { latitude: d.latitude, longitude: d.longitude, elevation: d.elevation }; })(),
+      location: (function () { const d = defaultLocation(); return { latitude: d.latitude, longitude: d.longitude, elevation: d.elevation, timezone: d.timezone }; })(),
       ayanamsa: base.ayanamsa,
       method: base.method,
       sunriseEdge: base.sunriseEdge,
@@ -127,7 +128,8 @@
     const method = VedicEngine.Sidereal.METHODS.indexOf(saved.method) !== -1 ? saved.method : d.method;
     const edgeChoice = saved.sunriseEdge === "disc-centre" ? "disc-centre" : "upper-limb";
     return {
-      location: Object.assign({}, d.location, saved.location),
+      // A saved place without a zone (saved before zones existed) was shown in IST; keep it so.
+      location: Object.assign({}, d.location, saved.location, { timezone: VedicEngine.Zone.normalize(saved.location && saved.location.timezone) }),
       ayanamsa: VedicEngine.Ayanamsa.registry[saved.ayanamsa] ? saved.ayanamsa : d.ayanamsa,
       method: method,
       // sunriseEdge is the definition in force (a method can fix it: Tamil vakya uses the disc

@@ -38,6 +38,7 @@
   // so cycling/rendering code doesn't care whether it came from a saved
   // setting or the engine's own default order.
   let settings = E.Settings.load();
+  E.Zone.set(settings.location.timezone); // every time on the clock is in the place's own zone
   // The script names are drawn in (js/script.js); N() writes a name in it.
   E.Script.set(settings.script);
   const N = E.Script.name;
@@ -136,7 +137,7 @@
   const VARA_FALLBACK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   function fmtTime(date) {
-    return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false, hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("en-IN", { timeZone: E.Zone.intl(), hour12: false, hour: "2-digit", minute: "2-digit" });
   }
 
   // A time for the centre readout, with " (Nov 3)" after it when it falls
@@ -172,7 +173,7 @@
 
     // Ghati/pala leads by default (this is a Vedic clock first), with the
     // modern clock as the smaller line underneath; "Switch time" swaps them.
-    const clockText = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
+    const clockText = now.toLocaleTimeString("en-IN", { timeZone: E.Zone.intl(), hour12: false });
     const lines = timeMode === "hour"
       ? [
           { text: clockText, emphasis: "ghati" },
@@ -185,7 +186,7 @@
     if (full) {
       // The day: date and vāra on one line, the tithi (with pakṣa) and nakṣatra holding now on the next.
       const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
-      const dateText = now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+      const dateText = now.toLocaleDateString("en-GB", { timeZone: E.Zone.intl(), day: "numeric", month: "short", year: "numeric" });
       const nak = currentIn(snapshot.nakshatraSequence, now);
       lines.push({ text: dateText + " · " + N(varaName) });
       lines.push({ text: N(E.RingAdapter.tithiNameAt(snapshot, data, now)) + " · " + N(data.nakshatra.names[nak.index]) });
@@ -243,9 +244,10 @@
     const yoga = currentIn(snapshot.yogaSequence, now), karana = currentIn(snapshot.karanaSequence, now);
     const karanaName = karana.key.indexOf("movable:") === 0 ? data.karana.movable[Number(karana.key.split(":")[1])] : data.karana.fixed[karana.key];
     const model = {
-      date: now.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }),
+      date: now.toLocaleDateString("en-GB", { timeZone: E.Zone.intl(), day: "numeric", month: "short", year: "numeric" }),
       vara: N(varaName),
-      sun: "Sunrise " + fmtTime(a.governingSunrise) + " · Sunset " + fmtTime(a.sunsetToday),
+      // Away from India the zone is named, so a time is never mistaken for IST.
+      sun: "Sunrise " + fmtTime(a.governingSunrise) + " · Sunset " + fmtTime(a.sunsetToday) + (E.Zone.id() === E.Zone.DEFAULT ? "" : " · " + E.Zone.abbr(now.getTime())),
       rows: [
         { k: N("Tithi"), v: N(E.RingAdapter.tithiNameAt(snapshot, data, held)), till: till(tithi) },
         { k: N("Nakṣatra"), v: N(data.nakshatra.names[nak.index]), till: till(nak) },
@@ -336,8 +338,8 @@
       lastRenderedRingKey = ringKey;
     }
 
-    // The scale under the hands: 60 ghatis, or (hour mode) 24 IST clock
-    // hours placed on the same sunrise-anchored angles, so no ring moves.
+    // The scale under the hands: 60 ghatis, or (hour mode) 24 clock
+    // hours (the place's own time) placed on the same sunrise-anchored angles, so no ring moves.
     // The hour scale depends on the day's sunrise, so it's redrawn with the
     // snapshot too.
     if (timeMode !== lastRenderedTimeMode || (changed && timeMode === "hour")) {
@@ -353,7 +355,7 @@
     const ghatiNow = E.Ghati.current(now, snapshot.anchors);
     // The day hand is the same in both modes (one turn per sunrise-to-
     // sunrise day). The second hand is the pala hand (one turn per ghati,
-    // 24 min) or, in hour mode, a minute hand (one turn per IST hour).
+    // 24 min) or, in hour mode, a minute hand (one turn per clock hour).
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
     E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow), dialHandles.switchGroup);
@@ -384,9 +386,8 @@
     pb.title = pb.ariaLabel = prev ? "Previous ring (" + prev + ")" : "Previous ring";
   }
 
-  const IST_OFFSET_MS = 5.5 * 3600 * 1000;
   function minuteAngle(now) {
-    const msIntoHour = (now.getTime() + IST_OFFSET_MS) % 3600000;
+    const msIntoHour = (now.getTime() + E.Zone.offsetMs(now.getTime())) % 3600000;
     return (msIntoHour / 3600000) * 360;
   }
 
@@ -546,18 +547,19 @@
   }
 
   const DAY_MS = 86400000;
-  function istDayNumber(ms) { return Math.floor((ms + IST_OFFSET_MS) / DAY_MS); }
+  // The local calendar day (in the clock's zone) an instant falls on.
+  function dayNumber(ms) { return E.Zone.dayNumber(ms); }
 
-  // Whole days the date on show is from the real today (IST calendar dates).
+  // Whole days the date on show is from the real today (calendar dates in the clock's zone).
   function shownDayOffset() {
-    return istDayNumber(getNow().getTime()) - istDayNumber(Date.now());
+    return dayNumber(getNow().getTime()) - dayNumber(Date.now());
   }
 
-  // The shown clock time, `days` calendar days from the real today (IST).
+  // The shown clock time, `days` calendar days from the real today (local time).
   function sameTimeOnDay(days) {
     const shown = getNow().getTime();
-    const timeOfDay = (((shown + IST_OFFSET_MS) % DAY_MS) + DAY_MS) % DAY_MS;
-    return new Date((istDayNumber(Date.now()) + days) * DAY_MS + timeOfDay - IST_OFFSET_MS);
+    const timeOfDay = (((shown + E.Zone.offsetMs(shown)) % DAY_MS) + DAY_MS) % DAY_MS;
+    return new Date(E.Zone.fromWall((dayNumber(Date.now()) + days) * DAY_MS + timeOfDay));
   }
 
   // Goes to the day `days` from today,
@@ -567,20 +569,20 @@
     setManualTime(sameTimeOnDay(days));
   }
 
-  // Goes to sunrise on the day `days` from today (IST): ghaṭī 0, pala 0.
+  // Goes to sunrise on the day `days` from today (local): ghaṭī 0, pala 0.
   function goToSunrise(days) {
-    const noon = new Date((istDayNumber(Date.now()) + days) * DAY_MS - IST_OFFSET_MS + 12 * 3600000);
+    const noon = new Date(E.Zone.fromWall((dayNumber(Date.now()) + days) * DAY_MS + 12 * 3600000));
     const sunrise = E.Sunrise.sunriseAtOrBefore(settings.location, noon, settings.sunriseEdge);
     if (sunrise instanceof Date && !isNaN(sunrise.getTime())) setManualTime(new Date(sunrise.getTime() + 1500)); // a moment past it, so rounding cannot land before sunrise
     else goToDay(days);
   }
 
-  // Goes to a "YYYY-MM-DD" date (IST), at that day's sunrise.
+  // Goes to a "YYYY-MM-DD" date (local), at that day's sunrise.
   function goToDateString(value) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     if (!m) return;
     const picked = Date.UTC(+m[1], +m[2] - 1, +m[3]) / DAY_MS;
-    goToSunrise(picked - istDayNumber(Date.now()));
+    goToSunrise(picked - dayNumber(Date.now()));
   }
 
   let locationUi = null;
@@ -594,9 +596,9 @@
     };
   }
 
-  // "YYYY-MM-DD" and "10 Nov 2026" for the IST calendar date `days` from the date on show.
+  // "YYYY-MM-DD" and "10 Nov 2026" for the local calendar date `days` from the date on show.
   function shownDate(days) {
-    const d = new Date(getNow().getTime() + IST_OFFSET_MS + (days || 0) * DAY_MS);
+    const d = new Date((dayNumber(getNow().getTime()) + (days || 0)) * DAY_MS);
     return {
       iso: d.toISOString().slice(0, 10),
       label: d.toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }),
@@ -883,8 +885,9 @@
       // Applies a place at once: the clock is recomputed for it and it is remembered.
       setLocation: function (loc) {
         settings = Object.assign({}, settings, {
-          location: Object.assign({}, settings.location, { latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation }),
+          location: Object.assign({}, settings.location, { latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation, timezone: E.Zone.normalize(loc.timezone) }),
         });
+        E.Zone.set(settings.location.timezone);
         E.Settings.save(settings);
         invalidateCache();
         render();

@@ -50,7 +50,11 @@
       const a = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
       return (Array.isArray(a) ? a : []).filter(function (r) {
         return r && isFinite(r.latitude) && Math.abs(r.latitude) <= 90 && isFinite(r.longitude) && Math.abs(r.longitude) <= 180 && isFinite(r.elevation) && r.elevation >= 0;
-      }).map(function (r) { return { name: String(r.name || "").slice(0, 80), latitude: +r.latitude, longitude: +r.longitude, elevation: +r.elevation }; }).slice(0, MAX_RECENT);
+      }).map(function (r) {
+        // A recent place saved before zones existed gets its zone from the place list.
+        return { name: String(r.name || "").slice(0, 80), latitude: +r.latitude, longitude: +r.longitude, elevation: +r.elevation,
+          timezone: r.timezone ? E.Zone.normalize(r.timezone) : E.IndiaPlaces.timezoneAt(+r.latitude, +r.longitude) };
+      }).slice(0, MAX_RECENT);
     } catch (e) { return []; }
   }
   function writeRecent(list) {
@@ -58,7 +62,7 @@
   }
   function pushRecent(loc) {
     const list = readRecent().filter(function (r) { return !(near(r.latitude, loc.latitude) && near(r.longitude, loc.longitude)); });
-    list.unshift({ name: loc.name, latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation });
+    list.unshift({ name: loc.name, latitude: loc.latitude, longitude: loc.longitude, elevation: loc.elevation, timezone: loc.timezone });
     writeRecent(list.slice(0, MAX_RECENT));
   }
 
@@ -78,7 +82,7 @@
     const defaultBtn = $("loc-default"), resetBtn = $("loc-reset"), geoBtn = $("loc-geo");
     const search = $("loc-search"), results = $("loc-results"), note = $("loc-note");
     const latIn = $("loc-lat"), lonIn = $("loc-lon"), elevIn = $("loc-elev");
-    const curName = $("loc-current-name"), curSub = $("loc-current-sub");
+    const curName = $("loc-current-name"), curSub = $("loc-current-sub"), tzIn = $("loc-tz");
 
     // First visit: nothing saved yet, so the dialog opens at once and cannot be
     // dismissed until a place is applied (that first place becomes the default).
@@ -109,7 +113,7 @@
       let list = readRecent();
       // The place on show is always listed, even before anything has been picked.
       if (!list.some(function (r) { return near(r.latitude, cur.latitude) && near(r.longitude, cur.longitude); })) {
-        list.unshift({ name: describe(cur.latitude, cur.longitude).name, latitude: cur.latitude, longitude: cur.longitude, elevation: cur.elevation });
+        list.unshift({ name: describe(cur.latitude, cur.longitude).name, latitude: cur.latitude, longitude: cur.longitude, elevation: cur.elevation, timezone: cur.timezone });
         list = list.slice(0, MAX_RECENT);
       }
       recentBox.textContent = "";
@@ -154,12 +158,20 @@
     function update() {
       const loc = api.getSettings().location;
       const name = describe(loc.latitude, loc.longitude).short;
-      const title = "Location: " + name + " (" + dms(loc.latitude, loc.longitude) + ")";
+      const title = "Location: " + name + " (" + dms(loc.latitude, loc.longitude) + " · " + E.Zone.describe(Date.now(), loc.timezone) + ")";
       if (title !== lastTitle) { lastTitle = title; toggleName.textContent = name; toggle.title = title; toggle.setAttribute("aria-label", title); }
     }
 
     // ================= dialog =================
     let activeIdx = -1, listed = [], chosenName = null, lastFocus = null;
+    // The time zone of the place in the form. It follows the place: a listed place brings its own,
+    // My location uses the device's, coordinates typed by hand take the nearest listed place's.
+    let formZone = E.Zone.DEFAULT;
+    function setZone(tz) {
+      formZone = E.Zone.normalize(tz);
+      tzIn.value = E.Zone.describe(Date.now(), formZone);
+      tzIn.title = formZone;
+    }
 
     function setNote(text) { note.textContent = text; note.hidden = !text; }
 
@@ -226,6 +238,7 @@
       latIn.value = p.latitude;
       lonIn.value = p.longitude;
       elevIn.value = p.elevation;
+      setZone(p.timezone);
       chosenName = null;
       // A city abroad is filled in with its full label: its bare name may belong to another city too (Dublin), and the blur lookup must find this one.
       search.value = p.kind === "city" ? p.label : p.name;
@@ -273,6 +286,10 @@
         latIn.value = lat;
         lonIn.value = lon;
         elevIn.value = alt != null && isFinite(alt) && alt >= 0 ? Math.round(alt) : nearestElevation(lat, lon);
+        // The device's own zone is the surest for where it is; the place list's is the fallback.
+        let dz = "";
+        try { dz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { /* no Intl zone */ }
+        setZone(dz && E.Zone.normalize(dz) === dz ? dz : E.IndiaPlaces.timezoneAt(lat, lon));
         chosenName = "My location";
         search.value = "";
         hideResults();
@@ -292,7 +309,7 @@
       if (!isFinite(elev) || elev < 0) { elevIn.focus(); return null; }
       const p = placeAt(lat, lon);
       const name = p ? p.title : chosenName || fmtCoords(lat, lon);
-      return { name: name, latitude: lat, longitude: lon, elevation: elev };
+      return { name: name, latitude: lat, longitude: lon, elevation: elev, timezone: formZone };
     }
 
     // Selected line, Set as default / Reset only when the form differs from the default.
@@ -317,7 +334,17 @@
       defaultBtn.disabled = locked || same || !isFinite(elev) || elev < 0;
       resetBtn.disabled = locked || same;
     }
-    [latIn, lonIn, elevIn].forEach(function (inp) { inp.addEventListener("input", function () { chosenName = null; refresh(); }); });
+    [latIn, lonIn, elevIn].forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        chosenName = null;
+        if (inp !== elevIn) {
+          // New coordinates: the zone of the listed place there (or nearest to it).
+          const la = parseFloat(latIn.value), lo = parseFloat(lonIn.value);
+          if (isFinite(la) && Math.abs(la) <= 90 && isFinite(lo) && Math.abs(lo) <= 180) setZone(E.IndiaPlaces.timezoneAt(la, lo));
+        }
+        refresh();
+      });
+    });
 
     defaultBtn.addEventListener("click", function () {
       const loc = formLocation();
@@ -336,6 +363,7 @@
       latIn.value = d.latitude;
       lonIn.value = d.longitude;
       elevIn.value = d.elevation;
+      setZone(d.timezone);
       chosenName = null;
       setNote("");
       refresh();
@@ -364,6 +392,7 @@
       // First visit: the dialog is a welcome ("Choose your place", Start); later it is Change location / Apply.
       $("loc-title").textContent = locked ? "Choose your place" : "Change location";
       applyBtn.textContent = locked ? "Start" : "Apply";
+      setZone(loc.timezone);
       if (locked) {
         latIn.value = lonIn.value = elevIn.value = "";
         setNote("Sunrise, and with it every time on this clock, depends on where you are. Search for your town, district or city, or use this device's location. You can change it later from the place name at the top.");
