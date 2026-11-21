@@ -424,8 +424,12 @@ html, body {
   left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); top: auto;
   max-width: 560px; max-height: 45vh; margin: 0 auto; overflow-y: auto; overscroll-behavior: contain;
   padding: 12px 16px; border-radius: 16px; font-size: 14.5px; pointer-events: auto;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.65);
+  background: #2e2617; border-color: #8a7240; border-top: 2px solid var(--gold);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 -10px 44px rgba(0, 0, 0, 0.85);
+  animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
+@keyframes sheet-up { from { transform: translateY(calc(100% + 24px)); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .dial-tooltip.sheet { animation: none; } }
 .dial-tooltip.sheet .tip-title { font-size: 16px; margin-bottom: 2px; }
 
 /* ======================================================================
@@ -1269,8 +1273,16 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   color: var(--ink); font-size: 14px; line-height: 1.35;
   scrollbar-width: thin; scrollbar-color: #5a4a2a transparent;
 }
-.tp-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; }
-.tp-date { display: flex; flex-wrap: wrap; gap: 0 9px; font-size: 16px; font-weight: 600; color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+/* The head: date, vāra and sun times on the left (a tap folds the rest of the panel away), the
+   two layer switches on the right, one above the other. */
+.tp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.tp-fold { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tp-chev { flex: none; align-self: center; width: 16px; height: 16px; fill: none; stroke: #a99a7c; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
+.tp-fold[aria-expanded="false"] .tp-chev { transform: rotate(-90deg); }
+.tp-body { display: flex; flex-direction: column; gap: inherit; }
+.tp-body[hidden] { display: none; }
+.tp-switches { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.tp-date { display: flex; flex-wrap: wrap; align-items: center; gap: 0 9px; font-size: 16px; font-weight: 600; color: var(--gold-hi); font-variant-numeric: tabular-nums; }
 #tp-vara { color: var(--ink); }
 .tp-sun, .tp-till, #tp-ring-next { font-size: 12.5px; color: #a99a7c; font-variant-numeric: tabular-nums; }
 .tp-rows { margin: 0; }
@@ -1298,9 +1310,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .tp-ring-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; }
 #tp-ring-name { font-weight: 500; }
 /* The two switches for the dial's layers: small, with the state on show. */
-.tp-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding-top: 8px; border-top: 1px solid #2b2418; }
-.tp-foot .tp-label { flex: 1; white-space: nowrap; }
-.tp-switch { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 0; border: 0; background: none; color: #a99a7c; font: inherit; font-size: 12.5px; cursor: pointer; }
+.tp-switch { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; white-space: nowrap; padding: 0; border: 0; background: none; color: #a99a7c; font: inherit; font-size: 12.5px; cursor: pointer; }
 .tp-track { position: relative; flex: none; width: 32px; height: 18px; border-radius: 999px; background: #2b2418; border: 1px solid #5a4a2a; transition: background 0.15s; }
 .tp-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #a99a7c; transition: transform 0.15s; }
 .tp-switch[aria-checked="true"] { color: var(--ink); }
@@ -1378,7 +1388,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .tp-now li { padding: 6px 0; border-top: 1px solid #4a3d27; }
 .tp-now li:last-child { border-bottom: 1px solid #4a3d27; }
 .tp-ring-line { padding: 6px 0; border-top: 1px solid #4a3d27; border-bottom: 1px solid #4a3d27; }
-.tp-foot { border-top: 0; padding-top: 0; }
 .tp-till, #tp-ring-next { color: #c9b88f; }
 .tp-time { padding: 1px 7px; margin: 0 1px; border-radius: 6px; background: rgba(232, 199, 122, 0.14); color: var(--gold-hi); font-size: 14px; font-weight: 700; }
 .tp-bad .tp-time { background: rgba(192, 68, 43, 0.22); color: #ffb39c; }

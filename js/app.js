@@ -117,6 +117,7 @@
   // The "Outer ring" / "Good / bad" switches in the Today panel: show or hide the switchable rings and the
   // Good / Bad windows in the main view. Viewing preferences, remembered.
   const RINGS_KEY = "vedicWallClock.showRings", WINDOWS_KEY = "vedicWallClock.showWindows";
+  const PANEL_OPEN_KEY = "vedicWallClock.todayPanelOpen";
   let ringsOn = true, windowsOn = false; // the Good / bad windows start off; a saved choice wins
   try {
     if (localStorage.getItem(RINGS_KEY) === "0") ringsOn = false;
@@ -480,6 +481,24 @@
       });
       b.setAttribute("aria-checked", String(t[2]()));
     });
+
+    // The Today panel's head is its drop-down: a tap on the date folds the rest away or opens it
+    // again, and the panel remembers which.
+    (function () {
+      const fold = document.getElementById("tp-fold"), body = document.getElementById("tp-body");
+      if (!fold || !body) return;
+      function set(open) {
+        fold.setAttribute("aria-expanded", String(open));
+        body.hidden = !open;
+      }
+      try { set(localStorage.getItem(PANEL_OPEN_KEY) !== "0"); } catch (e) { set(true); }
+      fold.addEventListener("click", function () {
+        const open = fold.getAttribute("aria-expanded") !== "true";
+        set(open);
+        fold.blur();
+        try { localStorage.setItem(PANEL_OPEN_KEY, open ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+      });
+    })();
 
     if (E.MuhurtaFinder) {
       E.MuhurtaFinder.init({

@@ -67,23 +67,28 @@
   <!-- Today: the day's date, pañcāṅga and what is running now, beside the clock (landscape) or under it
        (portrait). Filled by js/today-panel.js from app.js; the two switches show or hide the dial's layers. -->
   <section id="today-panel" aria-label="Today">
+    <!-- The head is the panel's drop-down: a tap on the date opens or closes the rest. The two
+         switches for the dial's layers sit at its right, one above the other. -->
     <div class="tp-head">
-      <div class="tp-date"><span id="tp-date">-</span><span id="tp-vara"></span></div>
-      <div class="tp-sun" id="tp-sun"></div>
+      <button type="button" id="tp-fold" class="tp-fold" aria-expanded="true" aria-controls="tp-body" title="Show or hide the day's details">
+        <span class="tp-date"><span id="tp-date">-</span><span id="tp-vara"></span><svg class="tp-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="tp-sun" id="tp-sun"></span>
+      </button>
+      <div class="tp-switches" id="tc-toggles">
+        <button type="button" id="btn-toggle-windows" class="tp-switch" role="switch" aria-checked="true" title="Show or hide the good / bad windows">Good/Bad<span class="tp-track"><span class="tp-knob"></span></span></button>
+        <button type="button" id="btn-toggle-rings" class="tp-switch" role="switch" aria-checked="true" title="Show or hide the outer (switchable) ring">Outer ring<span class="tp-track"><span class="tp-knob"></span></span></button>
+      </div>
     </div>
-    <dl class="tp-rows" id="tp-rows"></dl>
-    <div class="tp-sec">
-      <div class="tp-label" id="tp-now-title">NOW</div>
-      <ul class="tp-now" id="tp-now"></ul>
-    </div>
-    <div class="tp-sec tp-ring" id="tp-ring">
-      <div class="tp-label">OUTER RING</div>
-      <div class="tp-ring-line"><span id="tp-ring-name"></span><span id="tp-ring-next"></span></div>
-    </div>
-    <div class="tp-foot" id="tc-toggles">
-      <span class="tp-label">SHOW</span>
-      <button type="button" id="btn-toggle-rings" class="tp-switch" role="switch" aria-checked="true" title="Show or hide the outer (switchable) ring"><span class="tp-track"><span class="tp-knob"></span></span>Outer ring</button>
-      <button type="button" id="btn-toggle-windows" class="tp-switch" role="switch" aria-checked="true" title="Show or hide the good / bad windows"><span class="tp-track"><span class="tp-knob"></span></span>Good / bad</button>
+    <div class="tp-body" id="tp-body">
+      <dl class="tp-rows" id="tp-rows"></dl>
+      <div class="tp-sec">
+        <div class="tp-label" id="tp-now-title">NOW</div>
+        <ul class="tp-now" id="tp-now"></ul>
+      </div>
+      <div class="tp-sec tp-ring" id="tp-ring">
+        <div class="tp-label">OUTER RING</div>
+        <div class="tp-ring-line"><span id="tp-ring-name"></span><span id="tp-ring-next"></span></div>
+      </div>
     </div>
     <button type="button" id="tp-hint" class="tp-hint" hidden>New here? See how to read the clock<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   </section>

@@ -889,6 +889,16 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       document.getElementById("btn-toggle-rings").getAttribute("aria-checked") === "false" && !document.querySelector("#dial .outer-ring *") && document.getElementById("tp-ring").hidden));
     await page.evaluate(() => document.getElementById("btn-toggle-rings").click());
     await page.waitForTimeout(300);
+    ok("switches: in the panel's head at the right, Good/Bad above Outer ring", await page.evaluate(() => {
+      const head = document.querySelector("#today-panel .tp-head"), w = document.getElementById("btn-toggle-windows"), r = document.getElementById("btn-toggle-rings");
+      const hr = head.getBoundingClientRect(), wr = w.getBoundingClientRect(), rr = r.getBoundingClientRect();
+      return head.contains(w) && head.contains(r) && wr.bottom <= rr.top + 1 && Math.abs(wr.right - hr.right) < 2 && Math.abs(rr.right - hr.right) < 2 && /^Good\/Bad$/.test(w.textContent.trim()) && /^Outer ring$/.test(r.textContent.trim());
+    }));
+    await page.evaluate(() => document.getElementById("tp-fold").click());
+    ok("panel: a tap on the date folds the details away, and it is remembered", await page.evaluate(() =>
+      document.getElementById("tp-body").hidden && !/NOW/.test(document.getElementById("today-panel").innerText) && /13 Nov 2026/.test(document.getElementById("today-panel").innerText) && localStorage.getItem("vedicWallClock.todayPanelOpen") === "0"));
+    await page.evaluate(() => document.getElementById("tp-fold").click());
+    ok("panel: a second tap opens it again", await page.evaluate(() => !document.getElementById("tp-body").hidden && document.getElementById("tp-fold").getAttribute("aria-expanded") === "true"));
 
     // a tap on the dial: a sheet at the bottom of the screen, and the segment is outlined
     await page.evaluate(() => document.getElementById("stage").scrollTo(0, 0));
