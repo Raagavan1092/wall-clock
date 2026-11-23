@@ -592,10 +592,10 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("edit mode: off by default, the day strip hidden", await page.evaluate(() =>
       getComputedStyle(document.getElementById("edit-bar")).display === "none" && !document.body.classList.contains("off-live")));
     await page.click("#edit-toggle");
-    ok("edit mode: the pencil shows the day strip: Live, the month, a week with today dotted and on show", await page.evaluate(() => {
+    ok("edit mode: the pencil shows the day strip: Live, the month and its week number, a week with today dotted and on show", await page.evaluate(() => {
       const days = document.querySelectorAll("#edit-days .es-day"), today = document.querySelector("#edit-days .is-today");
       return getComputedStyle(document.getElementById("edit-bar")).display !== "none" && days.length === 7 && !!today && today.classList.contains("is-shown") &&
-        /\d{4}/.test(document.getElementById("edit-month").textContent) && document.getElementById("edit-now").classList.contains("is-live") &&
+        /^[A-Z][a-z]+ · Week [1-6]$/.test(document.getElementById("edit-month").textContent) && document.getElementById("edit-now").classList.contains("is-live") &&
         document.getElementById("tp-offset").hidden;
     }));
     await page.click("#btn-next-day");

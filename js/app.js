@@ -693,12 +693,12 @@
       b.appendChild(wd); b.appendChild(num);
       days.appendChild(b);
     }
-    const first = new Date(start * DAY_MS), last = new Date((start + 6) * DAY_MS);
-    function mon(d, long) { return d.toLocaleDateString("en-GB", { timeZone: "UTC", month: long ? "long" : "short" }); }
+    // The month of the day on show, and which week of it (weeks run Sunday to Saturday;
+    // the one holding the 1st is Week 1): "November · Week 4".
+    const sd = new Date(shown * DAY_MS);
+    const firstWd = (sd.getUTCDay() - (sd.getUTCDate() - 1) % 7 + 7) % 7;
     document.getElementById("edit-month").textContent =
-      first.getUTCMonth() === last.getUTCMonth() ? mon(first, true) + " " + first.getUTCFullYear()
-      : first.getUTCFullYear() === last.getUTCFullYear() ? mon(first) + " \u2013 " + mon(last) + " " + last.getUTCFullYear()
-      : mon(first) + " " + first.getUTCFullYear() + " \u2013 " + mon(last) + " " + last.getUTCFullYear();
+      sd.toLocaleDateString("en-GB", { timeZone: "UTC", month: "long" }) + " \u00b7 Week " + Math.ceil((sd.getUTCDate() + firstWd) / 7);
   }
 
   function wireEditMode() {
