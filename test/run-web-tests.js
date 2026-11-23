@@ -584,20 +584,46 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       Math.abs(JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).location.latitude - 25.3) < 0.5 &&
       /Varanasi/.test(JSON.parse(localStorage.getItem("vedicWallClock.defaultLocation.v1")).name)));
 
-    // edit mode: day navigators, Now, the date field and the draggable day hand
+    // edit mode: the day strip (Now, weeks, calendar, Previous / Next day, the week's days) and the draggable day hand
     ok("top row: no time widget; Full screen, Alarms, Location, Edit, Settings", await page.evaluate(() => {
       const ids = Array.from(document.querySelectorAll("#top-controls .tc-row > button")).map(b => b.id);
       return !document.getElementById("loc-widget") && !document.getElementById("loc-arc") && ids.join() === "btn-fullview,alarm-toggle,loc-toggle,edit-toggle,settings-toggle";
     }));
-    ok("edit mode: off by default, its controls hidden", await page.evaluate(() =>
-      ["btn-prev-day", "btn-next-day", "edit-bar"].every(id => getComputedStyle(document.getElementById(id)).display === "none")));
+    ok("edit mode: off by default, the day strip hidden", await page.evaluate(() =>
+      getComputedStyle(document.getElementById("edit-bar")).display === "none" && !document.body.classList.contains("off-live")));
     await page.click("#edit-toggle");
-    ok("edit mode: the pencil shows the day buttons, Now and the date", await page.evaluate(() =>
-      ["btn-prev-day", "btn-next-day", "edit-bar"].every(id => getComputedStyle(document.getElementById(id)).display !== "none") &&
-      /\d{4}/.test(document.getElementById("edit-date-text").textContent) && document.getElementById("edit-now").classList.contains("is-live")));
-    await page.click("#btn-next-day .rc-label");
+    ok("edit mode: the pencil shows the day strip: Live, the month, a week with today dotted and on show", await page.evaluate(() => {
+      const days = document.querySelectorAll("#edit-days .es-day"), today = document.querySelector("#edit-days .is-today");
+      return getComputedStyle(document.getElementById("edit-bar")).display !== "none" && days.length === 7 && !!today && today.classList.contains("is-shown") &&
+        /\d{4}/.test(document.getElementById("edit-month").textContent) && document.getElementById("edit-now").classList.contains("is-live") &&
+        document.getElementById("tp-offset").hidden;
+    }));
+    await page.click("#btn-next-day");
     await page.waitForTimeout(400);
     ok("edit mode: Next day goes to the next day's sunrise (Ghaṭī 0 · Pala 0)", await page.evaluate(() => /Ghaṭī 0 · Pala 0/.test(document.getElementById("dial").textContent) && !document.getElementById("edit-now").classList.contains("is-live")));
+    ok("edit mode: off live, today keeps its dot, the next day is on show, the panel says Tomorrow and the dial has its halo", await page.evaluate(() => {
+      const today = document.querySelector("#edit-days .is-today"), shown = document.querySelector("#edit-days .is-shown");
+      return (!today || !today.classList.contains("is-shown")) && shown && shown.dataset.offset === "1" &&
+        document.getElementById("tp-offset").textContent === "Tomorrow" && !document.getElementById("tp-offset").hidden &&
+        document.body.classList.contains("off-live") && /Now/.test(document.getElementById("edit-now").textContent);
+    }));
+    await page.click("#edit-next-week");
+    await page.waitForTimeout(300);
+    ok("edit mode: Next week goes on seven days (+8 days)", await page.evaluate(() => document.getElementById("tp-offset").textContent === "+8 days" && document.querySelector("#edit-days .is-shown").dataset.offset === "8"));
+    await page.click("#btn-prev-day");
+    await page.waitForTimeout(300);
+    ok("edit mode: Previous day goes back one (+7 days)", await page.evaluate(() => document.getElementById("tp-offset").textContent === "+7 days"));
+    await page.click("#edit-prev-week");
+    await page.waitForTimeout(300);
+    ok("edit mode: tapping a day in the strip goes there", await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll("#edit-days .es-day")).find(x => !x.classList.contains("is-shown"));
+      b.click();
+      return document.querySelector("#edit-days .is-shown").dataset.offset === b.dataset.offset;
+    }));
+    await page.click("#edit-now");
+    await page.waitForTimeout(300);
+    await page.click("#btn-next-day");
+    await page.waitForTimeout(400);
     {
       // drag the day hand a quarter turn clockwise: 15 ghaṭīs on
       const box = await page.locator("#dial").boundingBox();
@@ -611,7 +637,8 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     }
     await page.click("#edit-now");
     await page.waitForTimeout(300);
-    ok("edit mode: Now returns to live", await page.evaluate(() => document.getElementById("edit-now").classList.contains("is-live")));
+    ok("edit mode: Now returns to live, the badge and the halo go", await page.evaluate(() => document.getElementById("edit-now").classList.contains("is-live") &&
+      document.getElementById("tp-offset").hidden && !document.body.classList.contains("off-live") && document.querySelector("#edit-days .is-today.is-shown")));
     await page.click("#edit-toggle");
     ok("edit mode: the pencil again hides it all", await page.evaluate(() => getComputedStyle(document.getElementById("edit-bar")).display === "none"));
 

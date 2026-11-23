@@ -5,7 +5,7 @@
 // it, and only when something in it has changed.
 //
 // model: {
-//   date, vara, sun,
+//   date, vara, offset ("" live, else e.g. "Tomorrow", "+5 days", "+2 h 10 m"), sun,
 //   rows: [{ k, v, till }],
 //   nowTitle, now: [{ kind: "bad" | "good" | "next" | "none", text, when }],
 //   ring: { name, next } | null,
@@ -42,6 +42,8 @@
 
     $("tp-date").textContent = model.date;
     $("tp-vara").textContent = model.vara;
+    const off = $("tp-offset");
+    if (off) { off.textContent = model.offset || ""; off.hidden = !model.offset; }
     $("tp-sun").textContent = model.sun;
 
     const rows = $("tp-rows");

@@ -250,6 +250,7 @@
     const model = {
       date: now.toLocaleDateString("en-GB", { timeZone: E.Zone.intl(), day: "numeric", month: "short", year: "numeric" }),
       vara: N(varaName),
+      offset: offsetLabel(),
       // Away from India the zone is named, so a time is never mistaken for IST.
       sun: "Sunrise " + fmtTime(a.governingSunrise) + " · Sunset " + fmtTime(a.sunsetToday) + (E.Zone.id() === E.Zone.DEFAULT ? "" : " · " + E.Zone.abbr(now.getTime())),
       rows: [
@@ -615,6 +616,7 @@
     syncDayControls = function () {
       if (!cachedSnapshot) return;
       if (locationUi) locationUi.update();
+      document.body.classList.toggle("off-live", !isLive());
       syncEditBar();
     };
   }
@@ -629,29 +631,74 @@
     };
   }
 
+  // How far the clock on show is from the real now, for the Today panel's badge:
+  // "Tomorrow", "Yesterday", "+5 days", "−3 months"; on today itself, "+2 h 10 m".
+  // Empty while live.
+  function offsetLabel() {
+    if (isLive()) return "";
+    const days = shownDayOffset();
+    const sign = function (n) { return n < 0 ? "\u2212" : "+"; };
+    if (days === 1) return "Tomorrow";
+    if (days === -1) return "Yesterday";
+    const n = Math.abs(days);
+    if (days) {
+      if (n < 100) return sign(days) + n + " days";
+      if (n < 730) return sign(days) + Math.round(n / 30.44) + " months";
+      return sign(days) + Math.round(n / 365.25) + " years";
+    }
+    const mins = Math.round((getNow().getTime() - Date.now()) / 60000);
+    if (!mins) return "Held";
+    const m = Math.abs(mins), h = Math.floor(m / 60);
+    return sign(mins) + ((h ? h + " h " : "") + (m % 60 || !h ? (m % 60) + " m" : "")).trim();
+  }
+
   // ---- Edit mode -------------------------------------------------------------
-  // The pencil button in the top row. While on: day navigators in the clock's
-  // top corners (the ring navigators' look), Now and a date field over the
-  // clock (portrait) or at its right (landscape), and the day hand can be
-  // dragged round to any time; past sunrise it carries on into the next day.
+  // The pencil button in the top row. While on: the day strip under the buttons
+  // (#edit-bar: Now, a week back / the month / a week on, the calendar; then
+  // Previous day, the week's seven days with today dotted and the day on show
+  // filled, Next day), and the day hand can be dragged round to any time; past
+  // sunrise it carries on into the next day. Off live time the dial gets an
+  // amber halo and the Today panel says how far the clock is from now.
   let editMode = false;
   let lastEditKey = null;
+  const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   function syncEditBar() {
     if (!editMode) return;
     const live = isLive();
-    const cur = shownDate(0), prev = shownDate(-1), next = shownDate(1);
-    const key = live + "|" + cur.iso;
+    const today = dayNumber(Date.now()), shown = dayNumber(getNow().getTime());
+    const key = live + "|" + today + "|" + shown;
     if (key === lastEditKey) return;
     lastEditKey = key;
     const nowBtn = document.getElementById("edit-now");
     nowBtn.classList.toggle("is-live", live);
     nowBtn.setAttribute("aria-pressed", String(live));
-    document.getElementById("edit-date-text").textContent = cur.label;
-    const pb = document.getElementById("btn-prev-day"), nb = document.getElementById("btn-next-day");
-    pb.querySelector(".rc-name").textContent = prev.short;
-    nb.querySelector(".rc-name").textContent = next.short;
-    pb.title = pb.ariaLabel = "Previous day (" + prev.label + ")";
-    nb.title = nb.ariaLabel = "Next day (" + next.label + ")";
+    document.getElementById("edit-now-text").textContent = live ? "Live" : "Now";
+    nowBtn.title = live ? "Showing live time" : "Back to live time";
+    // The week (Sunday first) the day on show falls in. Day 0 of the count was a Thursday.
+    const start = shown - ((shown % 7 + 7 + 4) % 7);
+    const days = document.getElementById("edit-days");
+    days.textContent = "";
+    for (let i = 0; i < 7; i++) {
+      const dn = start + i, d = new Date(dn * DAY_MS);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "es-day" + (dn === today ? " is-today" : "") + (dn === shown ? " is-shown" : "");
+      b.dataset.offset = String(dn - today);
+      const label = d.toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      b.setAttribute("aria-label", label + (dn === today ? ", today" : ""));
+      if (dn === shown) b.setAttribute("aria-current", "date");
+      b.title = label + (dn === today ? " (today)" : "");
+      const wd = document.createElement("span"); wd.className = "es-wd"; wd.textContent = WEEKDAY[i];
+      const num = document.createElement("span"); num.className = "es-dn"; num.textContent = String(d.getUTCDate());
+      b.appendChild(wd); b.appendChild(num);
+      days.appendChild(b);
+    }
+    const first = new Date(start * DAY_MS), last = new Date((start + 6) * DAY_MS);
+    function mon(d, long) { return d.toLocaleDateString("en-GB", { timeZone: "UTC", month: long ? "long" : "short" }); }
+    document.getElementById("edit-month").textContent =
+      first.getUTCMonth() === last.getUTCMonth() ? mon(first, true) + " " + first.getUTCFullYear()
+      : first.getUTCFullYear() === last.getUTCFullYear() ? mon(first) + " \u2013 " + mon(last) + " " + last.getUTCFullYear()
+      : mon(first) + " " + first.getUTCFullYear() + " \u2013 " + mon(last) + " " + last.getUTCFullYear();
   }
 
   function wireEditMode() {
@@ -666,11 +713,32 @@
       syncEditBar();
     }
     toggle.addEventListener("click", function () { setEdit(!editMode); });
-    document.getElementById("btn-prev-day").addEventListener("click", function () { goToSunrise(shownDayOffset() - 1); });
-    document.getElementById("btn-next-day").addEventListener("click", function () { goToSunrise(shownDayOffset() + 1); });
-    document.getElementById("edit-now").addEventListener("click", goLive);
+    function step(days) { goToSunrise(shownDayOffset() + days); }
+    document.getElementById("btn-prev-day").addEventListener("click", function () { step(-1); });
+    document.getElementById("btn-next-day").addEventListener("click", function () { step(1); });
+    document.getElementById("edit-prev-week").addEventListener("click", function () { step(-7); });
+    document.getElementById("edit-next-week").addEventListener("click", function () { step(7); });
+    document.getElementById("edit-now").addEventListener("click", function () { if (!isLive()) goLive(); });
     dateBtn.addEventListener("click", function () {
       E.DatePicker.open({ anchor: dateBtn, value: shownDate(0).iso, title: "Go to a date", onPick: goToDateString });
+    });
+    // The week's days: a tap goes to that day's sunrise (a tap on the day on show
+    // stays put); a sideways swipe moves a week.
+    const daysEl = document.getElementById("edit-days");
+    let swipe = null, swiped = false;
+    daysEl.addEventListener("pointerdown", function (e) { swipe = { x: e.clientX, y: e.clientY }; swiped = false; });
+    daysEl.addEventListener("pointerup", function (e) {
+      if (!swipe) return;
+      const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+      swipe = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiped = true; step(dx < 0 ? 7 : -7); }
+    });
+    daysEl.addEventListener("pointercancel", function () { swipe = null; });
+    daysEl.addEventListener("click", function (e) {
+      if (swiped) { swiped = false; return; }
+      const b = e.target.closest(".es-day");
+      if (!b || b.classList.contains("is-shown")) return;
+      goToSunrise(Number(b.dataset.offset));
     });
 
     // Dragging the day hand. A press within a few degrees of the hand (outside

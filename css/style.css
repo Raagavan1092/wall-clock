@@ -484,9 +484,9 @@ html, body {
 /* Full screen view: only the clock stays; the one button left floats at the top right
    and fades away after a few seconds idle (Esc, F, or a double tap on the clock brings everything back). */
 body.fullview #top-controls, body.fullview .tc-foot { display: contents; }
-body.secondary-view .rc-corner:not(.rc-day) { display: none; }
+body.secondary-view .rc-corner { display: none; }
 body.secondary-view #tc-toggles { display: none; }
-body.rings-off .rc-corner:not(.rc-day) { display: none; }
+body.rings-off .rc-corner { display: none; }
 body.fullview #ts-dialog,
 body.fullview #today-panel, body.fullview #help-dialog,
 body.fullview .tc-row, body.fullview #loc-menu, body.fullview #edit-bar, body.fullview #loc-dialog, body.fullview .tc-chip, body.fullview .tc-plain, body.fullview #alarm-section, body.fullview .rc-corner,
@@ -971,28 +971,81 @@ body.fullview .gb-toggle { display: none; }
 #loc-change svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
 /* ======================================================================
-   Edit mode (pencil button): day navigators in the clock's top corners
-   (the ring navigators turned upside down), Now and the date in a row under
-   the buttons, and a draggable day hand.
+   Edit mode (pencil button): the day strip under the buttons (Now, week
+   back / month / week on, calendar; Previous day, the week's seven days,
+   Next day), a draggable day hand, and an amber halo round the dial
+   whenever the clock is off live time.
    ====================================================================== */
-.rc-day { display: none; top: 0; bottom: auto; }
-body.edit-mode .rc-day { display: block; }
-.rc-day .rc-label { bottom: auto; top: 7%; }
-#edit-bar { display: none; align-items: center; justify-content: flex-end; gap: 8px; }
-body.edit-mode #edit-bar { display: flex; }
-#edit-now, #edit-date {
-  height: 36px; padding: 0 13px 0 11px; border-radius: 999px; border: 1px solid var(--ring-stroke);
-  display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
-  background: var(--glass); color: var(--gold-hi); backdrop-filter: blur(8px);
-  font: inherit; font-size: 13px; cursor: pointer;
+#edit-bar {
+  display: none; flex-direction: column; gap: 6px; padding: 7px;
+  background: var(--glass); border: 1px solid var(--ring-stroke); border-radius: 16px; backdrop-filter: blur(8px);
 }
-#edit-now { border-color: #e8c77a; background: #e8c77a; color: #1a1408; font-weight: 600; }
-#edit-now .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1f7a3d; }
-#edit-now.is-live { background: var(--glass); border-color: var(--ring-stroke); color: var(--muted); font-weight: 400; }
-#edit-now.is-live .live-dot { background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
-#edit-date svg { width: 16px; height: 16px; flex: none; fill: none; stroke: #f2b01e; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
-#edit-date span { pointer-events: none; font-variant-numeric: tabular-nums; }
-#edit-date:hover { background: rgba(42, 33, 19, 0.9); }
+body.edit-mode #edit-bar { display: flex; }
+#edit-bar button { font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+#edit-bar svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.es-head { display: flex; align-items: center; gap: 6px; }
+#edit-now {
+  flex: none; height: 32px; min-width: 74px; padding: 0 12px 0 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; font-size: 13px;
+  border: 1px solid var(--primary); background: var(--primary); color: var(--primary-ink); font-weight: 600;
+}
+#edit-now .live-dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: #5fd38d; box-shadow: 0 0 8px #5fd38d; }
+#edit-now .es-back { width: 15px; height: 15px; }
+#edit-now.is-live { background: transparent; border-color: var(--ring-stroke); color: var(--muted); font-weight: 400; cursor: default; }
+#edit-now.is-live .live-dot { display: inline-block; }
+#edit-now.is-live .es-back { display: none; }
+.es-month { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 2px; }
+#edit-month { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--gold-hi); }
+.es-week, #edit-date {
+  flex: none; width: 32px; height: 32px; padding: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; color: var(--gold);
+}
+.es-week svg { width: 17px; height: 17px; }
+#edit-date { border: 1px solid var(--ring-stroke); color: #f2b01e; }
+#edit-date svg { width: 16px; height: 16px; stroke-width: 2; }
+.es-row { display: flex; align-items: stretch; gap: 4px; }
+.es-step {
+  flex: none; width: 38px; border-radius: 12px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ring-stroke); background: rgba(232, 199, 122, 0.1); color: var(--gold-hi);
+}
+.es-step svg { width: 22px; height: 22px; stroke-width: 2.6; }
+.es-days { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; touch-action: pan-y; }
+.es-day {
+  position: relative; min-width: 0; height: 52px; padding: 5px 0 9px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  border: 1px solid transparent; background: transparent; color: var(--ink);
+}
+.es-day .es-wd { font-size: 10.5px; letter-spacing: 0.02em; color: var(--muted); }
+.es-day .es-dn { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.es-day.is-today { border-color: rgba(232, 199, 122, 0.45); }
+.es-day.is-today .es-dn { color: var(--gold-hi); }
+/* Today's dot: it stays on today wherever the clock is taken. */
+.es-day.is-today::after { content: ""; position: absolute; bottom: 5px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--gold-hi); }
+.es-day.is-shown { background: var(--primary); border-color: var(--primary); }
+.es-day.is-shown .es-wd, .es-day.is-shown .es-dn { color: var(--primary-ink); }
+.es-day.is-shown.is-today::after { background: var(--primary-ink); }
+@media (hover: hover) {
+  .es-day:not(.is-shown):hover, .es-week:hover, .es-step:hover, #edit-date:hover { background: rgba(42, 33, 19, 0.9); }
+}
+@media (max-width: 380px) {
+  .es-step { width: 32px; }
+  .es-day .es-dn { font-size: 14.5px; }
+  .es-day .es-wd { font-size: 9.5px; }
+}
+/* Off live time: an amber halo round the dial, so it is plain the clock is not showing now. */
+#dial-box::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 50%; pointer-events: none;
+  border: 2px dashed transparent; transition: border-color 0.3s, box-shadow 0.3s;
+}
+body.off-live #dial-box::before { border-color: rgba(242, 176, 30, 0.75); box-shadow: 0 0 18px rgba(242, 176, 30, 0.35); }
+/* The Today panel's "how far from now" badge (only off live time). */
+.tp-offset {
+  padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.5;
+  background: rgba(242, 176, 30, 0.16); border: 1px solid rgba(242, 176, 30, 0.6); color: #f2b01e;
+}
+.tp-offset[hidden] { display: none; }
 /* The day hand: a knob at its tip shows it can be dragged. */
 .hand-knob { display: none; }
 body.edit-mode .hand-knob { display: inline; fill: var(--gold-hi); stroke: var(--dial-bg); stroke-width: 3; }

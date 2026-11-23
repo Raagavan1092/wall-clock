@@ -8,10 +8,6 @@
     -->
     <button type="button" id="btn-prev-display" class="rc-corner rc-prev" aria-label="Previous ring" title="Previous ring"><svg class="rc-shape" viewBox="0 0 34 24" preserveAspectRatio="none" aria-hidden="true"><path d="M34 24A52.5 52.5 0 0 1 0 0V24Z"/></svg><span class="rc-label"><svg class="rc-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="rc-name"></span></span></button>
     <button type="button" id="btn-next-display" class="rc-corner rc-next" aria-label="Next ring" title="Next ring"><svg class="rc-shape" viewBox="0 0 34 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24A52.5 52.5 0 0 0 34 0V24Z"/></svg><span class="rc-label"><svg class="rc-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><span class="rc-name"></span></span></button>
-    <!-- Edit mode (pencil button, top row): day navigators in the clock's top corners, matching the ring
-         navigators; Now and the date in a row under the buttons (#edit-bar); the day hand drags. -->
-    <button type="button" id="btn-prev-day" class="rc-corner rc-day rc-prev" aria-label="Previous day" title="Previous day"><svg class="rc-shape" viewBox="0 0 34 24" preserveAspectRatio="none" aria-hidden="true"><path d="M34 0A52.5 52.5 0 0 0 0 24V0Z"/></svg><span class="rc-label"><svg class="rc-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="rc-name">Previous day</span></span></button>
-    <button type="button" id="btn-next-day" class="rc-corner rc-day rc-next" aria-label="Next day" title="Next day"><svg class="rc-shape" viewBox="0 0 34 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0A52.5 52.5 0 0 1 34 24V0Z"/></svg><span class="rc-label"><svg class="rc-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><span class="rc-name">Next day</span></span></button>
   </div></div>
   <div id="top-controls">
     <div class="tc-row">
@@ -50,12 +46,26 @@
       <button type="button" id="btn-next-muhurta" class="tc-chip">Find muhurta</button>
       <button type="button" id="btn-help" class="tc-chip tc-round" aria-label="How to read the clock" title="How to read the clock" aria-haspopup="dialog">?</button>
     </div>
-    <div id="edit-bar" role="group" aria-label="Date and time">
-      <button type="button" id="edit-now" title="Back to live time"><span class="live-dot"></span>Now</button>
-      <button type="button" id="edit-date" title="Pick a date" aria-haspopup="dialog" aria-expanded="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-        <span id="edit-date-text">-</span>
-      </button>
+    <!-- Edit mode (pencil button): the day strip. Its head: Now (Live while live), the week back, the
+         month, the week on, and the calendar. Under it: Previous day, the week's seven days (today
+         dotted, the day on show filled; a tap goes there, a swipe moves a week), Next day. -->
+    <div id="edit-bar" role="group" aria-label="Day and time">
+      <div class="es-head">
+        <button type="button" id="edit-now" title="Back to live time"><span class="live-dot"></span><svg class="es-back" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span id="edit-now-text">Live</span></button>
+        <div class="es-month">
+          <button type="button" id="edit-prev-week" class="es-week" aria-label="Previous week" title="Previous week"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6l-6 6 6 6M19 6l-6 6 6 6"/></svg></button>
+          <span id="edit-month">-</span>
+          <button type="button" id="edit-next-week" class="es-week" aria-label="Next week" title="Next week"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6l6 6-6 6M12 6l6 6-6 6"/></svg></button>
+        </div>
+        <button type="button" id="edit-date" aria-label="Pick a date" title="Pick a date" aria-haspopup="dialog" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+        </button>
+      </div>
+      <div class="es-row">
+        <button type="button" id="btn-prev-day" class="es-step" aria-label="Previous day" title="Previous day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div id="edit-days" class="es-days" role="group" aria-label="This week"></div>
+        <button type="button" id="btn-next-day" class="es-step" aria-label="Next day" title="Next day"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
     </div>
     <div class="tc-foot">
       <button type="button" id="btn-fullview" title="Hide all buttons and show only the clock">
@@ -71,7 +81,7 @@
          switches for the dial's layers sit at its right, one above the other. -->
     <div class="tp-head">
       <button type="button" id="tp-fold" class="tp-fold" aria-expanded="true" aria-controls="tp-body" title="Show or hide the day's details">
-        <span class="tp-date"><span id="tp-date">-</span><span id="tp-vara"></span><svg class="tp-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="tp-date"><span id="tp-date">-</span><span id="tp-vara"></span><span id="tp-offset" class="tp-offset" hidden></span><svg class="tp-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
         <span class="tp-sun" id="tp-sun"></span>
       </button>
       <div class="tp-switches" id="tc-toggles">
@@ -285,7 +295,7 @@
         <li><strong>Faded</strong> parts are already over; the part running <strong>now</strong> has a bright outline.</li>
         <li><strong>Tap anything</strong> on the clock for its name and its start and end, in ghaṭī and in clock time.</li>
         <li><strong>The Today panel</strong> lists the date, the day's tithi, nakṣatra, yoga and karaṇa with when each ends, and the windows running now and coming next.</li>
-        <li><strong>The pencil</strong> at the top lets you look at another day or drag the red hand to another time.</li>
+        <li><strong>The pencil</strong> at the top opens the day strip: the arrows step a day (the double arrows a week), tap a day to go to it, or drag the red hand to another time. Today keeps its dot; while you are away from now the clock has an amber halo and the Today panel says how far away you are. <em>Now</em> brings it back.</li>
       </ul>
     </div>
   </div>
