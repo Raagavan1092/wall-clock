@@ -903,7 +903,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     const panel = () => page.evaluate(() => document.getElementById("today-panel").innerText);
     let text = await panel();
     ok("Today panel: date, vāra, sunrise and sunset", /13 Nov 2026/.test(text) && /Śukravāra/.test(text) && /Sunrise 06:\d\d · Sunset 17:\d\d/.test(text), text.slice(0, 80));
-    ok("Today panel: tithi, nakṣatra, yoga, karaṇa with their end times, and both māsas", /Caturthī \(śukla\)\s+till 20:43/.test(text) && /Pūrva Āṣāḍhā\s+till \d\d:\d\d/.test(text) && /Yoga\s+\S+\s+till/.test(text) && /Viṣṭi\s+till 20:43/.test(text) && /Chāndra māsa\s+Kārttika \(amānta\)/.test(text) && /Saura māsa\s+Tulā/.test(text));
+    ok("Today panel: tithi, nakṣatra, yoga at sunrise and karaṇa with their end times, and both māsas", /Caturthī \(śukla\)\s+till 20:43/.test(text) && /Mūla\s+ended 17:17/.test(text) && !/Pūrva Āṣāḍhā/.test(text) && /Yoga\s+\S+\s+till/.test(text) && /Viṣṭi\s+till 20:43/.test(text) && /Chāndra māsa\s+Kārttika \(amānta\)/.test(text) && /Saura māsa\s+Tulā/.test(text));
     ok("Today panel: the windows running now and the next one", /Bhadrā\s+till 20:43/.test(text) && /Pradoṣa\s+till \d\d:\d\d/.test(text) && /Next bad: \S+\s+at \d\d:\d\d/.test(text));
     ok("Today panel: the outer ring's division and the next", /Tithi · Caturthī \(śukla\)\s+next Pañcamī \(śukla\) at 20:43/.test(text));
     ok("Today panel: sits under the clock in portrait", await page.evaluate(() => document.getElementById("today-panel").getBoundingClientRect().top >= document.getElementById("dial").getBoundingClientRect().bottom - 1));
@@ -963,7 +963,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.waitForTimeout(400);
     ok("full screen: the centre carries the date, tithi and nakṣatra again", await page.evaluate(() => {
       const t = document.querySelector("#dial .centre-text").textContent;
-      return /13 Nov 2026 · Śukravāra/.test(t) && /Caturthī \(śukla\) · Pūrva Āṣāḍhā/.test(t) && getComputedStyle(document.getElementById("today-panel")).display === "none";
+      return /13 Nov 2026 · Śukravāra/.test(t) && /Caturthī \(śukla\) · Mūla/.test(t) && getComputedStyle(document.getElementById("today-panel")).display === "none";
     }));
     await page.evaluate(() => document.body.classList.remove("fullview"));
 
@@ -974,7 +974,7 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     await page.click("#settings-save");
     await page.waitForTimeout(500);
     text = await panel();
-    ok("script: Devanāgarī in the Today panel", /शुक्रवार/.test(text) && /तिथि\s+चतुर्थी \(शुक्ल\)/.test(text) && /नक्षत्र\s+पूर्व आषाढा/.test(text) && /भद्रा\s+till 20:43/.test(text), text.slice(0, 120));
+    ok("script: Devanāgarī in the Today panel", /शुक्रवार/.test(text) && /तिथि\s+चतुर्थी \(शुक्ल\)/.test(text) && /नक्षत्र\s+मूल/.test(text) && /भद्रा\s+till 20:43/.test(text), text.slice(0, 120));
     ok("script: Devanāgarī on the dial, the ring buttons and in the centre", await page.evaluate(() =>
       /चतुर्थी \(शुक्ल\)/.test(document.querySelector("#dial .outer-ring").textContent) && /भद्रा · till 20:43/.test(document.querySelector("#dial .centre-text").textContent) &&
       document.querySelector("#btn-next-display .rc-name").textContent === "नक्षत्र" && JSON.parse(localStorage.getItem("vedicWallClock.settings.v1")).script === "deva"));

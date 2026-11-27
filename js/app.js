@@ -152,11 +152,12 @@
     return sequence.find(function (e) { return e.segStart <= now && now < e.segEnd; }) || sequence[0];
   }
 
-  // The instant whose tithi and nakṣatra the Today panel shows. Rituals go by those at
-  // sunrise, so in edit mode, where the hand is dragged about the day, they stay those
-  // of the day's sunrise instead of following the hand.
-  function tithiNakTime(now, snapshot) {
-    return editMode ? snapshot.anchors.governingSunrise : now;
+  // The instant whose tithi, nakṣatra and yoga the Today panel (and the full screen
+  // centre) shows: the day's sunrise. Rituals go by those at sunrise, which hold for
+  // the whole day, as in the Today Details dialog (js/today-special.js); one that
+  // begins later in the day is left out, live or in edit mode.
+  function sunriseRuleTime(snapshot) {
+    return snapshot.anchors.governingSunrise;
   }
 
   // The centre of the clock: the time in both conventions and the window running now.
@@ -185,12 +186,13 @@
           { text: clockText, emphasis: "clock-secondary" },
         ];
     if (full) {
-      // The day: date and vāra on one line, the tithi (with pakṣa) and nakṣatra holding now on the next.
+      // The day: date and vāra on one line, the tithi (with pakṣa) and nakṣatra at sunrise on the next.
       const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
       const dateText = now.toLocaleDateString("en-GB", { timeZone: E.Zone.intl(), day: "numeric", month: "short", year: "numeric" });
-      const nak = currentIn(snapshot.nakshatraSequence, now);
+      const rise = sunriseRuleTime(snapshot);
+      const nak = currentIn(snapshot.nakshatraSequence, rise);
       lines.push({ text: dateText + " · " + N(varaName) });
-      lines.push({ text: N(E.RingAdapter.tithiNameAt(snapshot, data, now)) + " · " + N(data.nakshatra.names[nak.index]) });
+      lines.push({ text: N(E.RingAdapter.tithiNameAt(snapshot, data, rise)) + " · " + N(data.nakshatra.names[nak.index]) });
     }
 
     // The Good / Bad Times ring's status: what is running now (bad first, the one
@@ -238,11 +240,12 @@
   // What the Today panel shows (js/today-panel.js draws it).
   function buildPanelModel(now, snapshot, ringDescriptor) {
     const a = snapshot.anchors;
-    function till(entry) { const end = entry.endTime || entry.segEnd; return "till " + fmtTimeD(end, snapshot); }
+    // An entry held from sunrise that has already ended still rules the day: say when it ended.
+    function till(entry) { const end = entry.endTime || entry.segEnd; return (end <= now ? "ended " : "till ") + fmtTimeD(end, snapshot); }
     const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
-    const held = tithiNakTime(now, snapshot);
+    const held = sunriseRuleTime(snapshot);
     const tithi = currentIn(snapshot.tithiSequence, held), nak = currentIn(snapshot.nakshatraSequence, held);
-    const yoga = currentIn(snapshot.yogaSequence, now), karana = currentIn(snapshot.karanaSequence, now);
+    const yoga = currentIn(snapshot.yogaSequence, held), karana = currentIn(snapshot.karanaSequence, now);
     const karanaName = karana.key.indexOf("movable:") === 0 ? data.karana.movable[Number(karana.key.split(":")[1])] : data.karana.fixed[karana.key];
     // The saura (solar) month: the sidereal rashi the Sun is in, from one saṅkrānti to the next.
     const sauraRashi = Math.floor(E.Util.normDeg(E.Sidereal.longitude("sun", held, settings.ayanamsa, settings.method)) / 30);
