@@ -152,8 +152,7 @@
     return sequence.find(function (e) { return e.segStart <= now && now < e.segEnd; }) || sequence[0];
   }
 
-  // The instant whose tithi, nakṣatra and yoga the Today panel (and the full screen
-  // centre) shows: the day's sunrise. Rituals go by those at sunrise, which hold for
+  // The instant whose tithi, nakṣatra and yoga the Today panel shows: the day's sunrise. Rituals go by those at sunrise, which hold for
   // the whole day, as in the Today Details dialog (js/today-special.js); one that
   // begins later in the day is left out, live or in edit mode.
   function sunriseRuleTime(snapshot) {
@@ -162,10 +161,8 @@
 
   // The centre of the clock: the time in both conventions and the window running now.
   // The date, the pañcāṅga and the outer ring's state are in the Today panel beside or
-  // under the clock (buildPanelModel); in the full screen view, where only the clock is
-  // on screen, they are written in the centre as well.
-  function buildCentreLines(now, snapshot, ringDescriptor, ghatiNow) {
-    const full = document.body.classList.contains("fullview");
+  // under the clock (buildPanelModel); the full screen view shows the same centre.
+  function buildCentreLines(now, snapshot, ghatiNow) {
     // `ghatiNow`, not `snapshot.ghati`: the snapshot is cached for hours at a
     // time (see getSnapshot/isExpired above), so snapshot.ghati is whatever
     // it was AT CACHE TIME - reading it here left this readout frozen between
@@ -185,16 +182,6 @@
           { text: N("Ghaṭī") + " " + g.ghati + " · " + N("Pala") + " " + g.pala, subText: " · " + N("Vipala") + " " + g.vipala, emphasis: "ghati" },
           { text: clockText, emphasis: "clock-secondary" },
         ];
-    if (full) {
-      // The day: date and vāra on one line, the tithi (with pakṣa) and nakṣatra at sunrise on the next.
-      const varaName = (data.vara.names && data.vara.names[snapshot.varaIndex]) || VARA_FALLBACK[snapshot.varaIndex];
-      const dateText = now.toLocaleDateString("en-GB", { timeZone: E.Zone.intl(), day: "numeric", month: "short", year: "numeric" });
-      const rise = sunriseRuleTime(snapshot);
-      const nak = currentIn(snapshot.nakshatraSequence, rise);
-      lines.push({ text: dateText + " · " + N(varaName) });
-      lines.push({ text: N(E.RingAdapter.tithiNameAt(snapshot, data, rise)) + " · " + N(data.nakshatra.names[nak.index]) });
-    }
-
     // The Good / Bad Times ring's status: what is running now (bad first, the one
     // people check, then good) and until when; with nothing running, what comes next.
     if (lastGoodBad && settings.hiddenRings.indexOf("goodBad") === -1 && (secondaryView || windowsOn)) {
@@ -204,36 +191,15 @@
       const active = rows.filter(function (r) { return r.st && r.st.active; });
       lines.push({ text: "", emphasis: "gap" });
       if (active.length) {
-        // Beside the Today panel the line is kept short (the panel has the date of a time after midnight).
-        active.forEach(function (r) { lines.push({ text: r.mark + N(r.st.text) + " · till " + (full ? fmtTimeD(r.st.until, snapshot) : fmtTime(r.st.until)), emphasis: r.kind }); });
+        active.forEach(function (r) { lines.push({ text: r.mark + N(r.st.text) + " · till " + fmtTime(r.st.until), emphasis: r.kind }); });
       } else {
         const upcoming = rows.filter(function (r) { return r.st; }).sort(function (x, y) { return x.st.at - y.st.at; });
         if (!upcoming.length) lines.push({ text: "No more windows today", emphasis: "muted" });
-        else (full ? upcoming : upcoming.slice(0, 1)).forEach(function (r) {
-          lines.push({ text: "Next " + r.kind + ": " + N(r.st.text) + " @ " + (full ? fmtTimeD(r.st.at, snapshot) : fmtTime(r.st.at)), emphasis: "muted" });
+        else upcoming.slice(0, 1).forEach(function (r) {
+          lines.push({ text: "Next " + r.kind + ": " + N(r.st.text) + " @ " + fmtTime(r.st.at), emphasis: "muted" });
         });
       }
     }
-    if (!full) return lines;
-
-    if (secondaryView) {
-      lines.push({ text: "", emphasis: "gap" });
-      lines.push({ text: "Secondary yogas", emphasis: "ring" });
-      return lines;
-    }
-
-    // Now/next for the active switchable ring, on two lines. Kāla has a
-    // blank (unlabelled) night band - name just the ring there rather than
-    // show a bare "Kāla: ", and look past blank segment(s) for "next".
-    if (!ringDescriptor || !ringsOn) return lines; // every switchable ring hidden, or turned off
-    const nextSeg = ringDescriptor.segments.find(function (seg) {
-      return seg.startTime > now && seg.text;
-    });
-    // The current division is already highlighted on the dial, so the centre
-    // names the ring (highlighted) and says only when the next one starts.
-    lines.push({ text: "", emphasis: "gap" });
-    lines.push({ text: "Current Ring: " + N(ringDescriptor.title), emphasis: "ring" });
-    if (nextSeg) lines.push({ text: "next " + N(nextSeg.text) + " " + fmtTimeD(nextSeg.startTime, snapshot) });
     return lines;
   }
 
@@ -326,6 +292,14 @@
       lastGoodBad = secondaryView
         ? E.RingAdapter.buildSecondaryYogas(snapshot, data, yogaOpts())
         : E.RingAdapter.buildGoodBadTimes(snapshot, data, yogaOpts());
+    }
+    // Secondary yogas: past 4 lanes the clock face shrinks (to 75% at most) so the
+    // lanes keep their width; then the whole dial is redrawn at the new size.
+    if (secondaryView && lastGoodBad) {
+      const lanes = (show.good ? lastGoodBad.good.laneCount || 1 : 0) + (show.bad ? lastGoodBad.bad.laneCount || 1 : 0);
+      if (E.Dial.setSecondaryLanes(lanes)) { viewChanged = true; lastRenderedTimeMode = null; }
+    }
+    if (changed || viewChanged) {
       E.Dial.renderDayNightRing(dialHandles.dayNightRingGroup, E.RingAdapter.buildDayNight(snapshot));
       E.Dial.renderDayMarkers(dialHandles.markerGroup, E.RingAdapter.buildDayMarkers(snapshot, data, settings.hiddenMarkers));
       applyFixedRingVisibility();
@@ -367,7 +341,7 @@
     // 24 min) or, in hour mode, a minute hand (one turn per clock hour).
     E.Dial.setHand(dialHandles.handGroup, ghatiNow.angleDeg);
     E.Dial.setPalaHand(dialHandles.palaHandGroup, timeMode === "hour" ? minuteAngle(now) : ghatiNow.palaAngleDeg);
-    E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, lastOuterRingDescriptor, ghatiNow), dialHandles.switchGroup);
+    E.Dial.setCentreText(dialHandles.centreGroup, buildCentreLines(now, snapshot, ghatiNow), dialHandles.switchGroup);
     E.Dial.setSwitchLabel(dialHandles.switchGroup, timeMode === "hour" ? "Switch to " + (E.Script.get() === "iast" ? "ghaṭī" : N("Ghaṭī")) : "Switch to hours");
     if (!document.body.classList.contains("fullview")) E.TodayPanel.update(buildPanelModel(now, snapshot, lastOuterRingDescriptor));
     updateSwitchLabel();

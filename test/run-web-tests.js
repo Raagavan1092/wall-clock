@@ -958,13 +958,14 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     ok("Find muhurta: 'All events' opens the full list", await page.evaluate(() => !document.getElementById("mf-list").hidden && document.querySelectorAll("#mf-list .mf-item").length > 50));
     await page.click("#mf-close");
 
-    // full screen view: only the clock, so the date and pañcāṅga go back into its centre
+    // full screen view: only the clock, and its centre is the same as beside the panel
+    const centreBefore = await page.evaluate(() => document.querySelector("#dial .centre-text").textContent.replace(/\d/g, ""));
     await page.evaluate(() => document.body.classList.add("fullview"));
-    await page.waitForTimeout(400);
-    ok("full screen: the centre carries the date, tithi and nakṣatra again", await page.evaluate(() => {
+    await page.waitForTimeout(1200);
+    ok("full screen: the centre texts stay as they are (no date or pañcāṅga)", await page.evaluate((before) => {
       const t = document.querySelector("#dial .centre-text").textContent;
-      return /13 Nov 2026 · Śukravāra/.test(t) && /Caturthī \(śukla\) · Mūla/.test(t) && getComputedStyle(document.getElementById("today-panel")).display === "none";
-    }));
+      return t.replace(/\d/g, "") === before && !/Nov 2026|Mūla|Current Ring/.test(t) && getComputedStyle(document.getElementById("today-panel")).display === "none";
+    }, centreBefore));
     await page.evaluate(() => document.body.classList.remove("fullview"));
 
     // script for names: chosen in Settings, applied on the dial and in the panel, the data untouched
@@ -1079,6 +1080,28 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
     ok("today details: no page errors", errors.length === 0, errors.join("; "));
     await ctx.close();
+  }
+
+  // 8. Secondary yogas: past 4 lanes the clock face shrinks (to 75% at most) to give the lanes room
+  {
+    const shrink = async date => {
+      const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+      const page = await ctx.newPage();
+      await page.addInitScript(() => {
+        const loc = { name: "Chennai", latitude: 13.08, longitude: 80.27, elevation: 6 };
+        localStorage.setItem("vedicWallClock.defaultLocation.v1", JSON.stringify(loc));
+        localStorage.setItem("vedicWallClock.settings.v1", JSON.stringify({ location: loc }));
+        localStorage.setItem("vedicWallClock.secondaryYogas", "1");
+      });
+      await page.goto(base + "/index.html?t=" + date + "T10:00:00%2B05:30");
+      await page.waitForSelector("#dial text", { state: "attached", timeout: 20000 });
+      await page.waitForTimeout(600);
+      const r = await page.evaluate(() => ({ tf: document.querySelector("#dial .clock-face").getAttribute("transform") || "", sec: document.body.classList.contains("secondary-view") }));
+      await ctx.close();
+      return r;
+    };
+    const five = await shrink("2026-11-21"), two = await shrink("2026-11-27"); // 1+4 lanes, 1+1 lanes
+    ok("secondary yogas: five lanes shrink the clock face, two leave it whole", five.sec && /scale\(0\.88\d*\)/.test(five.tf) && two.tf === "", JSON.stringify([five, two]));
   }
 
   await browser.close();

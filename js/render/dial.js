@@ -326,6 +326,13 @@
   let visibleOuter = LAYERS_OUTER;
   const CLOCK_EDGE = 416; // inner edge of the innermost ring layer
   const CLOCK_ONLY_OUTER = 410; // just past the ghaṭī scale
+  // The Secondary yogas view may shrink the clock face (everything inside the ring
+  // layers) to give the yogas' lanes more room (setClockScale); 1 = full size.
+  const MIN_CLOCK_SCALE = 0.75;
+  let clockScale = 1;
+  let clockFace = null;
+  let baseU = 0; // minU for an unshrunk dial; minU itself is for the clock face's own units
+  function effectiveClockScale() { return secondaryMode ? clockScale : 1; }
   setLayerOrder(LAYER_KEYS); // fill in R's layer radii with the default order
 
   // Measures the dial on screen and works out `minU`. True if it changed, in which
@@ -335,8 +342,9 @@
     const px = svgEl.getBoundingClientRect().width;
     if (!(px > 0)) return false;
     const u = Math.round(MIN_LABEL_PX / (px / ((visibleOuter + 5) * 2)) * 2) / 2;
-    if (u === minU) return false;
-    minU = u;
+    if (u === baseU) return false;
+    baseU = u;
+    minU = baseU / effectiveClockScale();
     return true;
   }
 
@@ -354,17 +362,25 @@
     const bothOn = ringsOn && windowsOn;
     // The outermost thing drawn; the view is cropped to it so the clock face grows to fill the space.
     visibleOuter = !active.length ? CLOCK_ONLY_OUTER : windowsOn ? LAYERS_OUTER : CLOCK_EDGE + LAYER_THICKNESS.switchable;
+    // A shrunk clock face (Secondary yogas only) gives its room to the windows' ring.
+    const k = effectiveClockScale();
     let r = visibleOuter;
     active.forEach(function (key) {
       const prefix = LAYER_RADIUS_PREFIX[key];
       // Rings off: the windows take both layers' room. Windows off: the rings
       // keep their width and the clock face takes the rest (see the viewBox below).
-      const thickness = bothOn ? LAYER_THICKNESS[key] : key === "goodBad" ? LAYER_THICKNESS.goodBad + LAYER_THICKNESS.switchable + LAYER_GAP : LAYER_THICKNESS.switchable;
+      const thickness = bothOn ? LAYER_THICKNESS[key] : key === "goodBad" ? LAYER_THICKNESS.goodBad + LAYER_THICKNESS.switchable + LAYER_GAP + CLOCK_EDGE * (1 - k) : LAYER_THICKNESS.switchable;
       R[prefix + "Outer"] = r;
       R[prefix + "Inner"] = r - thickness;
       r = R[prefix + "Inner"] - LAYER_GAP;
     });
-    R.markerLineOuter = visibleOuter + 1;
+    // The marker lines are drawn in the clock face's units, yet still reach the outer edge.
+    R.markerLineOuter = (visibleOuter + 1) / k;
+    minU = baseU / k;
+    if (clockFace) {
+      if (k === 1) clockFace.removeAttribute("transform");
+      else clockFace.setAttribute("transform", "translate(" + CX + " " + CY + ") scale(" + k + ") translate(" + (-CX) + " " + (-CY) + ")");
+    }
     if (svgEl) {
       const half = visibleOuter + 5;
       svgEl.setAttribute("viewBox", (CX - half) + " " + (CY - half) + " " + (half * 2) + " " + (half * 2));
@@ -384,6 +400,23 @@
   function setSecondaryMode(on) {
     secondaryMode = !!on;
     setLayerOrder(currentOrder);
+  }
+
+  // The Secondary yogas view: there the yogas come first and the clock second. Up to
+  // SECONDARY_FULL_LANES lanes the clock face is full size; each lane past that shrinks
+  // it so every lane stays as wide as at SECONDARY_FULL_LANES (room for its label),
+  // down to MIN_CLOCK_SCALE, after which the lanes narrow instead.
+  // True if the clock face changed: the caller then redraws everything (as after updateScale).
+  const SECONDARY_FULL_LANES = 4;
+  function setSecondaryLanes(lanes) {
+    const n = Math.max(1, lanes || 1);
+    const base = LAYER_THICKNESS.goodBad + LAYER_THICKNESS.switchable + LAYER_GAP; // the ring's width at full size
+    let k = n <= SECONDARY_FULL_LANES ? 1 : 1 - base * (n / SECONDARY_FULL_LANES - 1) / CLOCK_EDGE;
+    k = Math.round(Math.max(MIN_CLOCK_SCALE, Math.min(1, k)) * 1000) / 1000;
+    if (k === clockScale) return false;
+    clockScale = k;
+    setLayerOrder(currentOrder);
+    return secondaryMode;
   }
 
   // "Toggle rings" / "Toggle windows": which layers show. Callers re-render the rings.
@@ -490,20 +523,23 @@
     const outerRingGroup = el("g", { class: "outer-ring" });
     svg.appendChild(outerRingGroup);
 
-    buildScaleFrame(svg);
     layerFrame = el("g", { class: "layer-frame" });
     svg.appendChild(layerFrame);
-    setLayerOrder(LAYER_KEYS);
+    // Everything inside the ring layers, so it can be shrunk as one (setClockScale).
+    clockFace = el("g", { class: "clock-face" });
+    svg.appendChild(clockFace);
+    buildScaleFrame(clockFace);
+    setLayerOrder(currentOrder);
     const scaleGroup = el("g", { class: "time-scale" });
-    svg.appendChild(scaleGroup);
+    clockFace.appendChild(scaleGroup);
     renderGhatiScale(scaleGroup);
 
     const dayNightRingGroup = el("g", { class: "daynight-ring" });
-    svg.appendChild(dayNightRingGroup);
+    clockFace.appendChild(dayNightRingGroup);
 
     // Avartana/Nishitha marker lines, over every ring but under the hands.
     const markerGroup = el("g", { class: "day-markers" });
-    svg.appendChild(markerGroup);
+    clockFace.appendChild(markerGroup);
 
     // Centre plate is drawn BEFORE the hands now, so the hands are visibly
     // whole spokes reaching all the way from the true centre point outward
@@ -514,7 +550,7 @@
     // analog clock face. Pala hand (the faster, shorter spoke - one sweep
     // per ghati, like a minute hand) is drawn first so the primary ghati
     // hand sits on top where they cross.
-    svg.appendChild(el("circle", { cx: CX, cy: CY, r: R.centrePlate, class: "centre-plate" }));
+    clockFace.appendChild(el("circle", { cx: CX, cy: CY, r: R.centrePlate, class: "centre-plate" }));
 
     const handGroup = el("g", { class: "hand" });
     const palaHandGroup = el("g", { class: "pala-hand" });
@@ -526,13 +562,13 @@
     // The centre text, then the "switch time convention" button under it, then
     // the hands on top of both (so they are never hidden by the readout).
     const centreGroup = el("g", { class: "centre-text" });
-    svg.appendChild(centreGroup);
+    clockFace.appendChild(centreGroup);
     const switchGroup = el("g", { id: "btn-switch-time", class: "centre-switch", role: "button", tabindex: "0", "aria-label": "Switch time convention" });
     switchGroup.appendChild(el("rect", { x: CX - 150, y: -27, width: 300, height: 54, rx: 27 }));
     switchGroup.appendChild(el("text", { x: CX, y: 0, "text-anchor": "middle", "dominant-baseline": "central" })).textContent = "Switch to hours";
-    svg.appendChild(switchGroup);
-    svg.appendChild(palaHandGroup);
-    svg.appendChild(handGroup);
+    clockFace.appendChild(switchGroup);
+    clockFace.appendChild(palaHandGroup);
+    clockFace.appendChild(handGroup);
 
     return { goodBadRingGroup, outerRingGroup, scaleGroup, dayNightRingGroup, markerGroup, centreGroup, switchGroup, handGroup, palaHandGroup };
   }
@@ -806,9 +842,10 @@
       const midRadius = (laneInner + laneOuter) / 2;
       const shown = labelTr(ev.text);
       // A thin lane on a small dial lets its label fill more of it (LANE_FONT_RATIO_MAX) to stay readable.
-      const byLane = Math.max(laneWidth * LANE_FONT_RATIO * tallScript(shown), Math.min(minU, laneWidth * LANE_FONT_RATIO_MAX));
+      // baseU, not minU: this ring is outside the clock face, so never shrunk with it.
+      const byLane = Math.max(laneWidth * LANE_FONT_RATIO * tallScript(shown), Math.min(baseU, laneWidth * LANE_FONT_RATIO_MAX));
       const size = Math.min(MAX_LANE_FONT, byLane, fittedCurvedFont(shown, span, midRadius));
-      if (size < Math.max(MIN_LANE_FONT, minU)) return;
+      if (size < Math.max(MIN_LANE_FONT, baseU)) return;
       curvedLabel(g, shown, ev.startAngle + span / 2, span, midRadius, size, ev.goodBad + "-label", size);
     }
     // Lane geometry for a window: its cluster's lane count sets the lane width, and the
@@ -1018,7 +1055,7 @@
     R, CX, CY,
     LAYER_KEYS,
     clearGroup,
-    setLayerOrder, setSecondaryMode, setLayout, updateScale, setLabelTransform, setSwitchLabel,
+    setLayerOrder, setSecondaryMode, setLayout, setSecondaryLanes, updateScale, setLabelTransform, setSwitchLabel,
     buildStaticStructure,
     renderOuterRing,
     renderGoodBadRing,
