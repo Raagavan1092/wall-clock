@@ -17,7 +17,8 @@
 //   time                       "day" | "night" | "forenoon"
 //   lagnas / badLagnas         rāśi of the lagna; stdLagna: the standard lagna
 //                              (8th empty, Moon not 6/8/12, no kartari, no
-//                              malefic in the lagna); jamitra: 7th empty
+//                              malefic in the lagna); jamitra: 7th empty;
+//                              emptyHouses: houses that must hold no planet
 //   vishaghati, durmuhurta     the event's own extra bad windows (6.49-54)
 //   chakra                     Sun's nakṣatra -> Moon's (28-fold) count ranges
 //   auspicious: false          skips the blanket rules for auspicious work
@@ -89,7 +90,7 @@
       { id: "bhumi", name: "Seating on the ground", ref: "5.21", naks: N("dhruva Mrigashira Jyeshtha Anuradha laghu"), badTithis: T("rikta"), varas: BENEFIC, checkNote: "5th month; Mars strong." },
       { id: "tambula", name: "First tāmbūla", ref: "5.23", naks: N("dhruva mridu laghu Shravana Mula Punarvasu Jyeshtha Svati Dhanishtha"), badVaras: [2, 6] },
       { id: "karnavedha", name: "Karṇavedha (ear-piercing)", ref: "5.24–25", naks: N("Shravana Dhanishtha Punarvasu mridu laghu"), badTithis: T("rikta"), varas: BENEFIC, badMasas: [0, 9], noHariShayana: true, time: "day", checkNote: "12th or 16th day, 6th–8th month or an odd year; not the janma month or janma tārās." },
-      { id: "chaula", name: "Caula / Cūḍākaraṇa (first haircut)", ref: "5.29–33", uttarayana: true, naks: N(CHAULA_NAKS), badTithis: T("1 6 8 12 rikta parva"), varas: BENEFIC, badMasas: [0], stdLagna: true, checkNote: "3rd or 5th year; mother not over 5 months pregnant; not the 8th sign from janma." },
+      { id: "chaula", name: "Caula / Cūḍākaraṇa (first haircut)", ref: "5.29–33", uttarayana: true, naks: N(CHAULA_NAKS), badTithis: T("1 6 8 12 rikta parva"), varas: BENEFIC, badMasas: [0], stdLagna: true, vishaghati: true, checkNote: "3rd or 5th year; mother not over 5 months pregnant; not the 8th sign from janma." },
       { id: "haircut", name: "Shaving, haircut, nails", ref: "5.34–36", naks: N(CHAULA_NAKS), badTithis: T("rikta parva 1 6 8"), varas: [1, 3, 4, 5], badVaras: [0, 2, 6], time: "day", noAstaFault: true, auspicious: false, checkNote: "Not within 9 days of the last; not after a bath, oiling or a meal. Any day is fine for a yajña, a wedding, a parent's death or by royal order." },
       { id: "aksharambha", name: "Akṣarārambha (first letters)", ref: "5.37", uttarayana: true, naks: N("laghu Shravana Svati Revati Punarvasu Ardra Chitra Anuradha"), tithis: T("2 3 5 6 10 11 12"), varas: BENEFIC, badVaras: [2, 6], badLagnas: MOVABLE, noHariShayana: true, checkNote: "5th year." },
       { id: "vidyarambha", name: "Vidyārambha (start of study)", ref: "5.38", naks: N("Mrigashira Ardra Punarvasu Hasta Chitra Svati Shravana Dhanishtha Shatabhisha Ashvini Mula purvas Pushya Ashlesha"), tithis: T("2 3 5 6 10 11 12"), varas: [4, 5, 3], midVaras: [0], badVaras: [1, 2, 6] },
@@ -164,12 +165,18 @@
       { id: "vijayadashami", name: "Vijayādaśamī (good for all work)", ref: "11.78", masas: [6], tithis: T("S10"), auspicious: false },
     ]) },
     { title: "House", events: [
-      { id: "house-start", name: "Start building a house (digging foundations)", ref: "12.6–19", sunSigns: [0, 1, 3, 4, 6, 7, 9, 10], naks: N(HOUSE_NAKS), tithis: T("2 3 5 6 7 10 11 12 13 15"), badVaras: [0, 2], lagnas: FIXED.concat(DUAL), stdLagna: true, chakra: { name: "Vṛṣa-vāstu cakra", good: [[8, 18]] }, checkNote: "Foundations ideally on adhomukha nakṣatras; the owner's Sun, Moon, Jupiter, Venus strong; dig opposite Rāhu's mouth (12.19); door-direction tithis (12.17)." },
+      { id: "house-start", name: "Start building a house (digging foundations)", ref: "12.6–19", sunSigns: [0, 1, 3, 4, 6, 7, 9, 10], naks: N(HOUSE_NAKS), tithis: T("2 3 5 6 7 10 11 12 13 15"), badVaras: [0, 2], lagnas: FIXED.concat(DUAL), stdLagna: true, vishaghati: true, chakra: { name: "Vṛṣa-vāstu cakra", good: [[8, 18]] }, checkNote: "Foundations ideally on adhomukha nakṣatras; the owner's Sun, Moon, Jupiter, Venus strong; dig opposite Rāhu's mouth (12.19); door-direction tithis (12.17)." },
       { id: "house-roof", name: "Laying the slab or roof", noPanchaka: true, ref: "12.18–19", naks: N("up"), tithis: T("2 3 5 6 7 10 11 12 13 15"), badVaras: [0, 2], lagnas: FIXED.concat(DUAL), checkNote: "Not raising pillars in Dhaniṣṭhā-pañcaka." },
       { id: "house-doors", name: "Fixing the doors", ref: "12.18–19", naks: N("side"), tithis: T("2 3 5 6 7 10 11 12 13 15"), badVaras: [0, 2], lagnas: FIXED.concat(DUAL) },
-    ].concat([["east", "purna"], ["south", "nanda"], ["west", "bhadra"], ["north", "jaya"]].map(function (d) {
-      return { id: "griha-" + d[0], name: "Gṛhapraveśa (house entry), door facing " + d[0], ref: "13.5–6, 12.15, 5.26", uttarayana: true, naks: N(HOUSE_NAKS), tithis: T(d[1]), badTithis: T("rikta 30"), badVaras: [0, 2], noAsta: true, stdLagna: true, lagnas: FIXED.concat(DUAL), chakra: { name: "Kalaśa cakra", good: [[6, 13], [22, 28]] }, checkNote: "The verses giving the house-entry months and nakṣatras are missing from the scan; the house-building nakṣatras (12.15) are used. Keep the Sun on the entrant's left (vāma-ravi)." };
-    })) },
+    ].concat([["east", "purna", "Rohini Mrigashira"], ["south", "nanda", "Uttaraphalguni Chitra"], ["west", "bhadra", "Anuradha Uttarashadha"], ["north", "jaya", "Uttarabhadrapada Revati"]].map(function (d) {
+      // 13.1: the nakṣatras that are both mṛdu or dhruva and on the door's side (dvāḥstha, 11.36).
+      return { id: "griha-" + d[0], name: "Gṛhapraveśa (new house), door facing " + d[0], ref: "13.1, 13.4–6", uttarayana: true, masas: [10, 11, 1, 2], naks: N(d[2]), tithis: T(d[1]), badTithis: T("rikta 30"), badVaras: [0, 2], noAsta: true, stdLagna: true, emptyHouses: [4, 8], lagnas: FIXED.concat(DUAL), vishaghati: true, chakra: { name: "Kalaśa cakra", good: [[6, 13], [22, 28]] }, checkNote: "Fixed lagna best (13.1); not the 8th sign from the owner's janma lagna or rāśi; the house bhakūṭa-śuddha with the owner (13.4). Keep the Sun on the entrant's left (vāma-ravi, 13.5). The commentators add the 21 mahādoṣas of marriage. Do the vāstu-pūjā first (13.3)." };
+    })).concat([["east", "purna", "Rohini Mrigashira"], ["south", "nanda", "Uttaraphalguni Chitra"], ["west", "bhadra", "Anuradha Uttarashadha"], ["north", "jaya", "Uttarabhadrapada Revati"]].map(function (d) {
+      // 13.2: an old house, or one rebuilt after fire and the like: three more months, four more nakṣatras, no asta check.
+      return { id: "griha-old-" + d[0], name: "Gṛhapraveśa (old or rebuilt house), door facing " + d[0], ref: "13.2, 13.4–6", masas: [10, 11, 1, 2, 4, 7, 8], naks: N(d[2] + " Shatabhisha Pushya Svati Dhanishtha"), tithis: T(d[1]), badTithis: T("rikta 30"), badVaras: [0, 2], stdLagna: true, emptyHouses: [4, 8], lagnas: FIXED.concat(DUAL), vishaghati: true, chakra: { name: "Kalaśa cakra", good: [[6, 13], [22, 28]] }, checkNote: "Asta of Jupiter or Venus need not be checked (13.2). Not the 8th sign from the owner's janma lagna or rāśi (13.4); vāma-ravi (13.5)." };
+    })).concat([
+      { id: "vastu-puja", name: "Vāstu-pūjā and bhūta-bali (before house entry)", ref: "13.3", naks: N("mridu dhruva kshipra chara Mula"), stdLagna: true, checkNote: "Benefics in trikoṇa, kendra, 11, 2 or 3; malefics in 3, 6 or 11. On a day before the entry." },
+    ]) },
     { title: "Royal and fire rites", events: [
       { id: "agnyadhana", name: "Agnyādhāna (setting up sacred fires)", ref: "9.1–3", uttarayana: true, naks: N("Krittika Vishakha dhruva Revati Mrigashira Jyeshtha Pushya"), badTithis: T("rikta"), badLagnas: [3, 9, 11, 10], moonNotInLagna: true, checkNote: "No muhūrta needed at the wedding or in its fixed season." },
       { id: "rajyabhisheka", name: "Rājyābhiṣeka (coronation)", ref: "10.1–4", uttarayana: true, naks: N("Jyeshtha Shravana kshipra mridu dhruva"), badMasas: [0], badTithis: T("rikta 30"), badVaras: [2, 3], time: "day", noAdhika: true, stdLagna: true, checkNote: "Jupiter, Moon, Venus, Mars, Sun and the lagna, 10th and janma lords strong." },

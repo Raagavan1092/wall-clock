@@ -1061,6 +1061,12 @@ const ok = (name, cond, extra) => { if (!cond) failures++; console.log((cond ? "
       const ev = {}; VedicEngine.MCEvents.groups.forEach(g => g.events.forEach(e => { ev[e.id] = !!e.noPanchaka; }));
       return ev["travel-south"] && !ev["travel-north"] && ev["shraddha"] && Object.keys(ev).filter(k => ev[k]).length === 4;
     }));
+    ok("find muhurta: new-house entry follows 13.1 and 13.4 (door-side mṛdu/dhruva nakṣatras, four months, 4th and 8th empty)", await page.evaluate(() => {
+      const ev = {}; VedicEngine.MCEvents.groups.forEach(g => g.events.forEach(e => { ev[e.id] = e; }));
+      const e = ev["griha-east"], o = ev["griha-old-east"], same = (a, b) => a.length === b.length && a.every(x => b.indexOf(x) !== -1);
+      return same(e.naks, [3, 4]) && same(ev["griha-north"].naks, [25, 26]) && same(e.masas, [10, 11, 1, 2]) && same(e.emptyHouses, [4, 8]) && e.noAsta && e.uttarayana
+        && !o.noAsta && !o.uttarayana && o.masas.indexOf(4) !== -1 && o.naks.indexOf(23) !== -1 && !!ev["vastu-puja"];
+    }));
     await page.click("#btn-todays-specialities");
     await page.waitForSelector("#ts-body .ts-lead");
     let st = await page.evaluate(() => ({ lead: document.querySelectorAll("#ts-body .ts-lead").length, first: document.querySelector("#ts-body").children[1].className, open: document.querySelectorAll("#ts-body details[open]").length, secs: document.querySelectorAll("#ts-body details").length, chips: document.querySelectorAll("#ts-body .ts-ref").length, personal: /Tārā-bala,/.test(document.querySelector(".ts-lead").textContent) }));

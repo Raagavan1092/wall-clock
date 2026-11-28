@@ -80,6 +80,10 @@
       if (m12 && m2) return { fail: "kartari: malefics on both sides of the lagna (6.44)" };
     }
     if (ev.jamitra && occ[7]) return { fail: "a planet in the 7th (jāmitra, 6.81–87)" };
+    if (ev.emptyHouses) {
+      const h = ev.emptyHouses.find(function (k) { return occ[k]; });
+      if (h) return { fail: "a planet in the " + h + "th (" + occ[h].map(function (p) { return PLANET_NAME[p]; }).join(", ") + "; " + ev.ref + ")" };
+    }
     if (ev.moonNotInLagna && house(signs.moon) === 1) return { fail: "the Moon in the lagna" };
     const good = [];
     BENEFICS.forEach(function (p) { const h = house(signs[p]); if ([1, 4, 7, 10, 5, 9].indexOf(h) !== -1) good.push(PLANET_NAME[p] + " in " + h); });
@@ -237,7 +241,7 @@
     if (!windows.filter(function (w) { return w.e - w.s >= MIN_LEN; }).length) return { reject: "bad windows and yogas" };
 
     // Lagna.
-    const needsLagna = ev.lagnas || ev.badLagnas || ev.stdLagna || ev.jamitra || ev.badLagnasDay || ev.moonNotInLagna;
+    const needsLagna = ev.lagnas || ev.badLagnas || ev.stdLagna || ev.jamitra || ev.emptyHouses || ev.badLagnasDay || ev.moonNotInLagna;
     if (needsLagna) {
       const signs = planetSigns(noon, s);
       const ok = [];
@@ -327,6 +331,7 @@
       if (ev.lagnas) l += ", one the text gives for this";
       if (ev.stdLagna) l += ": 8th empty, Moon well placed, no kartari";
       if (ev.jamitra) l += ", 7th empty";
+      if (ev.emptyHouses) l += ", " + ev.emptyHouses.map(function (h) { return h + "th"; }).join(" and ") + " empty";
       if (w.lagnaNote) l += (ev.stdLagna || ev.jamitra ? "; " : ": ") + w.lagnaNote;
       good.push(l);
     }
